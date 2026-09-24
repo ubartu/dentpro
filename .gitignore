@@ -1,0 +1,25 @@
+node_modules/
+.next/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.tsbuildinfo
+.env
+.env.local
+.data/
+tmp/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Expo generated/native build artifacts
+.expo/
+apps/mobile/dist/
+apps/mobile/android/
+apps/mobile/ios/
+*.apk
+*.aab
+*.ipa

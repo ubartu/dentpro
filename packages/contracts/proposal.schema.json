@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "ItemInput": {
+      "additionalProperties": false,
+      "properties": {
+        "tooth": {
+          "pattern": "^([1-4][1-8]|[5-8][1-5]|ALL)$",
+          "title": "Tooth",
+          "type": "string"
+        },
+        "procedure_code": {
+          "enum": [
+            "ROOT_CANAL",
+            "EXTRACTION",
+            "IMPLANT",
+            "CROWN",
+            "FILLING",
+            "CLEANING"
+          ],
+          "title": "Procedure Code",
+          "type": "string"
+        },
+        "material": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material"
+        },
+        "price_minor": {
+          "maximum": 100000000,
+          "minimum": 0,
+          "title": "Price Minor",
+          "type": "integer"
+        },
+        "sessions": {
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Sessions",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tooth",
+        "procedure_code",
+        "price_minor",
+        "sessions"
+      ],
+      "title": "ItemInput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/ItemInput"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+    },
+    "sessions": {
+      "maximum": 60,
+      "minimum": 1,
+      "title": "Sessions",
+      "type": "integer"
+    },
+    "requires_exam": {
+      "default": true,
+      "title": "Requires Exam",
+      "type": "boolean"
+    },
+    "first_available_slot": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "First Available Slot"
+    },
+    "notes": {
+      "default": "",
+      "maxLength": 1000,
+      "title": "Notes",
+      "type": "string"
+    },
+    "currency": {
+      "const": "TRY",
+      "default": "TRY",
+      "title": "Currency",
+      "type": "string"
+    }
+  },
+  "required": [
+    "items",
+    "sessions"
+  ],
+  "title": "ProposalInput",
+  "type": "object"
+}
