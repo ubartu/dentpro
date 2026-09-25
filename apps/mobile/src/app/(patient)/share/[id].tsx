@@ -46,7 +46,7 @@ export default function Share() {
       }}
     >
       <Heading
-        title="Choose who sees your case."
+        title="Choose your clinics"
         subtitle="Only your selected clinics receive the case and X-ray."
       />
       <Notice

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -324,14 +324,16 @@ export default function Portal({
               </p>
             </div>
           ) : role === "clinic" ? (
-            <ClinicScreen
-              key={section + entityId}
-              section={section}
-              entityId={entityId}
-              data={data}
-              auth={auth}
-              act={act}
-            />
+            <Suspense fallback={<p role="status">Loading clinic view…</p>}>
+              <ClinicScreen
+                key={section + entityId}
+                section={section}
+                entityId={entityId}
+                data={data}
+                auth={auth}
+                act={act}
+              />
+            </Suspense>
           ) : (
             <AdminScreen
               key={section + entityId}

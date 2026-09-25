@@ -1,10 +1,11 @@
 import { Stack } from "expo-router";
-import { colors } from "../../components/ui";
+import { colors, fonts } from "../../components/ui";
 export default function PatientLayout() {
   return (
     <Stack
       screenOptions={{
-        headerTintColor: colors.ink,
+        headerTintColor: colors.blue,
+        headerTitleStyle: { fontFamily: fonts.semibold, fontSize: 16 },
         headerStyle: { backgroundColor: colors.paper },
         headerShadowVisible: false,
         headerBackTitle: "Back",

@@ -7,6 +7,7 @@ import {
   Heading,
   Notice,
   Screen,
+  Section,
   styles,
 } from "../../../components/ui";
 import { useSession } from "../../../lib/session";
@@ -43,7 +44,7 @@ export default function Profile() {
   return (
     <Screen>
       <Heading
-        title="Your profile."
+        title="Your profile"
         subtitle="Keep your contact details up to date for clinic responses."
       />
       <Notice text={action.error} error />
@@ -69,8 +70,7 @@ export default function Profile() {
           busy={action.busy}
         />
       </Card>
-      <Card>
-        <Text style={styles.heading}>Change password</Text>
+      <Section title="Change password" detail="Manage your account security">
         <Field
           label="Current password"
           value={current}
@@ -93,10 +93,10 @@ export default function Profile() {
           disabled={!current || password.length < 10}
           busy={action.busy}
         />
-      </Card>
+      </Section>
       <Button
         title="Sign out"
-        secondary
+        quiet
         onPress={() => void action.run(signOut)}
         busy={action.busy}
       />

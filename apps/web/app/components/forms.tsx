@@ -1,5 +1,6 @@
 "use client";
-import { useState, FormEvent } from "react";
+import { useRef, useState, FormEvent } from "react";
+import ToothSelector from "./tooth-selector";
 import {
   Plus,
   Trash2,
@@ -63,6 +64,8 @@ export function ProposalEditor({
     ],
   );
   const [error, setError] = useState("");
+  const [activeProcedure, setActiveProcedure] = useState(0);
+  const toothSelectorRef = useRef<HTMLDivElement>(null);
   const [saved, setSaved] = useState("");
   const [busy, setBusy] = useState(false);
   const [key, setKey] = useState(() => crypto.randomUUID());
@@ -74,8 +77,13 @@ export function ProposalEditor({
           .toISOString()
           .slice(0, 16)
       : "";
-  const update = (i: number, patch: Partial<Item>) =>
-    setItems(items.map((x, j) => (i === j ? { ...x, ...patch } : x)));
+  const update = (i: number, patch: Partial<Item>) => {
+    setItems((current) =>
+      current.map((x, j) => (i === j ? { ...x, ...patch } : x)),
+    );
+    setKey(crypto.randomUUID());
+    setSaved("");
+  };
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -145,22 +153,75 @@ export function ProposalEditor({
           <h3>1. Treatment plan</h3>
           <p>Your professional assessment is the source of this proposal.</p>
         </div>
+        <Field label="Choose procedure for tooth selection">
+          <select
+            value={activeProcedure}
+            onChange={(e) => {
+              e.stopPropagation();
+              setActiveProcedure(Number(e.target.value));
+            }}
+          >
+            {items.map((item, i) => (
+              <option key={i} value={i}>
+                Procedure {i + 1} · {names[item.procedure_code]} · Tooth{" "}
+                {item.tooth}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <div ref={toothSelectorRef}>
+          <ToothSelector
+            selected={items[activeProcedure].tooth}
+            assigned={items.map((item) => item.tooth)}
+            procedure={activeProcedure + 1}
+            onSelect={(tooth) => update(activeProcedure, { tooth })}
+          />
+        </div>
         {items.map((item, i) => (
-          <div className="procedure-editor" key={i}>
+          <div
+            className={
+              "procedure-editor" +
+              (activeProcedure === i ? " active-procedure" : "")
+            }
+            key={i}
+            onFocusCapture={() => setActiveProcedure(i)}
+          >
             <div className="spread">
               <strong>Procedure {i + 1}</strong>
-              <button
-                type="button"
-                className="icon-btn danger"
-                aria-label={`Remove procedure ${i + 1}`}
-                disabled={items.length === 1}
-                onClick={() => {
-                  setItems(items.filter((_, j) => j !== i));
-                  setKey(crypto.randomUUID());
-                }}
-              >
-                <Trash2 size={16} />
-              </button>
+              <div className="procedure-actions">
+                <button
+                  type="button"
+                  className="text-link"
+                  aria-label={`Choose tooth for procedure ${i + 1} in 3D`}
+                  onClick={() => {
+                    setActiveProcedure(i);
+                    toothSelectorRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }}
+                >
+                  Choose tooth in 3D
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn danger"
+                  aria-label={`Remove procedure ${i + 1}`}
+                  disabled={items.length === 1}
+                  onClick={() => {
+                    setItems(items.filter((_, j) => j !== i));
+                    setActiveProcedure((current) =>
+                      current > i
+                        ? current - 1
+                        : Math.min(current, items.length - 2),
+                    );
+                    setKey(crypto.randomUUID());
+                    setSaved("");
+                  }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
             <div className="form-grid three">
               <Field label="Procedure">
@@ -240,7 +301,9 @@ export function ProposalEditor({
                 sessions: 1,
               },
             ]);
+            setActiveProcedure(items.length);
             setKey(crypto.randomUUID());
+            setSaved("");
           }}
         >
           <Plus size={16} />

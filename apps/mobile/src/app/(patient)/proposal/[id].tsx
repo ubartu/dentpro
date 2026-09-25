@@ -1,4 +1,4 @@
-import { Alert, Text } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   Button,
@@ -7,6 +7,8 @@ import {
   Loading,
   Notice,
   Screen,
+  Section,
+  colors,
   styles,
 } from "../../../components/ui";
 import { useResource } from "../../../lib/use-resource";
@@ -61,7 +63,15 @@ export default function ProposalDetail() {
               Preliminary total · {p.plan.sessions} visits
             </Text>
             {p.plan.items.map((item, i) => (
-              <Card key={i}>
+              <View
+                key={i}
+                style={{
+                  borderTopWidth: 1,
+                  borderColor: colors.border,
+                  paddingTop: 16,
+                  gap: 8,
+                }}
+              >
                 <Text style={styles.heading}>{label(item.procedure_code)}</Text>
                 <Text style={styles.text}>
                   Tooth {item.tooth} · {money(item.price_minor)}
@@ -70,7 +80,7 @@ export default function ProposalDetail() {
                   Material: {item.material || "Not specified"}
                   {"\n"}Sessions: {item.sessions}
                 </Text>
-              </Card>
+              </View>
             ))}
             <Text style={styles.text}>
               Examination:{" "}
@@ -97,30 +107,33 @@ export default function ProposalDetail() {
                     : "Clinical wording review pending"}
                 </Text>
                 <Text style={styles.text}>{p.explanation.plain_summary}</Text>
-                {p.explanation.procedures.map((e) => (
-                  <Text key={e.source_item_id} style={styles.text}>
-                    {e.source_item_id}. {e.simple_explanation}
-                  </Text>
-                ))}
+                <Section
+                  title="Understand each procedure"
+                  detail={`${p.explanation.procedures.length} ${p.explanation.procedures.length === 1 ? "item" : "items"} explained`}
+                >
+                  {p.explanation.procedures.map((e) => (
+                    <Text key={e.source_item_id} style={styles.text}>
+                      {e.source_item_id}. {e.simple_explanation}
+                    </Text>
+                  ))}
+                </Section>
                 {!!p.explanation.missing_information.length && (
-                  <>
-                    <Text style={styles.heading}>Information to clarify</Text>
+                  <Section title="Information to clarify">
                     {p.explanation.missing_information.map((v, i) => (
                       <Text key={i} style={styles.muted}>
                         • {v}
                       </Text>
                     ))}
-                  </>
+                  </Section>
                 )}
                 {!!p.explanation.questions_to_ask_clinic.length && (
-                  <>
-                    <Text style={styles.heading}>Ask your clinic</Text>
+                  <Section title="Ask your clinic">
                     {p.explanation.questions_to_ask_clinic.map((v, i) => (
                       <Text key={i} style={styles.muted}>
                         • {v}
                       </Text>
                     ))}
-                  </>
+                  </Section>
                 )}
                 <Notice text={p.explanation.disclaimer} />
               </>

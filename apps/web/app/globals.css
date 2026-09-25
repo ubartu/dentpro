@@ -499,6 +499,89 @@ code {
   font-size: 10px;
   line-height: 1.5;
 }
+.stat.stat-attention {
+  background: #fff7e8;
+  border-color: #d3912b;
+  box-shadow: inset 0 4px #b76a0b;
+}
+.stat-attention .stat-label,
+.stat-attention strong,
+.stat-attention small {
+  color: #814600;
+  font-weight: 600;
+}
+.stat.stat-attention:hover {
+  background: #ffedc9;
+}
+.case-attention-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  background: #fff7e8;
+  border: 1px solid #ebcd99;
+  border-left: 4px solid #b76a0b;
+  border-radius: 8px;
+  color: #814600;
+}
+.case-attention-summary > svg {
+  flex-shrink: 0;
+}
+.case-attention-summary p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.case-quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.case-quick-filters a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  min-height: 44px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.case-quick-filters a[aria-current="page"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+.case-quick-filters span {
+  background: #edf2ee;
+  color: #243d36;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+tr.case-needs-response td {
+  background: #fffbf2;
+}
+tr.case-needs-response td:first-child {
+  box-shadow: inset 4px 0 #b76a0b;
+}
+.case-needs-response .cell-title {
+  font-weight: 600;
+}
+.response-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  color: #814600;
+  font-size: 11px;
+  font-weight: 600;
+}
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 305px;
@@ -1271,6 +1354,233 @@ footer {
 }
 .wide-modal {
   max-width: 820px;
+}
+.wide-modal:has(.tooth-selector) {
+  max-width: 1060px;
+}
+.tooth-selector {
+  margin: 18px 0 24px;
+  border: 1px solid #dbe5f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.tooth-selector-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #dbe5f0;
+}
+.tooth-selector-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 7px;
+  font-size: 16px;
+  color: #233f64;
+}
+.tooth-selector-heading p,
+.tooth-number-panel > p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.dentition-switch {
+  display: flex;
+  padding: 4px;
+  background: #edf3f9;
+  border-radius: 9px;
+  gap: 4px;
+}
+.dentition-switch button {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #49617e;
+  padding: 10px 12px;
+  min-height: 44px;
+  font-size: 12px;
+}
+.dentition-switch button[aria-pressed="true"] {
+  background: #2469c5;
+  color: white;
+  box-shadow: 0 2px 5px #19488624;
+}
+.tooth-map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 355px;
+}
+.tooth-stage {
+  min-width: 0;
+  position: relative;
+  background: #f3f7fb;
+  padding-bottom: 12px;
+}
+.tooth-canvas {
+  height: 445px;
+  width: 100%;
+}
+.tooth-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tooth-camera-tools {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.tooth-camera-tools .icon-btn {
+  width: 40px;
+  height: 40px;
+  background: white;
+  border: 1px solid #dbe5f0;
+}
+.tooth-map-hint {
+  text-align: center;
+  font-size: 11px;
+  color: #516680;
+  margin: 12px 8px 0;
+}
+.tooth-scene-message {
+  position: absolute;
+  inset: 0 12px auto;
+  top: 40%;
+  text-align: center;
+  padding: 15px;
+  background: #f3f7fbe8;
+  color: #49617e;
+  font-size: 13px;
+  pointer-events: none;
+}
+.tooth-number-panel {
+  padding: 20px 16px;
+  border-left: 1px solid #dbe5f0;
+}
+.tooth-selection-summary {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid #b8d5fa;
+  background: #edf5ff;
+  border-radius: 8px;
+  color: #215da8;
+}
+.tooth-selection-summary strong {
+  font-size: 18px;
+}
+.tooth-selection-summary span {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tooth-selection-summary small {
+  font-size: 11px;
+}
+.dentition-mismatch {
+  color: #77530f;
+  background: #fff7e6;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 10px 0 0;
+}
+.tooth-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 17px 0;
+  font-size: 11px;
+  color: #516680;
+}
+.tooth-legend span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.tooth-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.tooth-legend .selected {
+  background: #2469c5;
+}
+.tooth-legend .assigned {
+  background: #3b9b89;
+}
+.tooth-quadrant {
+  border: 0;
+  margin: 12px 0;
+  padding: 0;
+  min-width: 0;
+}
+.tooth-quadrant legend {
+  font-size: 11px;
+  color: #516680;
+  margin-bottom: 7px;
+}
+.tooth-quadrant > div {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 3px;
+}
+.tooth-quadrant button {
+  min-height: 36px;
+  padding: 6px 0;
+  border: 1px solid #dbe5f0;
+  border-radius: 5px;
+  background: #fff;
+  color: #344b67;
+  font-size: 12px;
+}
+.tooth-quadrant button.assigned {
+  background: #e6f5f1;
+  border-color: #5eaf9e;
+  color: #1d6857;
+}
+.tooth-quadrant button[aria-pressed="true"],
+.whole-mouth[aria-pressed="true"] {
+  background: #2469c5;
+  border-color: #2469c5;
+  color: white;
+}
+.whole-mouth {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #dbe5f0;
+  border-radius: 6px;
+  background: white;
+  color: #344b67;
+  font-size: 12px;
+  margin: 4px 0 12px;
+}
+.procedure-editor.active-procedure {
+  border-color: #9cc2f2;
+  box-shadow: inset 3px 0 #2469c5;
+}
+.procedure-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 800px) {
+  .tooth-map-layout {
+    grid-template-columns: 1fr;
+  }
+  .tooth-number-panel {
+    border-left: 0;
+    border-top: 1px solid #dbe5f0;
+  }
+  .tooth-canvas {
+    height: 360px;
+  }
+  .tooth-quadrant button {
+    min-height: 44px;
+  }
 }
 .modal-header {
   display: flex;

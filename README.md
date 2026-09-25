@@ -44,6 +44,8 @@ The React Native / Expo app for iOS and Android is in `apps/mobile`. Run `npm ru
 | Clinic profile      | Edit contact details, address, description and opening hours                                                                                                              |
 | Subscription        | View current subscription state, administrative fee and renewal date                                                                                                      |
 
+The clinic proposal editor includes a rotatable 3D tooth selector with adult (32 teeth) and child (20 teeth) views. Choose the active procedure, then click a tooth or its numbered button to fill the FDI field. Blue marks the active selection; teal marks teeth used elsewhere in the proposal. Whole-mouth selection uses `ALL`. Switching views preserves mixed-dentition plans, drafts and revisions. Numbered buttons and the FDI input remain available if WebGL is unavailable. The model is a procedural schematic, not a patient scan.
+
 ## Admin panel
 
 | Page               | Actions                                                                                                                                                     |

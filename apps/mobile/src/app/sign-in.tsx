@@ -2,10 +2,13 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import {
   Button,
-  Card,
+  Brand,
+  colors,
+  fonts,
   Field,
   Heading,
   Notice,
+  LoadingBrand,
   Screen,
   styles,
 } from "../components/ui";
@@ -44,85 +47,108 @@ export default function SignIn() {
     }
   }
   return (
-    <Screen>
-      <View style={{ paddingVertical: 16, gap: 14 }}>
-        <Text style={styles.badge}>YOUR DENTAL CARE, EXPLAINED</Text>
+    <Screen topInset contentStyle={{ flexGrow: 1, paddingTop: 28, gap: 32 }}>
+      <View style={{ gap: 36 }}>
+        <Brand />
         <Heading
-          title={register ? "A clearer path to care." : "Welcome to DENTpro."}
-          subtitle="Share one X-ray. Hear from clinics. Understand your options."
-        />
-      </View>
-      <Card>
-        <Text style={styles.heading}>
-          {register ? "Create your patient account" : "Sign in to your account"}
-        </Text>
-        {register && (
-          <>
-            <Field
-              label="Full name"
-              value={name}
-              onChangeText={setName}
-              autoComplete="name"
-            />
-            <Field
-              label="Phone number"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-            />
-            <Text style={styles.muted}>
-              Shared with a clinic only after you request contact.
-            </Text>
-          </>
-        )}
-        <Field
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-        />
-        <Field
-          label={register ? "Password (at least 10 characters)" : "Password"}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          autoComplete={register ? "new-password" : "current-password"}
-        />
-        <Notice text={error} error />
-        <Button
-          title={register ? "Create account" : "Sign in"}
-          onPress={() => void submit()}
-          busy={busy}
-          disabled={
-            !email.trim() ||
-            !password ||
-            (register &&
-              (name.trim().length < 2 ||
-                phone.trim().length < 7 ||
-                password.length < 10))
-          }
-        />
-        <Button
           title={
             register
-              ? "Already registered? Sign in"
-              : "New here? Create an account"
+              ? "Create your account"
+              : "Sign in to your\nDENTpro account"
           }
-          secondary
-          onPress={() => {
-            setRegister(!register);
-            setError("");
-          }}
+          subtitle={
+            register
+              ? "A little about you. A clearer path to dental care."
+              : "Welcome back. Your care, all in one place."
+          }
         />
-      </Card>
-      {__DEV__ && (
-        <Notice text="Development environment — use synthetic data only." />
+      </View>
+      {busy ? (
+        <LoadingBrand
+          title={register ? "Creating your account" : "Signing you in"}
+          detail="Connecting to your care space…"
+        />
+      ) : (
+        <View style={{ gap: 20 }}>
+          {register && (
+            <>
+              <Field
+                label="Full name"
+                value={name}
+                onChangeText={setName}
+                autoComplete="name"
+              />
+              <Field
+                label="Phone number"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+              />
+              <Text style={styles.muted}>
+                Shared with a clinic only after you request contact.
+              </Text>
+            </>
+          )}
+          <Field
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
+          <Field
+            label={register ? "Password (at least 10 characters)" : "Password"}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete={register ? "new-password" : "current-password"}
+          />
+          <Notice text={error} error />
+          <Button
+            title={register ? "Create account" : "Sign in"}
+            onPress={() => void submit()}
+            busy={busy}
+            disabled={
+              !email.trim() ||
+              !password ||
+              (register &&
+                (name.trim().length < 2 ||
+                  phone.trim().length < 7 ||
+                  password.length < 10))
+            }
+          />
+          <Button
+            title={
+              register
+                ? "Already registered? Sign in"
+                : "New here? Create an account"
+            }
+            quiet
+            disabled={busy}
+            onPress={() => {
+              setRegister(!register);
+              setError("");
+            }}
+          />
+        </View>
       )}
-      <Text style={styles.muted}>
+      <View style={{ flex: 1, minHeight: 10 }} />
+      <View style={{ alignItems: "center", gap: 10 }}>
+        <Text
+          style={{ color: colors.blue, fontFamily: fonts.medium, fontSize: 12 }}
+        >
+          Your information. Your choice.
+        </Text>
+      </View>
+      <Text
+        style={[
+          styles.muted,
+          { textAlign: "center", fontSize: 11, lineHeight: 17 },
+        ]}
+      >
         DENTpro explains proposals written by clinics. It does not diagnose
         conditions or prescribe treatment.
       </Text>

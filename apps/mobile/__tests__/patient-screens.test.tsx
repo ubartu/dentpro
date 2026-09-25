@@ -97,6 +97,32 @@ it("registers a patient without offering staff roles", async () => {
   );
   expect(screen.queryByText("Admin")).toBeNull();
 });
+it("shows loading during sign-in and restores entered details after a failure", async () => {
+  let rejectLogin!: (error: Error) => void;
+  api.mockImplementationOnce(
+    () =>
+      new Promise((_, reject) => {
+        rejectLogin = reject;
+      }),
+  );
+  render(<SignIn />);
+  fireEvent.changeText(screen.getByLabelText("Email"), "patient@example.org");
+  fireEvent.changeText(screen.getByLabelText("Password"), "Patient123!");
+  fireEvent.press(screen.getByText("Sign in"));
+  expect(screen.getByLabelText("DENTpro loading")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
+  await act(async () => {
+    rejectLogin(new ApiError(401, "Invalid credentials"));
+  });
+  expect(screen.getByText("Invalid credentials")).toBeTruthy();
+  expect(screen.getByLabelText("Email")).toHaveDisplayValue(
+    "patient@example.org",
+  );
+  expect(screen.getByLabelText("Password")).toHaveDisplayValue("Patient123!");
+  expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled();
+  expect(screen.queryByLabelText("DENTpro loading")).toBeNull();
+  expect(api).toHaveBeenCalledTimes(1);
+});
 it("requires consent and reuses the same case payload/key after an uncertain failure", async () => {
   data({
     regions: ["Istanbul"],

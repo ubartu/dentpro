@@ -11,6 +11,7 @@ import {
   Loading,
   Notice,
   Screen,
+  Section,
   styles,
 } from "../../../components/ui";
 import { useResource } from "../../../lib/use-resource";
@@ -58,7 +59,7 @@ export default function CaseDetail() {
           );
         setProgress(0);
         await upload(`/cases/${id}/xray`, token!, file, setProgress);
-        setPreviewRevision(v => v + 1);
+        setPreviewRevision((v) => v + 1);
         await refresh();
       } finally {
         setProgress(null);
@@ -87,11 +88,13 @@ export default function CaseDetail() {
             title={c.title}
             subtitle={`${c.region} · ${label(c.status)}`}
           />
-          <Card>
-            <Text style={styles.heading}>Your X-ray</Text>
+          <Section
+            title="Your X-ray"
+            detail={c.asset ? c.asset.name : "Add an image to get started"}
+            initiallyOpen={c.status === "draft"}
+          >
             {c.asset ? (
               <>
-                <Text style={styles.muted}>{c.asset.name}</Text>
                 {c.asset.type.startsWith("image/") && (
                   <CaseImage
                     caseId={id}
@@ -125,7 +128,7 @@ export default function CaseDetail() {
                 Uploading {progress}%
               </Text>
             )}
-          </Card>
+          </Section>
           {c.status !== "archived" && (
             <Button
               title={
@@ -133,6 +136,7 @@ export default function CaseDetail() {
                   ? `Shared with ${c.recipients.length} clinics · manage`
                   : "Choose clinics & share"
               }
+              secondary={c.recipients.length > 0}
               disabled={!c.asset || action.busy}
               onPress={() =>
                 router.push({ pathname: "/share/[id]", params: { id } })

@@ -18,6 +18,8 @@ Default API addresses are `http://10.0.2.2:8000` for the Android emulator and `h
 - Keep the phone and computer on the same trusted network. Restart Expo after changing environment variables.
 - Use synthetic data. The backend still rejects production startup. Never expose this evaluation server to the public internet.
 
+If Android Expo Go hangs at startup on macOS with `--localhost`, Metro may be listening only on IPv6 while `adb reverse` expects IPv4. From this directory, run `NODE_OPTIONS=--dns-result-order=ipv4first npx expo start --go --android --localhost`. Restart Metro after dependency installation so its resolver uses the current workspace layout.
+
 ## Implemented screens
 
 - Sign in / register with distinct patient identity and secure native token storage.
@@ -66,6 +68,10 @@ npx eas-cli@latest build --platform ios --profile development
 For store builds, configure an HTTPS `EXPO_PUBLIC_API_URL` in the EAS production environment and complete the backend release requirements first. The app refuses non-HTTPS API configuration in release JavaScript; Android cleartext traffic is enabled only outside the production build profile. Local development and preview packages must use a reachable API endpoint.
 
 Apple signing/TestFlight/App Store and Google Play distribution require the respective developer accounts and credentials. EAS builds and store submission are not performed automatically by this project.
+
+## Patient UI design
+
+The patient interface uses blue tones, bundled Inter fonts and the supplied Figma login and meditation-app layout references. Home, Requests and Profile remain the three primary tabs; longer X-ray and explanation details expand on demand. Loading during startup, session restoration and sign-in/registration shows a native perspective-rotating badge, with reduced-motion support. Native launcher/splash assets share the blue badge. See [design sources](assets/figma/README.md) for reference nodes and asset provenance.
 
 ## Remaining production integrations
 

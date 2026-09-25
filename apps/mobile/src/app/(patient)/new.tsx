@@ -72,7 +72,7 @@ export default function NewCase() {
   return (
     <Screen>
       <Heading
-        title="Tell us about your case."
+        title="Start with your case"
         subtitle="Create your case, add an X-ray, then choose who receives it."
       />
       <Notice text={r.error || action.error} error />
