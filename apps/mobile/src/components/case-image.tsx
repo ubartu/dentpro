@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Image } from "react-native";
+import { Image } from "expo-image";
 import { File, Paths } from "expo-file-system";
 import * as Crypto from "expo-crypto";
 import { API_URL } from "../lib/api";
@@ -66,7 +66,8 @@ export function CaseImage({
       source={{ uri }}
       onError={() => setError(true)}
       style={{ width: "100%", height: 220, borderRadius: 12 }}
-      resizeMode="contain"
+      contentFit="contain"
+      cachePolicy="none"
     />
   );
 }

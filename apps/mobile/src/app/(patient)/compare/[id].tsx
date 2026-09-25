@@ -48,7 +48,7 @@ export default function Compare() {
   return (
     <Screen refresh={() => void r.refresh()} refreshing={r.loading && !!r.data}>
       <Heading
-        title="Understand the differences."
+        title="Compare your options"
         subtitle="Compare the same fields, without scores or rankings."
       />
       <Notice text={r.error} error />
@@ -75,7 +75,7 @@ export default function Compare() {
                   <View
                     key={p.id}
                     style={{
-                      width: 265,
+                      width: 220,
                       padding: 14,
                       backgroundColor: colors.pale,
                     }}
@@ -98,10 +98,10 @@ export default function Compare() {
                     <View
                       key={rows[i].id}
                       style={{
-                        width: 265,
+                        width: 220,
                         padding: 14,
                         gap: 8,
-                        backgroundColor: i % 2 ? "#EEF3EF" : "#FFF",
+                        backgroundColor: i % 2 ? colors.pale : "#FFF",
                       }}
                     >
                       <Text style={styles.muted}>{field.name}</Text>
@@ -112,7 +112,7 @@ export default function Compare() {
               ))}
               <View style={{ flexDirection: "row" }}>
                 {rows.map((p) => (
-                  <View key={p.id} style={{ width: 265, padding: 10 }}>
+                  <View key={p.id} style={{ width: 220, padding: 10 }}>
                     <Button
                       title={`View ${p.clinic_name}`}
                       onPress={() =>

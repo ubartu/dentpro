@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { LogoMark } from "./logo-mark";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,24 +13,33 @@ import {
   Text,
   TextInput,
   TextInputProps,
+  StyleProp,
+  ViewStyle,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 export const colors = {
-  ink: "#183B3B",
-  muted: "#627776",
-  green: "#167568",
-  pale: "#E9F4EF",
-  paper: "#F5F7F3",
-  border: "#DCE5DF",
-  danger: "#9F3935",
+  ink: "#203454",
+  muted: "#697C96",
+  blue: "#246BEB",
+  pale: "#EFF6FF",
+  sky: "#DCEEFF",
+  paper: "#FFFFFF",
+  border: "#E6EDF6",
+  danger: "#B13D4B",
   amber: "#865C22",
+};
+export const fonts = {
+  regular: "Inter_400Regular",
+  medium: "Inter_500Medium",
+  semibold: "Inter_600SemiBold",
+  bold: "Inter_700Bold",
 };
 export const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.paper },
   content: {
-    padding: 22,
-    gap: 18,
+    padding: 24,
+    gap: 24,
     paddingBottom: 40,
     width: "100%",
     maxWidth: 720,
@@ -35,17 +47,33 @@ export const styles = StyleSheet.create({
   },
   title: {
     color: colors.ink,
-    fontSize: 30,
-    fontWeight: "700",
-    letterSpacing: -1,
+    fontSize: 28,
+    fontFamily: fonts.bold,
+    letterSpacing: -0.7,
+    lineHeight: 36,
   },
-  heading: { color: colors.ink, fontSize: 20, fontWeight: "700" },
-  text: { color: colors.ink, fontSize: 16, lineHeight: 24 },
-  muted: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  heading: {
+    color: colors.ink,
+    fontSize: 19,
+    fontFamily: fonts.bold,
+    letterSpacing: -0.4,
+  },
+  text: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 23,
+    fontFamily: fonts.regular,
+  },
+  muted: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    fontFamily: fonts.regular,
+  },
   card: {
     backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 18,
     gap: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -57,15 +85,14 @@ export const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   badge: {
-    color: colors.green,
+    color: colors.blue,
     backgroundColor: colors.pale,
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
     fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontFamily: fonts.semibold,
   },
   input: {
     color: colors.ink,
@@ -74,40 +101,56 @@ export const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     padding: 14,
-    minHeight: 50,
-    fontSize: 16,
+    minHeight: 52,
+    fontSize: 14,
+    fontFamily: fonts.medium,
   },
   button: {
-    backgroundColor: colors.green,
+    backgroundColor: colors.blue,
     minHeight: 50,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingHorizontal: 18,
     paddingVertical: 13,
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+  buttonText: { color: "#FFF", fontFamily: fonts.semibold, fontSize: 14 },
 });
 export function Screen({
   children,
   refresh,
   refreshing = false,
-}: React.PropsWithChildren<{ refresh?: () => void; refreshing?: boolean }>) {
+  contentStyle,
+  topInset = false,
+}: React.PropsWithChildren<{
+  refresh?: () => void;
+  refreshing?: boolean;
+  contentStyle?: StyleProp<ViewStyle>;
+  topInset?: boolean;
+}>) {
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
+    <SafeAreaView
+      edges={
+        topInset
+          ? ["top", "left", "right", "bottom"]
+          : ["left", "right", "bottom"]
+      }
+      style={styles.page}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, contentStyle]}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             refresh ? (
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={refresh}
-                tintColor={colors.green}
+                tintColor={colors.blue}
               />
             ) : undefined
           }
@@ -134,8 +177,11 @@ export function Heading({
     </View>
   );
 }
-export function Card({ children }: React.PropsWithChildren) {
-  return <View style={styles.card}>{children}</View>;
+export function Card({
+  children,
+  style,
+}: React.PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
+  return <View style={[styles.card, style]}>{children}</View>;
 }
 export function Button({
   title,
@@ -143,12 +189,14 @@ export function Button({
   disabled = false,
   secondary = false,
   busy = false,
+  quiet = false,
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   secondary?: boolean;
   busy?: boolean;
+  quiet?: boolean;
 }) {
   return (
     <Pressable
@@ -159,30 +207,139 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         secondary && { backgroundColor: colors.pale },
+        quiet && { backgroundColor: "transparent" },
+        { overflow: "hidden" },
         { opacity: disabled || busy ? 0.5 : pressed ? 0.75 : 1 },
       ]}
     >
+      {!secondary && !quiet && (
+        <LinearGradient
+          pointerEvents="none"
+          colors={["#3473D9", colors.blue]}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       {busy ? (
-        <ActivityIndicator color={secondary ? colors.green : "#FFF"} />
+        <ActivityIndicator color={secondary || quiet ? colors.blue : "#FFF"} />
       ) : (
-        <Text style={[styles.buttonText, secondary && { color: colors.green }]}>
+        <Text
+          style={[
+            styles.buttonText,
+            (secondary || quiet) && { color: colors.blue },
+          ]}
+        >
           {title}
         </Text>
       )}
     </Pressable>
   );
 }
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
+export function Field({
+  label,
+  secureTextEntry,
+  ...props
+}: TextInputProps & { label: string }) {
+  const [focused, setFocused] = useState(false);
+  const [show, setShow] = useState(false);
   return (
-    <View style={{ gap: 7 }}>
-      <Text style={[styles.muted, { fontWeight: "600" }]}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        placeholderTextColor={colors.muted}
-        {...props}
-        style={[styles.input, props.style]}
-      />
+    <View style={{ gap: 8 }}>
+      <Text style={[styles.muted, { fontFamily: fonts.medium }]}>{label}</Text>
+      <View style={{ justifyContent: "center" }}>
+        <TextInput
+          accessibilityLabel={label}
+          placeholderTextColor={colors.muted}
+          {...props}
+          secureTextEntry={secureTextEntry && !show}
+          onFocus={(event) => {
+            setFocused(true);
+            props.onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            props.onBlur?.(event);
+          }}
+          style={[
+            styles.input,
+            focused && { borderColor: colors.blue, backgroundColor: "#FAFCFF" },
+            secureTextEntry && { paddingRight: 54 },
+            props.style,
+          ]}
+        />
+        {secureTextEntry && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              show
+                ? `Hide ${label.toLowerCase()}`
+                : `Show ${label.toLowerCase()}`
+            }
+            onPress={() => setShow(!show)}
+            style={{ position: "absolute", right: 0, padding: 16 }}
+          >
+            <Ionicons
+              name={show ? "eye-outline" : "eye-off-outline"}
+              size={20}
+              color={colors.muted}
+            />
+          </Pressable>
+        )}
+      </View>
     </View>
+  );
+}
+export function Brand() {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <LogoMark size={28} />
+      <Text
+        style={{
+          fontFamily: fonts.bold,
+          fontSize: 21,
+          color: colors.ink,
+          letterSpacing: -0.8,
+        }}
+      >
+        DENT<Text style={{ color: colors.blue }}>pro</Text>
+      </Text>
+    </View>
+  );
+}
+export function Section({
+  title,
+  detail,
+  children,
+  initiallyOpen = false,
+}: React.PropsWithChildren<{
+  title: string;
+  detail?: string;
+  initiallyOpen?: boolean;
+}>) {
+  const [open, setOpen] = useState(initiallyOpen);
+  return (
+    <Card>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen(!open)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          minHeight: 44,
+        }}
+      >
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={styles.heading}>{title}</Text>
+          {detail && <Text style={styles.muted}>{detail}</Text>}
+        </View>
+        <Ionicons
+          name={open ? "chevron-up" : "chevron-down"}
+          size={19}
+          color={colors.blue}
+        />
+      </Pressable>
+      {open && <View style={{ gap: 14 }}>{children}</View>}
+    </Card>
   );
 }
 export function Notice({
@@ -237,8 +394,8 @@ export function Check({
           height: 25,
           borderRadius: 7,
           borderWidth: 2,
-          borderColor: colors.green,
-          backgroundColor: checked ? colors.green : "white",
+          borderColor: colors.blue,
+          backgroundColor: checked ? colors.blue : "white",
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -256,7 +413,7 @@ export function Loading() {
     <ActivityIndicator
       accessibilityLabel="Loading"
       size="large"
-      color={colors.green}
+      color={colors.blue}
       style={{ marginVertical: 30 }}
     />
   );
@@ -267,5 +424,42 @@ export function Empty({ title, detail }: { title: string; detail: string }) {
       <Text style={styles.heading}>{title}</Text>
       <Text style={styles.muted}>{detail}</Text>
     </Card>
+  );
+}
+
+export function LoadingBrand({
+  title = "Opening your care space",
+  detail = "Just a moment…",
+}: {
+  title?: string;
+  detail?: string;
+}) {
+  return (
+    <View
+      accessibilityLiveRegion="polite"
+      style={{
+        flex: 1,
+        minHeight: 220,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 20,
+        paddingVertical: 32,
+      }}
+    >
+      <View
+        style={{
+          width: 132,
+          height: 132,
+          borderRadius: 66,
+          backgroundColor: colors.pale,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <LogoMark size={76} loading />
+      </View>
+      <Text style={[styles.heading, { textAlign: "center" }]}>{title}</Text>
+      <Text style={[styles.muted, { textAlign: "center" }]}>{detail}</Text>
+    </View>
   );
 }
