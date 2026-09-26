@@ -12,12 +12,20 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+          cache-dependency-path: package-lock.json
       - run: python -m pip install -r services/api/requirements.lock.txt
       - run: PYTHONPATH=services/api python -m pytest services/api/tests -q
-      - run: npm ci
+      - run: npm ci --workspaces --include-workspace-root
+        working-directory: ${{ github.workspace }}
       - run: npm run typecheck
+        working-directory: ${{ github.workspace }}
       - run: npm run build
+        working-directory: ${{ github.workspace }}
       - run: npm run mobile:typecheck
+        working-directory: ${{ github.workspace }}
       - run: npm run mobile:lint
+        working-directory: ${{ github.workspace }}
       - run: npm run mobile:test
+        working-directory: ${{ github.workspace }}
       - run: npm run mobile:export
+        working-directory: ${{ github.workspace }}
