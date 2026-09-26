@@ -49,6 +49,19 @@ class ClinicLocation(Base):
     latitude: Mapped[float] = mapped_column(Float)
     longitude: Mapped[float] = mapped_column(Float)
 
+class ClinicDiscoveryProfile(Base):
+    """Only clinic-owned links and the cache-exempt Google Place ID are persisted."""
+    __tablename__ = 'clinic_discovery_profiles'
+    clinic_id: Mapped[str] = mapped_column(String, primary_key=True)
+    google_place_id: Mapped[str | None] = mapped_column(nullable=True)
+    social_links: Mapped[list] = mapped_column(JSON, default=list)
+
+class PlacesLookupWindow(Base):
+    __tablename__ = 'places_lookup_windows'
+    account_id: Mapped[str] = mapped_column(String, primary_key=True)
+    requests: Mapped[int] = mapped_column(default=0)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
 class CaseReview(Base):
     __tablename__ = 'clinic_case_reviews'
     __table_args__ = (UniqueConstraint('case_id', 'clinic_id'),)

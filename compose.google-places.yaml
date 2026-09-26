@@ -1,0 +1,11 @@
+# Optional overlay: docker compose ... -f compose.cloud.yaml -f compose.google-places.yaml up -d --build
+services:
+  api:
+    environment:
+      DENTPRO_GOOGLE_PLACES_ENABLED: "true"
+      GOOGLE_PLACES_API_KEY_FILE: /run/secrets/google_places_key
+    secrets:
+      - google_places_key
+secrets:
+  google_places_key:
+    file: ./secrets/google_places_api_key

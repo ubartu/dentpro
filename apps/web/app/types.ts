@@ -16,6 +16,8 @@ export type Clinic = {
   address: string;
   latitude: number | null;
   longitude: number | null;
+  google_place_id: string | null;
+  social_links: { platform: string; url: string }[];
   status: string;
   email: string;
   phone: string;

@@ -10,6 +10,7 @@ from .contracts import StrictModel, AppointmentOutput
 from .db import get_db, now, audit, Appointment, Proposal, Case, Clinic
 from .operations_models import Account, LoginSession, PatientProfile, ClinicProfile, ClinicLocation, AppointmentDetail, PlatformSetting
 from .operations import LoginInput, sign_in
+from .clinic_discovery import SocialLink, discovery_view
 
 router = APIRouter(prefix='/patient', tags=['patient'])
 
@@ -60,6 +61,8 @@ class PatientClinic(StrictModel):
     hours: str
     latitude: float | None
     longitude: float | None
+    google_linked: bool
+    social_links: list[SocialLink]
 
 CONSENT_VERSION = 'patient-sharing-1'
 CONSENT_TEXT = 'I agree to store this case and share its X-ray and case details with the clinics I select for a preliminary treatment proposal. My contact details will be shared with a clinic when I request an appointment or callback.'
@@ -140,6 +143,7 @@ def clinics(user=Depends(require('patient')), db=Depends(get_db)):
         {k: getattr(c,k) for k in ('id','name','region','district','address')}
         | {k: getattr(p,k) for k in ('phone','description','hours')}
         | {'latitude': loc.latitude if loc else None, 'longitude': loc.longitude if loc else None}
+        | {'google_linked': bool(discovery_view(db,c.id)['google_place_id']), 'social_links': discovery_view(db,c.id)['social_links']}
         for c,p,loc in rows
     ]
 

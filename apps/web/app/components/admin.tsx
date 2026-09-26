@@ -44,6 +44,8 @@ import {
   MembersPanel,
   ProfileFields,
   profileData,
+  DiscoveryFields,
+  discoveryData,
   ProposalDetail,
 } from "./forms";
 import { CaseTable, ImageViewer, ActivityChart } from "./clinic";
@@ -184,7 +186,11 @@ export default function AdminScreen({
               </div>
               <div className="mini-summary">
                 <span>Provider</span>
-                <strong>{telemetry.configured ? `OpenAI · ${telemetry.model}` : "Template"}</strong>
+                <strong>
+                  {telemetry.configured
+                    ? `OpenAI · ${telemetry.model}`
+                    : "Template"}
+                </strong>
               </div>
               <div className="mini-summary">
                 <span>Stored explanations</span>
@@ -192,7 +198,10 @@ export default function AdminScreen({
               </div>
               <div className="mini-summary">
                 <span>Provider usage</span>
-                <strong>{telemetry.input_tokens} input / {telemetry.output_tokens} output tokens</strong>
+                <strong>
+                  {telemetry.input_tokens} input / {telemetry.output_tokens}{" "}
+                  output tokens
+                </strong>
               </div>
               <Link className="secondary" href="/admin/interpreter">
                 Inspect queue
@@ -716,13 +725,27 @@ export default function AdminScreen({
             <Stat
               label="Gateway"
               value={telemetry.configured ? "OpenAI ready" : "Template only"}
-              note={telemetry.configured ? telemetry.model : "Set server-side provider and key to enable AI"}
+              note={
+                telemetry.configured
+                  ? telemetry.model
+                  : "Set server-side provider and key to enable AI"
+              }
             />
           </div>
           <div className="notice">
             <ShieldCheck size={20} />
             <p>
-              Current provider: <strong>{telemetry.configured ? `OpenAI ${telemetry.model}` : "template interpreter"}</strong>. The gateway sends only structured clinic plan fields and a template summary; X-rays, patient identifiers, contact details, and clinical notes stay outside its payload. Invalid or unavailable AI output falls back to the template. Cached versions are not regenerated on page views.
+              Current provider:{" "}
+              <strong>
+                {telemetry.configured
+                  ? `OpenAI ${telemetry.model}`
+                  : "template interpreter"}
+              </strong>
+              . The gateway sends only structured clinic plan fields and a
+              template summary; X-rays, patient identifiers, contact details,
+              and clinical notes stay outside its payload. Invalid or
+              unavailable AI output falls back to the template. Cached versions
+              are not regenerated on page views.
             </p>
           </div>
           <div className="toolbar">
@@ -775,9 +798,13 @@ export default function AdminScreen({
                           <Badge>{j.status}</Badge>
                         </td>
                         <td>
-                          <strong>{j.provider === "openai" ? "OpenAI" : "Template"}</strong>
+                          <strong>
+                            {j.provider === "openai" ? "OpenAI" : "Template"}
+                          </strong>
                           <small>{j.model}</small>
-                          {j.output_mode && <Badge>{j.output_mode.replaceAll("_", " ")}</Badge>}
+                          {j.output_mode && (
+                            <Badge>{j.output_mode.replaceAll("_", " ")}</Badge>
+                          )}
                         </td>
                         <td>{j.attempts}</td>
                         <td>{datetime(j.updated_at)}</td>
@@ -1135,6 +1162,27 @@ export default function AdminScreen({
                 </select>
               </Field>
               <ProfileFields clinic={clinic} />
+            </Form>
+          </details>
+          <details className="profile-disclosure">
+            <summary>Google Maps & social profiles</summary>
+            <Form
+              label="Save discovery profile"
+              onSave={async (f) => {
+                await act(
+                  `/admin/clinics/${clinic.id}/discovery`,
+                  discoveryData(f, true),
+                  "PUT",
+                );
+                setClinic(null);
+              }}
+            >
+              <DiscoveryFields clinic={clinic} includeGoogle />
+              <p className="muted">
+                Google ratings and photos are fetched on demand in the patient
+                app. Google does not provide social profile links through Places
+                API.
+              </p>
             </Form>
           </details>
           <Form

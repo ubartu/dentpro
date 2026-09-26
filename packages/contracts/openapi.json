@@ -2073,6 +2073,223 @@
           }
         }
       }
+    },
+    "/admin/clinics/{clinic_id}/discovery": {
+      "put": {
+        "tags": [
+          "clinic-discovery"
+        ],
+        "summary": "Update Discovery",
+        "operationId": "update_discovery_admin_clinics__clinic_id__discovery_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "clinic_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clinic Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscoveryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/discovery": {
+      "put": {
+        "tags": [
+          "clinic-discovery"
+        ],
+        "summary": "Update Socials",
+        "operationId": "update_socials_clinic_discovery_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SocialLinksInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/admin/integrations/google-places": {
+      "get": {
+        "tags": [
+          "clinic-discovery"
+        ],
+        "summary": "Gateway Status",
+        "operationId": "gateway_status_admin_integrations_google_places_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/patient/clinics/{clinic_id}/google-profile": {
+      "get": {
+        "tags": [
+          "clinic-discovery"
+        ],
+        "summary": "Patient Google Profile",
+        "operationId": "patient_google_profile_patient_clinics__clinic_id__google_profile_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "clinic_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clinic Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GooglePlaceProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/clinics/{clinic_id}/google-profile": {
+      "get": {
+        "tags": [
+          "clinic-discovery"
+        ],
+        "summary": "Admin Google Profile",
+        "operationId": "admin_google_profile_admin_clinics__clinic_id__google_profile_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "clinic_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clinic Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GooglePlaceProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2677,6 +2894,33 @@
         ],
         "title": "ComparisonOutput"
       },
+      "DiscoveryInput": {
+        "properties": {
+          "social_links": {
+            "items": {
+              "$ref": "#/components/schemas/SocialLink"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Social Links"
+          },
+          "google_place_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{10,255}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Google Place Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DiscoveryInput"
+      },
       "DispatchAdminInput": {
         "properties": {
           "clinic_ids": {
@@ -2867,6 +3111,89 @@
           "reviewed"
         ],
         "title": "GlossaryInput"
+      },
+      "GooglePlaceProfile": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "disabled",
+              "not_linked",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 5.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "review_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Count"
+          },
+          "google_maps_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Google Maps Url"
+          },
+          "website_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website Url"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlacePhoto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attributions": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderAttribution"
+            },
+            "type": "array",
+            "title": "Attributions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "GooglePlaceProfile"
       },
       "HTTPValidationError": {
         "properties": {
@@ -3182,6 +3509,17 @@
               }
             ],
             "title": "Longitude"
+          },
+          "google_linked": {
+            "type": "boolean",
+            "title": "Google Linked"
+          },
+          "social_links": {
+            "items": {
+              "$ref": "#/components/schemas/SocialLink"
+            },
+            "type": "array",
+            "title": "Social Links"
           }
         },
         "additionalProperties": false,
@@ -3196,7 +3534,9 @@
           "description",
           "hours",
           "latitude",
-          "longitude"
+          "longitude",
+          "google_linked",
+          "social_links"
         ],
         "title": "PatientClinic"
       },
@@ -3248,6 +3588,72 @@
           "user"
         ],
         "title": "PatientSession"
+      },
+      "PhotoAuthor": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "profile_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Url"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "PhotoAuthor"
+      },
+      "PlacePhoto": {
+        "properties": {
+          "uri": {
+            "type": "string",
+            "title": "Uri"
+          },
+          "google_maps_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Google Maps Url"
+          },
+          "authors": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoAuthor"
+            },
+            "type": "array",
+            "title": "Authors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uri"
+        ],
+        "title": "PlacePhoto"
       },
       "ProcedureExplanation": {
         "properties": {
@@ -3484,6 +3890,30 @@
         ],
         "title": "ProposalOutput"
       },
+      "ProviderAttribution": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ProviderAttribution"
+      },
       "PublishInput": {
         "properties": {
           "plan": {
@@ -3598,6 +4028,49 @@
           "upload_limit_mb"
         ],
         "title": "SettingsInput"
+      },
+      "SocialLink": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "instagram",
+              "facebook",
+              "youtube",
+              "linkedin",
+              "x",
+              "tiktok"
+            ],
+            "title": "Platform"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "platform",
+          "url"
+        ],
+        "title": "SocialLink"
+      },
+      "SocialLinksInput": {
+        "properties": {
+          "social_links": {
+            "items": {
+              "$ref": "#/components/schemas/SocialLink"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Social Links"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SocialLinksInput"
       },
       "SubscriptionInput": {
         "properties": {

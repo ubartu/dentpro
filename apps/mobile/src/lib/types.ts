@@ -5,6 +5,7 @@ export type Session = Schemas["PatientSession"];
 export type DentalCase = Schemas["CaseOutput"];
 export type Proposal = Schemas["ProposalOutput"];
 export type Clinic = Schemas["PatientClinic"];
+export type GooglePlaceProfile = Schemas["GooglePlaceProfile"];
 export type Appointment = Schemas["PatientAppointment"];
 export type Capabilities = Schemas["Capabilities"];
 export type Comparison = Schemas["ComparisonOutput"];

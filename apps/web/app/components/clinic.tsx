@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -45,6 +46,8 @@ import {
   MembersPanel,
   ProfileFields,
   profileData,
+  DiscoveryFields,
+  discoveryData,
   ProposalEditor,
   ProposalDetail,
 } from "./forms";
@@ -56,14 +59,36 @@ export const caseStatus = (c: DentalCase) =>
       : c.draft
         ? "draft"
         : c.review_status;
+const caseFilters = [
+  "all",
+  "new",
+  "unanswered",
+  "reviewing",
+  "draft",
+  "proposed",
+  "declined",
+  "archived",
+];
+const needsResponse = (c: DentalCase) =>
+  c.status !== "archived" &&
+  !c.active_proposals &&
+  c.review_status !== "declined";
+const prioritizeCases = (cases: DentalCase[]) =>
+  [...cases].sort(
+    (a, b) =>
+      Number(needsResponse(b)) - Number(needsResponse(a)) ||
+      b.created_at.localeCompare(a.created_at),
+  );
 export function CaseTable({
   cases,
   base = "/clinic",
   limit,
+  filtered = false,
 }: {
   cases: DentalCase[];
   base?: string;
   limit?: number;
+  filtered?: boolean;
 }) {
   return (
     <div className="table-wrap">
@@ -79,12 +104,25 @@ export function CaseTable({
         </thead>
         <tbody>
           {cases.slice(0, limit).map((c) => (
-            <tr key={c.id}>
+            <tr
+              key={c.id}
+              className={
+                base === "/clinic" && needsResponse(c)
+                  ? "case-needs-response"
+                  : undefined
+              }
+            >
               <td>
                 <Link className="cell-title" href={`${base}/cases/${c.id}`}>
                   {c.title}
                 </Link>
                 <small>{c.reference}</small>
+                {base === "/clinic" && needsResponse(c) && (
+                  <span className="response-label">
+                    <Clock size={13} aria-hidden="true" />
+                    Needs response
+                  </span>
+                )}
               </td>
               <td>{c.region}</td>
               <td>{date(c.created_at)}</td>
@@ -100,8 +138,12 @@ export function CaseTable({
       </table>
       {!cases.length && (
         <Empty
-          title="No cases to show"
-          description="Cases shared with this clinic will appear in the inbox."
+          title={filtered ? "No matching cases" : "No cases to show"}
+          description={
+            filtered
+              ? "Try another status or clear your search to see more cases."
+              : "Cases shared with this clinic will appear in the inbox."
+          }
         />
       )}
     </div>
@@ -242,6 +284,14 @@ export default function ClinicScreen({
   auth: Auth;
   act: Action;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedFilter = searchParams.get("status") || "all";
+  const caseFilter = caseFilters.includes(requestedFilter)
+    ? requestedFilter
+    : "all";
+  const caseFilterHref = (status: string) =>
+    status === "all" ? "/clinic/cases" : `/clinic/cases?status=${status}`;
   const [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all"),
     [editor, setEditor] = useState<{
@@ -255,6 +305,7 @@ export default function ClinicScreen({
   const actionable = data.cases.filter(
     (c) => c.status !== "archived" && caseStatus(c) === "new",
   );
+  const unanswered = data.cases.filter(needsResponse);
   const requests = data.appointments.filter((a) => a.status === "requested");
   const submitted = data.proposals.filter((p) => p.status === "submitted");
   const c = entityId ? data.cases.find((c) => c.id === entityId) : undefined;
@@ -283,8 +334,13 @@ export default function ClinicScreen({
             <Stat
               label="Awaiting review"
               value={actionable.length}
-              note="New cases in your inbox"
-              href="/clinic/cases"
+              note={
+                actionable.length
+                  ? "New cases · Review now"
+                  : "No new cases awaiting review"
+              }
+              href="/clinic/cases?status=new"
+              attention={actionable.length > 0}
             />
             <Stat
               label="Saved drafts"
@@ -310,12 +366,14 @@ export default function ClinicScreen({
               <div className="panel-heading">
                 <div>
                   <h2>Your case inbox</h2>
-                  <p>Recent cases shared directly with your clinic.</p>
+                  <p>Unanswered cases first, newest first within each group.</p>
                 </div>
                 <RowLink href="/clinic/cases">View all</RowLink>
               </div>
               <CaseTable
-                cases={data.cases.filter((c) => c.status !== "archived")}
+                cases={prioritizeCases(
+                  data.cases.filter((c) => c.status !== "archived"),
+                )}
                 limit={5}
               />
             </section>
@@ -541,12 +599,17 @@ export default function ClinicScreen({
       );
     }
     if (section === "cases") {
-      const rows = data.cases.filter(
-        (c) =>
-          `${c.title} ${c.reference}`
-            .toLowerCase()
-            .includes(search.toLowerCase()) &&
-          (filter === "all" || caseStatus(c) === filter),
+      const rows = prioritizeCases(
+        data.cases.filter(
+          (c) =>
+            `${c.title} ${c.reference}`
+              .toLowerCase()
+              .includes(search.toLowerCase()) &&
+            (caseFilter === "all" ||
+              (caseFilter === "unanswered"
+                ? needsResponse(c)
+                : caseStatus(c) === caseFilter)),
+        ),
       );
       return (
         <>
@@ -555,6 +618,38 @@ export default function ClinicScreen({
             title="Case inbox"
             description="Review shared cases, inspect imaging, and prepare your professional response."
           />
+          {unanswered.length > 0 && (
+            <div className="case-attention-summary">
+              <Clock size={22} aria-hidden="true" />
+              <div>
+                <strong>
+                  {unanswered.length}{" "}
+                  {unanswered.length === 1 ? "case needs" : "cases need"} a
+                  response
+                </strong>
+                <p>
+                  New, in-review and draft cases without an active proposal.
+                  Declined and archived cases are excluded.
+                </p>
+              </div>
+            </div>
+          )}
+          <nav className="case-quick-filters" aria-label="Case inbox filters">
+            {[
+              ["all", "All cases", data.cases.length],
+              ["new", "Awaiting review", actionable.length],
+              ["unanswered", "Unanswered", unanswered.length],
+            ].map(([value, label, count]) => (
+              <Link
+                key={value}
+                href={caseFilterHref(String(value))}
+                aria-current={caseFilter === value ? "page" : undefined}
+              >
+                {label}
+                <span>{count}</span>
+              </Link>
+            ))}
+          </nav>
           <div className="toolbar">
             <SearchBox
               value={search}
@@ -563,27 +658,37 @@ export default function ClinicScreen({
             />
             <select
               aria-label="Case status"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              value={caseFilter}
+              onChange={(e) =>
+                router.push(caseFilterHref(e.target.value), { scroll: false })
+              }
             >
-              {[
-                "all",
-                "new",
-                "reviewing",
-                "draft",
-                "proposed",
-                "declined",
-                "archived",
-              ].map((s) => (
+              {caseFilters.map((s) => (
                 <option key={s} value={s}>
-                  {s === "all" ? "All statuses" : s}
+                  {s === "all"
+                    ? "All statuses"
+                    : s === "new"
+                      ? "New · awaiting review"
+                      : s === "unanswered"
+                        ? "Unanswered"
+                        : s}
                 </option>
               ))}
             </select>
-            <span className="result-count">{rows.length} cases</span>
+            <span className="result-count" role="status">
+              {rows.length} {rows.length === 1 ? "case" : "cases"}
+            </span>
+            {search && (
+              <button className="text-link" onClick={() => setSearch("")}>
+                Clear search
+              </button>
+            )}
           </div>
           <section className="panel flush">
-            <CaseTable cases={rows} />
+            <CaseTable
+              cases={rows}
+              filtered={caseFilter !== "all" || !!search}
+            />
           </section>
         </>
       );
@@ -779,6 +884,18 @@ export default function ClinicScreen({
                 onSave={(f) => act("/clinic/profile", profileData(f), "PUT")}
               >
                 <ProfileFields clinic={clinic} />
+              </Form>
+              <h2>Social profiles</h2>
+              <Form
+                label="Save social profiles"
+                onSave={(f) =>
+                  act("/clinic/discovery", discoveryData(f), "PUT")
+                }
+              >
+                <DiscoveryFields clinic={clinic} />
+                <p className="muted">
+                  The administrator verifies and links your Google Place ID.
+                </p>
               </Form>
             </section>
             <section className="panel fit">

@@ -222,3 +222,6 @@ app.include_router(operations_router)
 
 from .patient import router as patient_router
 app.include_router(patient_router)
+
+from .clinic_discovery import router as discovery_router
+app.include_router(discovery_router)

@@ -794,6 +794,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/clinics/{clinic_id}/discovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Discovery */
+        put: operations["update_discovery_admin_clinics__clinic_id__discovery_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/discovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Socials */
+        put: operations["update_socials_clinic_discovery_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/google-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gateway Status */
+        get: operations["gateway_status_admin_integrations_google_places_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patient/clinics/{clinic_id}/google-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Patient Google Profile */
+        get: operations["patient_google_profile_patient_clinics__clinic_id__google_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/clinics/{clinic_id}/google-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Google Profile */
+        get: operations["admin_google_profile_admin_clinics__clinic_id__google_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1040,6 +1125,13 @@ export interface components {
             /** Notice */
             notice: string;
         };
+        /** DiscoveryInput */
+        DiscoveryInput: {
+            /** Social Links */
+            social_links?: components["schemas"]["SocialLink"][];
+            /** Google Place Id */
+            google_place_id?: string | null;
+        };
         /** DispatchAdminInput */
         DispatchAdminInput: {
             /** Clinic Ids */
@@ -1109,6 +1201,25 @@ export interface components {
              * @default
              */
             reviewer: string;
+        };
+        /** GooglePlaceProfile */
+        GooglePlaceProfile: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ready" | "disabled" | "not_linked" | "unavailable";
+            /** Rating */
+            rating?: number | null;
+            /** Review Count */
+            review_count?: number | null;
+            /** Google Maps Url */
+            google_maps_url?: string | null;
+            /** Website Url */
+            website_url?: string | null;
+            photo?: components["schemas"]["PlacePhoto"] | null;
+            /** Attributions */
+            attributions?: components["schemas"]["ProviderAttribution"][];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1229,6 +1340,10 @@ export interface components {
             latitude: number | null;
             /** Longitude */
             longitude: number | null;
+            /** Google Linked */
+            google_linked: boolean;
+            /** Social Links */
+            social_links: components["schemas"]["SocialLink"][];
         };
         /** PatientInput */
         PatientInput: {
@@ -1244,6 +1359,24 @@ export interface components {
             /** Token */
             token: string;
             user: components["schemas"]["PatientAccount"];
+        };
+        /** PhotoAuthor */
+        PhotoAuthor: {
+            /** Name */
+            name: string;
+            /** Profile Url */
+            profile_url?: string | null;
+            /** Avatar Url */
+            avatar_url?: string | null;
+        };
+        /** PlacePhoto */
+        PlacePhoto: {
+            /** Uri */
+            uri: string;
+            /** Google Maps Url */
+            google_maps_url?: string | null;
+            /** Authors */
+            authors?: components["schemas"]["PhotoAuthor"][];
         };
         /** ProcedureExplanation */
         ProcedureExplanation: {
@@ -1341,6 +1474,13 @@ export interface components {
              */
             explanation_status: "ready" | "pending" | "failed" | "paused";
         };
+        /** ProviderAttribution */
+        ProviderAttribution: {
+            /** Name */
+            name: string;
+            /** Uri */
+            uri?: string | null;
+        };
         /** PublishInput */
         PublishInput: {
             plan: components["schemas"]["ProposalInput"];
@@ -1379,6 +1519,21 @@ export interface components {
             max_recipients: number;
             /** Upload Limit Mb */
             upload_limit_mb: number;
+        };
+        /** SocialLink */
+        SocialLink: {
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "instagram" | "facebook" | "youtube" | "linkedin" | "x" | "tiktok";
+            /** Url */
+            url: string;
+        };
+        /** SocialLinksInput */
+        SocialLinksInput: {
+            /** Social Links */
+            social_links?: components["schemas"]["SocialLink"][];
         };
         /** SubscriptionInput */
         SubscriptionInput: {
@@ -2908,6 +3063,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_discovery_admin_clinics__clinic_id__discovery_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscoveryInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_socials_clinic_discovery_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SocialLinksInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gateway_status_admin_integrations_google_places_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    patient_google_profile_patient_clinics__clinic_id__google_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GooglePlaceProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_google_profile_admin_clinics__clinic_id__google_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GooglePlaceProfile"];
                 };
             };
             /** @description Validation Error */

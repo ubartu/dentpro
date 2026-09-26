@@ -34,6 +34,8 @@ The external request contains only canonical structured clinic-plan fields and t
 
 ## Patient mobile app
 
+Clinic selection supports verified social links and optional on-demand Google ratings/photos. See [Google Places setup and provider boundaries](docs/google-places-integration.md). The integration is off by default and needs a server-side restricted Places API key and verified clinic Place IDs.
+
 The React Native / Expo app for iOS and Android is in `apps/mobile`. Run `npm run mobile` from the repository root after starting the API. See the [mobile README](apps/mobile/README.md) for device networking, screens, test commands and native build profiles. Patient accounts are created in the app and are separate from staff accounts.
 
 ## Clinic panel

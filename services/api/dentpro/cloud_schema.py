@@ -6,7 +6,7 @@ from .operations_models import Account, PlatformSetting
 from .operations_seed import seed_base_settings
 
 SCHEMA_KEY = 'cloud_schema_version'
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def initialize_cloud_schema() -> None:

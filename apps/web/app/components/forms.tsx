@@ -476,7 +476,9 @@ export function ProposalDetail({
             <Sparkles size={18} />
             Patient explanation
           </h3>
-          <Badge>{p.explanation?.mode?.replaceAll("_", " ") || p.explanation_status}</Badge>
+          <Badge>
+            {p.explanation?.mode?.replaceAll("_", " ") || p.explanation_status}
+          </Badge>
         </div>
         {p.explanation ? (
           <>
@@ -957,6 +959,82 @@ export function MembersPanel({
       )}
     </>
   );
+}
+const socialPlatforms = [
+  "instagram",
+  "facebook",
+  "youtube",
+  "linkedin",
+  "x",
+  "tiktok",
+];
+export function DiscoveryFields({
+  clinic,
+  includeGoogle = false,
+}: {
+  clinic: Clinic;
+  includeGoogle?: boolean;
+}) {
+  return (
+    <>
+      {includeGoogle && (
+        <Field
+          label="Google Place ID"
+          hint="Verify the Google listing belongs to this clinic. Leave blank to disconnect."
+        >
+          <input
+            name="google_place_id"
+            maxLength={255}
+            pattern="[A-Za-z0-9_-]{10,255}"
+            defaultValue={clinic.google_place_id || ""}
+          />
+        </Field>
+      )}
+      <p className="muted">
+        Social profiles are supplied by the clinic, separately from Google
+        ratings and photos. Use full HTTPS profile URLs without tracking
+        parameters.
+      </p>
+      <div className="form-grid">
+        {socialPlatforms.map((platform) => (
+          <Field
+            key={platform}
+            label={
+              platform === "x"
+                ? "X profile"
+                : `${platform[0].toUpperCase() + platform.slice(1)} profile`
+            }
+          >
+            <input
+              name={`social_${platform}`}
+              type="url"
+              maxLength={500}
+              placeholder={`https://${platform}.com/your-profile`}
+              defaultValue={
+                clinic.social_links?.find((link) => link.platform === platform)
+                  ?.url || ""
+              }
+            />
+          </Field>
+        ))}
+      </div>
+    </>
+  );
+}
+export function discoveryData(f: FormData, includeGoogle = false) {
+  const social_links = socialPlatforms.flatMap((platform) => {
+    const url = String(f.get(`social_${platform}`) || "").trim();
+    return url ? [{ platform, url }] : [];
+  });
+  return {
+    social_links,
+    ...(includeGoogle
+      ? {
+          google_place_id:
+            String(f.get("google_place_id") || "").trim() || null,
+        }
+      : {}),
+  };
 }
 export function ProfileFields({ clinic }: { clinic?: Clinic }) {
   return (

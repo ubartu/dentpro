@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Text } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Location from "expo-location";
@@ -17,7 +17,13 @@ import { useResource } from "../../../lib/use-resource";
 import { useSession } from "../../../lib/session";
 import { useAction } from "../../../lib/use-action";
 import { request } from "../../../lib/api";
-import { Capabilities, Clinic, DentalCase } from "../../../lib/types";
+import {
+  Capabilities,
+  Clinic,
+  DentalCase,
+  GooglePlaceProfile,
+} from "../../../lib/types";
+import { ClinicDiscovery } from "../../../components/clinic-discovery";
 import { Coordinates, rankClinics } from "../../../lib/clinic-distance";
 export default function Share() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,6 +35,35 @@ export default function Share() {
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
   const [position, setPosition] = useState<Coordinates | null>(null);
+  const [googleProfiles, setGoogleProfiles] = useState<
+    Record<string, GooglePlaceProfile>
+  >({});
+  const [googleErrors, setGoogleErrors] = useState<Record<string, string>>({});
+  const [googleLoading, setGoogleLoading] = useState<Record<string, boolean>>(
+    {},
+  );
+  const inFlight = useRef(new Set<string>());
+  async function loadGoogle(clinicId: string) {
+    if (inFlight.current.has(clinicId)) return;
+    inFlight.current.add(clinicId);
+    setGoogleLoading((v) => ({ ...v, [clinicId]: true }));
+    setGoogleErrors((v) => ({ ...v, [clinicId]: "" }));
+    try {
+      const profile = await request<GooglePlaceProfile>(
+        `/patient/clinics/${clinicId}/google-profile`,
+        token!,
+      );
+      setGoogleProfiles((v) => ({ ...v, [clinicId]: profile }));
+    } catch {
+      setGoogleErrors((v) => ({
+        ...v,
+        [clinicId]: "Could not load Google information. Try again later.",
+      }));
+    } finally {
+      inFlight.current.delete(clinicId);
+      setGoogleLoading((v) => ({ ...v, [clinicId]: false }));
+    }
+  }
   const [locationState, setLocationState] = useState<
     "idle" | "loading" | "ready" | "denied" | "unavailable"
   >("idle");
@@ -60,7 +95,11 @@ export default function Share() {
       setLocationState("unavailable");
     }
   }
-  function clinicCard(clinic: Clinic, distance: number | null, section: string) {
+  function clinicCard(
+    clinic: Clinic,
+    distance: number | null,
+    section: string,
+  ) {
     const existing = c?.recipients.includes(clinic.id) || false;
     const checked = selected.includes(clinic.id);
     return (
@@ -91,9 +130,14 @@ export default function Share() {
         {!!clinic.description && (
           <Text style={styles.muted}>{clinic.description}</Text>
         )}
-        {!!clinic.hours && (
-          <Text style={styles.muted}>{clinic.hours}</Text>
-        )}
+        {!!clinic.hours && <Text style={styles.muted}>{clinic.hours}</Text>}
+        <ClinicDiscovery
+          clinic={clinic}
+          profile={googleProfiles[clinic.id]}
+          loading={!!googleLoading[clinic.id]}
+          error={googleErrors[clinic.id]}
+          load={() => void loadGoogle(clinic.id)}
+        />
       </Card>
     );
   }
@@ -108,6 +152,8 @@ export default function Share() {
   return (
     <Screen
       refresh={() => {
+        setGoogleProfiles({});
+        setGoogleErrors({});
         void clinics.refresh();
         void cases.refresh();
         void cap.refresh();

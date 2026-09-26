@@ -94,6 +94,75 @@ def test_cloud_asset_path_keeps_bounded_xray_in_database(client,monkeypatch):
     assert downloaded.status_code==200 and downloaded.content==image
     assert downloaded.headers['cache-control']=='no-store'
 
+def test_clinic_discovery_mapping_social_validation_and_scoping(client,monkeypatch):
+    admin=admin_signin(client);clinic=signin(client);patient=auth(client,'patient')
+    endpoint='/admin/clinics/clinic-1/discovery'
+    body={'google_place_id':'ChIJSyntheticPlace123','social_links':[{'platform':'instagram','url':'https://www.instagram.com/synthetic_clinic/'}]}
+    assert client.put(endpoint,headers=patient,json=body).status_code==403
+    assert client.put(endpoint,headers=clinic,json=body).status_code==403
+    assert client.put(endpoint,headers=admin,json=body).status_code==200
+    for url in ['http://instagram.com/profile','https://evil.example/profile','https://instagram.com@evil.example/profile']:
+        bad=body|{'social_links':[{'platform':'instagram','url':url}]}
+        assert client.put(endpoint,headers=admin,json=bad).status_code==422
+    assert client.put('/clinic/discovery',headers=clinic,json=body).status_code==422
+    links={'social_links':[{'platform':'youtube','url':'https://www.youtube.com/@synthetic_clinic'}]}
+    assert client.put('/clinic/discovery',headers=clinic,json=links).status_code==200
+    workspace=client.get('/clinic/workspace',headers=clinic).json()['clinic']
+    assert workspace['google_place_id']==body['google_place_id'] and workspace['social_links']==links['social_links']
+    directory=client.get('/patient/clinics',headers=patient).json()
+    row=next(c for c in directory if c['id']=='clinic-1')
+    assert row['google_linked'] and row['social_links']==links['social_links']
+    assert 'google_place_id' not in row
+    monkeypatch.setenv('DENTPRO_GOOGLE_PLACES_ENABLED','false')
+    response=client.get('/patient/clinics/clinic-1/google-profile',headers=patient)
+    assert response.json()['status']=='disabled' and response.headers['cache-control']=='no-store'
+    assert client.get('/admin/integrations/google-places',headers=patient).status_code==403
+    assert client.get('/admin/integrations/google-places',headers=admin).json()['configured'] is False
+
+def test_google_gateway_field_mask_photo_attribution_and_no_key_in_result(monkeypatch):
+    from dentpro import google_places
+    seen=[]
+    class Response:
+        def __init__(self,body):self.body=body
+        def raise_for_status(self):pass
+        def json(self):return self.body
+    class Client:
+        def __init__(self,**kwargs):assert kwargs['follow_redirects'] is False
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def get(self,url,**kwargs):
+            seen.append((url,kwargs))
+            if url.endswith('/media'):
+                return Response({'photoUri':'https://lh3.googleusercontent.com/synthetic-photo'})
+            return Response({'rating':4.7,'userRatingCount':120,'googleMapsUri':'https://maps.google.com/synthetic-place',
+                'websiteUri':'https://clinic.example.org','attributions':[{'provider':'Provider','providerUri':'https://provider.example.org'}],
+                'photos':[{'name':'places/ChIJSyntheticPlace123/photos/synthetic-photo-name','googleMapsUri':'https://maps.google.com/synthetic-photo',
+                           'authorAttributions':[{'displayName':'Synthetic Photographer','uri':'https://maps.google.com/synthetic-author','photoUri':'https://lh3.googleusercontent.com/synthetic-avatar'}]}]})
+    monkeypatch.setattr(google_places.httpx,'Client',Client)
+    profile=google_places.fetch_profile('ChIJSyntheticPlace123','secret-test-key')
+    assert profile.rating==4.7 and profile.photo.authors[0].name=='Synthetic Photographer'
+    assert len(seen)==2 and seen[0][1]['headers']['X-Goog-FieldMask']==google_places.FIELD_MASK
+    assert seen[1][1]['params']['skipHttpRedirect']=='true'
+    assert 'secret-test-key' not in profile.model_dump_json() and 'synthetic-photo-name' not in profile.model_dump_json()
+
+def test_google_lookup_failure_limit_and_clinic_availability(client,monkeypatch):
+    import dentpro.clinic_discovery as discovery
+    patient=auth(client,'patient')
+    assert client.put('/admin/clinics/clinic-1/discovery',headers=admin_signin(client),json={'google_place_id':'ChIJSyntheticPlace123','social_links':[]}).status_code==200
+    monkeypatch.setenv('DENTPRO_GOOGLE_PLACES_ENABLED','true')
+    monkeypatch.setenv('GOOGLE_PLACES_API_KEY','secret-test-key')
+    monkeypatch.delenv('GOOGLE_PLACES_API_KEY_FILE',raising=False)
+    def fail(*args):raise RuntimeError('secret-test-key provider failure')
+    monkeypatch.setattr(discovery,'fetch_profile',fail)
+    endpoint='/patient/clinics/clinic-1/google-profile'
+    response=client.get(endpoint,headers=patient)
+    assert response.json()['status']=='unavailable' and 'secret-test-key' not in response.text
+    assert client.get('/patient/clinics/clinic-4/google-profile',headers=patient).status_code==404
+    from dentpro.operations_models import PlacesLookupWindow
+    with Session() as db:
+        row=db.get(PlacesLookupWindow,'patient-demo');row.requests=30;db.commit()
+    assert client.get(endpoint,headers=patient).status_code==429
+
 def test_cloud_login_throttle_is_durable_and_hides_email(client,monkeypatch):
     from dentpro.operations_models import LoginThrottle
     admin=admin_signin(client)

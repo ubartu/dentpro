@@ -117,9 +117,10 @@ def logout(credential:HTTPAuthorizationCredentials=Depends(bearer),user=Depends(
     audit(db,user['id'],'session.signed_out',user['id']);db.commit();return {'ok':True}
 
 def profile_view(db,c):
+    from .clinic_discovery import discovery_view
     p=db.get(ClinicProfile,c.id)
     loc=db.get(ClinicLocation,c.id)
-    return {'id':c.id,'name':c.name,'region':c.region,'district':c.district,'address':c.address,'latitude':loc.latitude if loc else None,'longitude':loc.longitude if loc else None, **{k:getattr(p,k) if p else '' for k in ['status','email','phone','website','description','hours','subscription','monthly_fee_minor','renewal_date','review_notes']}}
+    return {'id':c.id,'name':c.name,'region':c.region,'district':c.district,'address':c.address,'latitude':loc.latitude if loc else None,'longitude':loc.longitude if loc else None, **{k:getattr(p,k) if p else '' for k in ['status','email','phone','website','description','hours','subscription','monthly_fee_minor','renewal_date','review_notes']}, **discovery_view(db,c.id)}
 
 def state(db,p): return db.get(ProposalState,p.id)
 def proposal_view(db,p):

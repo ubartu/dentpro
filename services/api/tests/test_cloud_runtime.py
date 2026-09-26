@@ -63,7 +63,7 @@ def test_fresh_cloud_schema_has_settings_but_no_demo_accounts_or_cases(tmp_path)
         'from dentpro.operations_models import Account, PlatformSetting; '
         'initialize_cloud_schema(); initialize_cloud_schema(); '
         'db=Session(); '
-        'assert db.get(PlatformSetting,SCHEMA_KEY).value["version"]==1; '
+        'assert db.get(PlatformSetting,SCHEMA_KEY).value["version"]==2; '
         'assert db.query(Account).count()==0; assert db.query(Case).count()==0'
     )
     process = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True, timeout=20)

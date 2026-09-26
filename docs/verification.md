@@ -1,5 +1,12 @@
 # Verification — 24 September 2026
 
+## Google Places clinic discovery — 26 September 2026
+
+- Added a server-only Places API (New) adapter with a narrow field mask, bounded requests, per-account shared lookup limits, role/tenant checks and disabled/unavailable responses. Only the verified Place ID and clinic-supplied social links persist; Google ratings, photo names and photo URLs do not. The mobile selector uses explicit on-demand loading and includes Google/provider/photo-author attribution.
+- **30 API tests passed**: Google field mask and photo/source attribution using a fake HTTP client, no key exposure, invalid social URLs, clinic/admin scope, unavailable clinics, upstream failures and request quota. **21 mobile tests passed**, including discovery loading, labelled ratings/photo links and unavailable states; mobile typecheck and lint passed. The optimized web build passed.
+- The expanded **staff-panel browser regression passed**, saving a synthetic Place ID and Instagram profile through the admin form and verifying persistence via the workspace API. Existing workflows and desktop/mobile overflow checks passed with no browser errors. No external provider was called.
+- The cloud Google-secret overlay passed `docker compose config --quiet`; fresh schema version is 2 with an additive version-1 migration command. Actual managed PostgreSQL migration, live credentials/billing, Google photo delivery/attribution and physical-device rendering remain unverified. Public activation also requires published Terms/Privacy Policy meeting Google requirements. See [setup guide](google-places-integration.md).
+
 ## Cloud staging security foundation — 25 September 2026
 
 - Added a fail-closed cloud mode requiring a fresh versioned managed PostgreSQL schema, `sslmode=verify-full`, explicit HTTPS CORS origin, no demo session route or seeded credentials, Argon2id password hashes, shared failed-sign-in limits, database-backed private X-ray bytes, restricted API docs, health DB check and security headers. Existing local PBKDF2 hashes remain usable and upgrade on successful sign-in.

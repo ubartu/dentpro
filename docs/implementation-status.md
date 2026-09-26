@@ -17,6 +17,7 @@ The web product now consists of dedicated clinic and platform administration pan
 - Request state machine: requested → contacted → confirmed → completed, with cancellation paths. Confirmation requires a scheduled time; completed/cancelled requests cannot be reopened.
 - Team account creation/deactivation/password reset, clinic profile and opening-hours editing, subscription record and operational analytics.
 - Proposal and appointment CSV exports, with spreadsheet formula prefix neutralization.
+- Clinic-owned social profile editing with validated HTTPS platform links.
 
 ### Administration
 
@@ -31,6 +32,7 @@ The web product now consists of dedicated clinic and platform administration pan
 - Versioned glossary editing and recorded dentist-review attribution. Requeueing with changed glossary content creates a new immutable explanation; prior explanations are retained.
 - Pause/resume interpreter processing and API-enforced upload/recipient limits.
 - Searchable/filterable audit events and CSV export (latest 1,000 events).
+- Verified Google Place ID mapping and social-profile management per clinic; server-side Places API (New) gateway is disabled until credentials are configured.
 
 ## Patient mobile application
 
@@ -38,6 +40,7 @@ The web product now consists of dedicated clinic and platform administration pan
 - Patient registration/login, encrypted native credential storage, account/profile editing, password changes with session revocation, and sign out. A separate cloud staging API mode is available for synthetic evaluation; email verification/recovery and production account lifecycle remain unfinished.
 - Case creation with versioned consent and idempotent submission, case history, PNG/JPEG/PDF selection/upload, image preview and system sharing.
 - Optional foreground location access for approximate nearby clinics, a complete active-clinic list independent of case region, recipient limits, explicit sharing confirmation and the existing server dispatch flow. Denied or unavailable location does not block selection.
+- Clinic selection cards show supplied social profiles and an on-demand Google rating/photo section with source attribution, unavailable states and no cached provider content. Google Places has no documented social-profile field. See [integration setup](google-places-integration.md).
 - Clinic proposal details, separate source-labelled AI/template explanation with pending/failed/paused states, and objective side-by-side comparison.
 - Callback/appointment requests, clinic-confirmed scheduling details, patient cancellation and clinic contact links. Staff see patient contact details only after a request exists.
 - Foreground/focus/pull-to-refresh updates and explicit network/error handling. Push delivery is not implemented.
@@ -59,6 +62,7 @@ These panels are operational locally; the project is not yet a production health
 - Cloud staging stores bounded private X-ray bytes in PostgreSQL instead of container disk. Dedicated object storage at scale, upload quarantine/content scanning, data retention/deletion and protected audit infrastructure remain unfinished.
 - A server-side OpenAI Responses gateway is available for rewriting the plain summary of a clinic-authored structured proposal. It is disabled by default, sends no X-ray/PII/free-text notes, and falls back to deterministic glossary templates on provider errors or invalid output. Live-provider execution, source-grounding quality evaluation and clinical approval of generated wording remain unfinished; an admin review checkbox records glossary attribution rather than independent clinical review.
 - Notification delivery and payment collection/invoices. Appointment and subscription management store operational records only.
+- Google Places credentials, billing/quotas, verified clinic Place IDs, real-provider attribution checks and published Google-compatible Terms/Privacy Policy before public activation. Only mocked provider requests have been tested.
 - Redis/distributed queue leases, dead-letter handling, worker health telemetry and production monitoring. The current durable queue uses the database and one worker process.
 - Turkish localization, broader accessibility validation, clinical production deployment and jurisdiction-specific professional/legal review.
 
