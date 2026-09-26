@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
-  Stethoscope,
   ArrowRight,
   ShieldCheck,
   Building2,
@@ -19,10 +19,18 @@ export default function Login() {
     <div className="login-page">
       <section className="login-story">
         <div className="wordmark">
-          <Stethoscope size={30} />
+          <Image src="/dentpro-brand-square.png" alt="" width={45} height={45} />
           DENT<span>pro</span>
         </div>
         <div>
+          <Image
+            className="login-hero-logo"
+            src="/dentpro-brand-square.png"
+            alt="DENTpro smiling tooth logo"
+            width={170}
+            height={170}
+            loading="eager"
+          />
           <div className="eyebrow">BUILT AROUND BETTER CARE</div>
           <h1>
             Less administration.

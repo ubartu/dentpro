@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { Text } from "react-native";
 import { router } from "expo-router";
 import * as Crypto from "expo-crypto";
 import {
@@ -23,7 +23,6 @@ export default function NewCase() {
   const r = useResource<Capabilities>("/patient/capabilities");
   const action = useAction();
   const [title, setTitle] = useState("");
-  const [region, setRegion] = useState("Istanbul");
   const [consent, setConsent] = useState(false);
   // Freeze submitted payload/key on uncertain failure. Retry resumes the same server submission.
   const pending = useRef<{ key: string; body: object } | null>(null);
@@ -36,7 +35,6 @@ export default function NewCase() {
           key: Crypto.randomUUID(),
           body: {
             title: title.trim(),
-            region,
             consent: true,
             consent_version: r.data.consent_version,
           },
@@ -87,18 +85,10 @@ export default function NewCase() {
           maxLength={80}
           editable={!submitted}
         />
-        <Text style={styles.muted}>Region</Text>
-        <View style={styles.row}>
-          {r.data?.regions.map((v) => (
-            <Button
-              key={v}
-              title={v}
-              secondary={region !== v}
-              disabled={submitted}
-              onPress={() => setRegion(v)}
-            />
-          ))}
-        </View>
+        <Text style={styles.muted}>
+          After adding your X-ray, choose from all participating clinics. You can
+          use your location to see nearby options first.
+        </Text>
       </Card>
       {r.data && (
         <Card>

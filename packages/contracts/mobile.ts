@@ -467,6 +467,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/ai/gateway": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Ai Gateway
+         * @description Non-secret gateway readiness for operations; credentials stay server-side.
+         */
+        get: operations["admin_ai_gateway_admin_ai_gateway_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/clinics": {
         parameters: {
             query?: never;
@@ -884,8 +904,6 @@ export interface components {
         };
         /** Capabilities */
         Capabilities: {
-            /** Regions */
-            regions: string[];
             /** Upload Limit Mb */
             upload_limit_mb: number;
             /** Max Recipients */
@@ -911,10 +929,10 @@ export interface components {
             title: string;
             /**
              * Region
-             * @default Istanbul
+             * @default All regions
              * @enum {string}
              */
-            region: "Istanbul" | "Ankara" | "Izmir";
+            region: "Istanbul" | "Ankara" | "Izmir" | "All regions";
             /**
              * Consent
              * @constant
@@ -972,6 +990,10 @@ export interface components {
              * @default
              */
             hours: string;
+            /** Latitude */
+            latitude?: number | null;
+            /** Longitude */
+            longitude?: number | null;
             /**
              * Region
              * @enum {string}
@@ -1048,14 +1070,33 @@ export interface components {
             disclaimer: string;
             /**
              * Mode
-             * @constant
+             * @enum {string}
              */
-            mode: "template";
+            mode: "template" | "ai" | "template_fallback";
             /**
              * Glossary Status
              * @enum {string}
              */
             glossary_status: "draft_requires_dentist_review" | "dentist_review_recorded";
+        };
+        /** GatewayStatus */
+        GatewayStatus: {
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "template" | "openai";
+            /** Model */
+            model: string;
+            /** Configured */
+            configured: boolean;
+            /**
+             * Requested Provider
+             * @enum {string}
+             */
+            requested_provider: "template" | "openai";
+            /** Prompt Version */
+            prompt_version: string;
         };
         /** GlossaryInput */
         GlossaryInput: {
@@ -1184,6 +1225,10 @@ export interface components {
             description: string;
             /** Hours */
             hours: string;
+            /** Latitude */
+            latitude: number | null;
+            /** Longitude */
+            longitude: number | null;
         };
         /** PatientInput */
         PatientInput: {
@@ -1237,6 +1282,10 @@ export interface components {
              * @default
              */
             hours: string;
+            /** Latitude */
+            latitude?: number | null;
+            /** Longitude */
+            longitude?: number | null;
         };
         /** ProposalInput */
         ProposalInput: {
@@ -2263,6 +2312,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    admin_ai_gateway_admin_ai_gateway_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GatewayStatus"];
                 };
             };
         };

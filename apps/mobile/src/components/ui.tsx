@@ -290,7 +290,7 @@ export function Field({
 export function Brand() {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <LogoMark size={28} />
+      <LogoMark size={38} />
       <Text
         style={{
           fontFamily: fonts.bold,

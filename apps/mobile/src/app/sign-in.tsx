@@ -12,6 +12,7 @@ import {
   Screen,
   styles,
 } from "../components/ui";
+import { LogoMark } from "../components/logo-mark";
 import { request, errorMessage } from "../lib/api";
 import { useSession } from "../lib/session";
 import type { Session } from "../lib/types";
@@ -50,6 +51,9 @@ export default function SignIn() {
     <Screen topInset contentStyle={{ flexGrow: 1, paddingTop: 28, gap: 32 }}>
       <View style={{ gap: 36 }}>
         <Brand />
+        <View style={{ alignItems: "center" }}>
+          <LogoMark size={112} />
+        </View>
         <Heading
           title={
             register

@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .db import Session, Proposal, Explanation, audit, now
 from .interpreter import explain
-from .operations_models import ExplanationJob, PlatformSetting
+from .ai_gateway import GatewayConfig, explain_with_openai
+from .operations_models import ExplanationJob, AIExplanationRequest, PlatformSetting
 
 def run_once():
     count=0
@@ -25,7 +26,20 @@ def run_once():
                 if job.glossary:
                     output['procedures']=[{'source_item_id':str(i+1),'simple_explanation':job.glossary[item['procedure_code']]['text']} for i,item in enumerate(p.plan['items'])]
                     if all(job.glossary[item['procedure_code']]['reviewed'] for item in p.plan['items']):output['glossary_status']='dentist_review_recorded'
-                db.add(Explanation(key=p.explanation_key,output=output))
+                request=db.get(AIExplanationRequest,p.explanation_key)
+                gateway=GatewayConfig(provider=request.provider,model=request.model,prompt_version=request.prompt_version) if request else GatewayConfig()
+                model='template-v1';input_tokens=0;output_tokens=0
+                if gateway.provider=='openai':
+                    try:
+                        summary,input_tokens,output_tokens=explain_with_openai(p.plan,output['plain_summary'],gateway)
+                        output['plain_summary']=summary
+                        output['mode']='ai'
+                        model=gateway.model
+                    except Exception:
+                        # A provider outage or invalid output cannot block the clinic proposal.
+                        # Do not persist raw provider errors; they may include request data.
+                        output['mode']='template_fallback'
+                db.add(Explanation(key=p.explanation_key,output=output,model=model,prompt_version=gateway.prompt_version,input_tokens=input_tokens,output_tokens=output_tokens))
                 job.status='completed';job.error='';audit(db,'worker','explanation.created',p.id)
                 db.commit();count+=1
             except IntegrityError:db.rollback()

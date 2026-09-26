@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select, func
 from dentpro.main import app
 from dentpro.auth import actor, ACTORS
-from dentpro.db import Session, Explanation, Proposal, Case, Audit
+from dentpro.db import Session, Explanation, Proposal, Case, Audit, XrayAsset
 from dentpro.worker import run_once
 from dentpro.interpreter import cache_key, canonical_source
 
@@ -81,6 +81,39 @@ def test_input_validation_and_consent(client):
     assert client.post('/clinic/cases/case-demo/proposals',headers=clinic|{'Idempotency-Key':'invalid-tooth'},json=bad).status_code==422
     assert client.post('/clinic/cases/case-demo/proposals',headers=clinic|{'Idempotency-Key':'invalid-time'},json=plan(first_available_slot='2026-10-01T10:00:00')).status_code==422
 
+def test_cloud_asset_path_keeps_bounded_xray_in_database(client,monkeypatch):
+    import dentpro.main as main
+    patient=auth(client,'patient')
+    cid=client.post('/cases',headers=patient,json={'title':'Synthetic cloud asset','consent':True}).json()['id']
+    image=b'\x89PNG\r\n\x1a\nCLOUD-SYNTHETIC'
+    monkeypatch.setattr(main,'cloud_mode',lambda:True)
+    uploaded=client.post(f'/cases/{cid}/xray',headers=patient,files={'file':('synthetic.png',image,'image/png')})
+    assert uploaded.status_code==201
+    with Session() as db: assert db.get(XrayAsset,cid).data==image
+    downloaded=client.get(f'/cases/{cid}/xray',headers=patient)
+    assert downloaded.status_code==200 and downloaded.content==image
+    assert downloaded.headers['cache-control']=='no-store'
+
+def test_cloud_login_throttle_is_durable_and_hides_email(client,monkeypatch):
+    from dentpro.operations_models import LoginThrottle
+    admin=admin_signin(client)
+    email='throttle.synthetic@example.org'
+    account=client.post('/operations/accounts',headers=admin,json={
+        'name':'Synthetic throttle account','email':email,'role':'clinic',
+        'clinic_id':'clinic-1','password':'SyntheticStrong123!'
+    })
+    assert account.status_code==201
+    monkeypatch.setattr('dentpro.operations.cloud_mode',lambda:True)
+    for _ in range(10):
+        assert client.post('/auth/login',json={'email':email,'password':'wrong'}).status_code==401
+    blocked=client.post('/auth/login',json={'email':email,'password':'SyntheticStrong123!'})
+    assert blocked.status_code==429 and blocked.headers['retry-after']=='900'
+    with Session() as db:
+        row=db.get(LoginThrottle,__import__('hashlib').sha256(email.encode()).hexdigest())
+        assert row and row.attempts==10 and email not in row.key
+        db.delete(row);db.commit()
+    assert client.post('/auth/login',json={'email':email,'password':'SyntheticStrong123!'}).status_code==200
+
 def test_interpreter_boundary_and_hash():
     p=plan(notes='Secret patient name and phone')
     assert 'Secret' not in str(canonical_source(p))
@@ -88,13 +121,92 @@ def test_interpreter_boundary_and_hash():
     assert cache_key(p)==cache_key(plan(notes='Different patient'))
     assert cache_key(p)!=cache_key(plan(sessions=3))
 
-def test_reject_invalid_upload_and_region(client):
+def test_openai_gateway_sends_only_structured_source(monkeypatch):
+    from dentpro.ai_gateway import GatewayConfig, explain_with_openai
+    seen={}
+    class Response:
+        def raise_for_status(self): pass
+        def json(self):
+            return {'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':'{"plain_summary":"The clinic lists one procedure over two visits."}'}]}],'usage':{'input_tokens':42,'output_tokens':12}}
+    def fake_post(url, **kwargs):
+        seen['url']=url;seen.update(kwargs)
+        return Response()
+    monkeypatch.setenv('OPENAI_API_KEY','synthetic-test-key')
+    monkeypatch.setattr('dentpro.ai_gateway.httpx.post',fake_post)
+    summary,input_tokens,output_tokens=explain_with_openai(
+        plan(notes='Secret patient name and phone'),
+        'The clinic lists one procedure over two visits.',
+        GatewayConfig(provider='openai',model='gpt-5.4-nano'),
+    )
+    assert summary.startswith('The clinic') and (input_tokens,output_tokens)==(42,12)
+    assert seen['url']=='https://api.openai.com/v1/responses'
+    assert seen['json']['store'] is False
+    assert seen['json']['text']['format']['strict'] is True
+    payload=str(seen['json'])
+    assert 'Secret' not in payload and 'patient name' not in payload and 'xray' not in payload.lower()
+
+def test_ai_gateway_snapshots_provider_and_falls_back(client,monkeypatch):
+    from dentpro import worker
+    from dentpro.operations_models import AIExplanationRequest
+    admin=auth(client,'admin');patient=auth(client,'patient');clinic=auth(client,'clinic')
+    monkeypatch.setenv('DENTPRO_AI_PROVIDER','openai')
+    monkeypatch.setenv('OPENAI_API_KEY','synthetic-test-key')
+    status=client.get('/admin/ai/gateway',headers=admin)
+    assert status.status_code==200 and status.json()['configured'] is True
+    assert client.get('/admin/ai/gateway',headers=patient).status_code==403
+    cid=client.post('/cases',headers=patient,json={'title':'AI gateway synthetic case','consent':True}).json()['id']
+    client.post(f'/cases/{cid}/xray',headers=patient,files={'file':('synthetic.png',b'\x89PNG\r\n\x1a\nTEST','image/png')})
+    client.post(f'/cases/{cid}/dispatch',headers=patient,json={'clinic_ids':['clinic-1']})
+    response=client.post(f'/clinic/cases/{cid}/proposals',headers=clinic|{'Idempotency-Key':'ai-gateway-synthetic'},json=plan())
+    assert response.status_code==201,response.text
+    proposal_id=response.json()['id'];key=response.json()['explanation_status']
+    assert key=='pending'
+    with Session() as db:
+        p=db.get(Proposal,proposal_id)
+        request=db.get(AIExplanationRequest,p.explanation_key)
+        assert request.provider=='openai' and request.model=='gpt-5.4-nano'
+    monkeypatch.setattr(worker,'explain_with_openai',lambda *_:('The clinic proposes one root canal procedure over two visits.',40,15))
+    run_once()
+    result=client.get(f'/proposals/{proposal_id}',headers=patient).json()
+    assert result['explanation']['mode']=='ai'
+    assert result['explanation']['plain_summary'].startswith('The clinic proposes')
+    with Session() as db:
+        record=db.get(Explanation,db.get(Proposal,proposal_id).explanation_key)
+        assert record.model=='gpt-5.4-nano' and (record.input_tokens,record.output_tokens)==(40,15)
+    monkeypatch.setattr(worker,'explain_with_openai',lambda *_:(_ for _ in ()).throw(TimeoutError('synthetic outage')))
+    cid2=client.post('/cases',headers=patient,json={'title':'AI fallback synthetic case','consent':True}).json()['id']
+    client.post(f'/cases/{cid2}/xray',headers=patient,files={'file':('synthetic.png',b'\x89PNG\r\n\x1a\nTEST','image/png')})
+    client.post(f'/cases/{cid2}/dispatch',headers=patient,json={'clinic_ids':['clinic-1']})
+    response=client.post(f'/clinic/cases/{cid2}/proposals',headers=clinic|{'Idempotency-Key':'ai-fallback-synthetic'},json=plan(sessions=3))
+    assert response.status_code==201,response.text
+    run_once()
+    fallback=client.get(f'/proposals/{response.json()["id"]}',headers=patient).json()
+    assert fallback['explanation']['mode']=='template_fallback'
+
+def test_upload_validation_and_cross_region_sharing(client):
     patient=auth(client,'patient')
     cid=client.post('/cases',headers=patient,json={'title':'Upload validation','region':'Ankara','consent':True}).json()['id']
     assert client.post(f'/cases/{cid}/xray',headers=patient,files={'file':('evil.png',b'<html>bad</html>','image/png')}).status_code==415
     assert client.post(f'/cases/{cid}/xray',headers=patient,files={'file':('large.png',b'\x89PNG\r\n\x1a\n'+b'0'*(10*1024*1024),'image/png')}).status_code==413
     client.post(f'/cases/{cid}/xray',headers=patient,files={'file':('a.png',b'\x89PNG\r\n\x1a\nTEST','image/png')})
-    assert client.post(f'/cases/{cid}/dispatch',headers=patient,json={'clinic_ids':['clinic-1']}).status_code==422
+    assert client.post(f'/cases/{cid}/dispatch',headers=patient,json={'clinic_ids':['clinic-1']}).status_code==200
+
+def test_patient_directory_includes_active_clinic_locations(client):
+    admin=admin_signin(client);patient=auth(client,'patient')
+    body={'name':'Ankara synthetic clinic','region':'Ankara','district':'Çankaya','address':'Synthetic address','email':'ankara.clinic@example.org','latitude':39.9208,'longitude':32.8541}
+    assert client.post('/admin/clinics',headers=admin,json=body|{'longitude':None}).status_code==422
+    created=client.post('/admin/clinics',headers=admin,json=body)
+    assert created.status_code==201,created.text
+    clinic_id=created.json()['id']
+    assert clinic_id not in [c['id'] for c in client.get('/patient/clinics',headers=patient).json()]
+    assert client.patch(f'/admin/clinics/{clinic_id}/review',headers=admin,json={'status':'active'}).status_code==200
+    listed=next(c for c in client.get('/patient/clinics',headers=patient).json() if c['id']==clinic_id)
+    assert (listed['latitude'],listed['longitude'])==(39.9208,32.8541)
+    assert client.post('/cases',headers=patient,json={'title':'No region choice','consent':True}).json()['region']=='All regions'
+    updated=client.put(f'/admin/clinics/{clinic_id}/profile',headers=admin,json=body|{'latitude':None,'longitude':None})
+    assert updated.status_code==200 and updated.json()['latitude'] is None
+    listed=next(c for c in client.get('/patient/clinics',headers=patient).json() if c['id']==clinic_id)
+    assert listed['latitude'] is None and listed['longitude'] is None
 
 def test_audit_records_access_and_consent(client):
     events=client.get('/admin/audit',headers=auth(client,'admin')).json()

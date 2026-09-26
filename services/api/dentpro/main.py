@@ -1,39 +1,59 @@
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import quote
 from uuid import uuid4
 from fastapi import FastAPI, Depends, HTTPException, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from sqlalchemy import select
+from fastapi.responses import FileResponse, Response
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
-from .db import Base, engine, get_db, Case, Clinic, Proposal, Explanation, Appointment, Consent, Audit, audit
+from .db import Base, engine, get_db, Case, Clinic, Proposal, Explanation, Appointment, Consent, Audit, XrayAsset, audit
 from .auth import actor, require, TOKENS, ACTORS
+from .runtime import cloud_mode, cors_origins
 from .contracts import CaseInput, DispatchInput, ProposalInput, AppointmentInput, PROCEDURES, ClinicOutput, CaseOutput, ProposalOutput, ComparisonOutput, AppointmentOutput, AuditOutput
 from .interpreter import cache_key, digest
 from .operations_models import ClinicProfile, PlatformSetting, ProposalState, ExplanationJob, PatientCaseRequest
 
 @asynccontextmanager
 async def lifespan(app):
-    if os.getenv('APP_ENV', 'development') != 'development':
-        raise RuntimeError('Production is disabled: replace demo identity and local asset storage before deployment.')
-    Base.metadata.create_all(engine)
-    from .seed import seed
-    seed()
-    from .operations_seed import seed_operations
-    seed_operations()
+    if cloud_mode():
+        from .cloud_schema import initialize_cloud_schema
+        initialize_cloud_schema()
+    else:
+        Base.metadata.create_all(engine)
+        from .seed import seed
+        seed()
+        from .operations_seed import seed_operations
+        seed_operations()
     yield
 
-app = FastAPI(title='DENTpro API', version='0.1.0', lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:3000','http://127.0.0.1:3000'], allow_methods=['GET','POST','PUT','PATCH','DELETE'], allow_headers=['Authorization','Content-Type','Idempotency-Key'])
+app = FastAPI(title='DENTpro API', version='0.1.0', lifespan=lifespan,
+              docs_url=None if cloud_mode() else '/docs', redoc_url=None if cloud_mode() else '/redoc',
+              openapi_url=None if cloud_mode() else '/openapi.json')
+app.add_middleware(CORSMiddleware, allow_origins=cors_origins(), allow_methods=['GET','POST','PUT','PATCH','DELETE'], allow_headers=['Authorization','Content-Type','Idempotency-Key'])
+
+@app.middleware('http')
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Referrer-Policy'] = 'no-referrer'
+    response.headers['X-Frame-Options'] = 'DENY'
+    if cloud_mode():
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
 
 @app.get('/health')
-def health(): return {'status':'ok', 'environment':'local-demo'}
+def health():
+    with engine.connect() as connection: connection.execute(text('SELECT 1'))
+    return {'status':'ok', 'environment':'cloud-staging' if cloud_mode() else 'local-demo'}
 
-@app.post('/demo/session/{role}')
-def session(role: str):
-    if role not in TOKENS: raise HTTPException(404)
-    return {'token': TOKENS[role], 'user': ACTORS[role]}
+if not cloud_mode():
+    @app.post('/demo/session/{role}')
+    def session(role: str):
+        if role not in TOKENS: raise HTTPException(404)
+        return {'token': TOKENS[role], 'user': ACTORS[role]}
 
 @app.get('/catalog')
 def catalog(user=Depends(actor)):
@@ -98,7 +118,13 @@ async def upload(case_id:str,file:UploadFile=File(...),user=Depends(require('pat
     if len(data)>limit: raise HTTPException(413,f'Maximum file size is {limit//1024//1024} MB')
     kind = 'image/png' if data.startswith(b'\x89PNG\r\n\x1a\n') else 'image/jpeg' if data.startswith(b'\xff\xd8\xff') else 'application/pdf' if data.startswith(b'%PDF-') else None
     if not kind: raise HTTPException(415,'Upload a PNG, JPEG or PDF file')
-    key=str(uuid4()); path=Path('.data/assets')/key; path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(data)
+    key=str(uuid4())
+    if cloud_mode():
+        existing=db.get(XrayAsset,c.id)
+        if existing: existing.data=data
+        else: db.add(XrayAsset(case_id=c.id,data=data))
+    else:
+        path=Path('.data/assets')/key; path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(data)
     c.asset={'key':key,'name':Path(file.filename or 'xray').name[:150],'type':kind}
     audit(db,user['id'],'xray.uploaded',c.id); db.commit()
     return case_view(c)
@@ -108,7 +134,13 @@ def download(case_id:str,user=Depends(actor),db=Depends(get_db)):
     c=access_case(db,case_id,user)
     if not c.asset or c.asset.get('synthetic'): raise HTTPException(404,'This example case has no clinical image. Upload a synthetic file in a new case.')
     audit(db,user['id'],'xray.accessed',c.id); db.commit()
-    return FileResponse(Path('.data/assets')/c.asset['key'],media_type=c.asset['type'],filename=c.asset['name'],headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
+    headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}
+    if cloud_mode():
+        asset=db.get(XrayAsset,c.id)
+        if not asset: raise HTTPException(404,'Image unavailable')
+        headers['Content-Disposition']="attachment; filename*=UTF-8''"+quote(c.asset['name'],safe='')
+        return Response(content=asset.data,media_type=c.asset['type'],headers=headers)
+    return FileResponse(Path('.data/assets')/c.asset['key'],media_type=c.asset['type'],filename=c.asset['name'],headers=headers)
 
 @app.post('/cases/{case_id}/dispatch', response_model=CaseOutput)
 def dispatch(case_id:str,data:DispatchInput,user=Depends(require('patient')),db=Depends(get_db)):
@@ -119,9 +151,9 @@ def dispatch(case_id:str,data:DispatchInput,user=Depends(require('patient')),db=
     if len(set(c.recipients+data.clinic_ids))>(setting.value.get('max_recipients',10) if setting else 10):raise HTTPException(422,'Clinic recipient limit exceeded')
     for cid in data.clinic_ids:
         profile=db.get(ClinicProfile,cid)
-        if profile and profile.status!='active':raise HTTPException(422,'Selected clinic is not accepting cases')
-    selected=db.scalars(select(Clinic).where(Clinic.id.in_(data.clinic_ids), Clinic.region==c.region)).all()
-    if len(selected)!=len(set(data.clinic_ids)): raise HTTPException(422,'Select clinics in the case’s region')
+        if not profile or profile.status!='active':raise HTTPException(422,'Selected clinic is not accepting cases')
+    selected=db.scalars(select(Clinic).where(Clinic.id.in_(data.clinic_ids))).all()
+    if len(selected)!=len(set(data.clinic_ids)): raise HTTPException(422,'Select participating clinics')
     c.recipients=sorted(set(c.recipients+data.clinic_ids));c.status='shared'
     audit(db,user['id'],'case.dispatched',c.id);db.commit();return case_view(c)
 

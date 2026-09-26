@@ -1,6 +1,6 @@
 """Additive operations tables; existing patient records are preserved."""
 from datetime import datetime
-from sqlalchemy import String, JSON, DateTime, UniqueConstraint
+from sqlalchemy import String, JSON, DateTime, UniqueConstraint, Float
 from sqlalchemy.orm import Mapped, mapped_column
 from .db import Base, uid, now
 
@@ -21,6 +21,13 @@ class LoginSession(Base):
     account_id: Mapped[str]
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
+class LoginThrottle(Base):
+    """Shared failed-login window; the key is a digest, never a raw email."""
+    __tablename__ = 'login_throttles'
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    attempts: Mapped[int] = mapped_column(default=0)
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
 class ClinicProfile(Base):
     __tablename__ = 'clinic_profiles'
     clinic_id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -34,6 +41,13 @@ class ClinicProfile(Base):
     monthly_fee_minor: Mapped[int] = mapped_column(default=0)
     renewal_date: Mapped[str] = mapped_column(default='')
     review_notes: Mapped[str] = mapped_column(default='')
+
+class ClinicLocation(Base):
+    """Verified clinic coordinates; absent rows remain visible without distance ranking."""
+    __tablename__ = 'clinic_locations'
+    clinic_id: Mapped[str] = mapped_column(String, primary_key=True)
+    latitude: Mapped[float] = mapped_column(Float)
+    longitude: Mapped[float] = mapped_column(Float)
 
 class CaseReview(Base):
     __tablename__ = 'clinic_case_reviews'
@@ -89,6 +103,14 @@ class ExplanationJob(Base):
     glossary: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+class AIExplanationRequest(Base):
+    """Immutable gateway choice for a queued explanation key."""
+    __tablename__ = 'ai_explanation_requests'
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    provider: Mapped[str]
+    model: Mapped[str]
+    prompt_version: Mapped[str]
 
 class PlatformSetting(Base):
     __tablename__ = 'platform_settings'

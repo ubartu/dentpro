@@ -4,14 +4,17 @@ from uuid import uuid4
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, Header
 from fastapi.security import HTTPAuthorizationCredentials
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
 from .db import get_db, Clinic, Case, Proposal, Explanation, Appointment, Consent, Audit, audit, now
 from .auth import actor, require, bearer, password_hash, password_matches, token_hash, account_view
 from .contracts import StrictModel, ProposalInput
 from .interpreter import digest, canonical_source
-from .operations_models import Account, LoginSession, ClinicProfile, CaseReview, Draft, ProposalState, AppointmentDetail, GlossaryEntry, ExplanationJob, PlatformSetting, PatientProfile
+from .ai_gateway import GatewayStatus, gateway_config, gateway_status
+from .login_throttle import begin_attempt, record_failure, clear_attempts
+from .runtime import cloud_mode
+from .operations_models import Account, LoginSession, ClinicProfile, ClinicLocation, CaseReview, Draft, ProposalState, AppointmentDetail, GlossaryEntry, ExplanationJob, AIExplanationRequest, PlatformSetting, PatientProfile
 
 router=APIRouter()
 
@@ -52,6 +55,13 @@ class ProfileInput(StrictModel):
     website: str = Field(default='',max_length=150)
     description: str = Field(default='',max_length=1500)
     hours: str = Field(default='',max_length=500)
+    latitude: float | None = Field(default=None,ge=-90,le=90)
+    longitude: float | None = Field(default=None,ge=-180,le=180)
+    @model_validator(mode='after')
+    def paired_coordinates(self):
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError('Provide both latitude and longitude, or leave both empty')
+        return self
 class ClinicCreate(ProfileInput):
     region: Literal['Istanbul','Ankara','Izmir']
 class ClinicReviewInput(StrictModel):
@@ -78,17 +88,25 @@ class SettingsInput(StrictModel):
     max_recipients: int = Field(ge=1,le=10)
     upload_limit_mb: int = Field(ge=1,le=10)
 
-@router.post('/auth/login')
-def login(data:LoginInput,db=Depends(get_db)):
+def sign_in(data:LoginInput,db,allowed_roles:tuple[str,...]):
+    throttle=begin_attempt(db,data.email) if cloud_mode() else None
     user=db.scalar(select(Account).where(Account.email==data.email.lower()))
-    if not user or not password_matches(data.password,user.password_hash) or not user.active:
-        raise HTTPException(401,'Email or password is incorrect, or the account is disabled.')
+    if not user or user.role not in allowed_roles or not password_matches(data.password,user.password_hash) or not user.active:
+        if cloud_mode():record_failure(db,data.email,throttle)
+        raise HTTPException(401,'Email or password is incorrect.')
     profile=db.get(ClinicProfile,user.clinic_id) if user.clinic_id else None
     if profile and profile.status!='active':raise HTTPException(403,'This clinic is awaiting approval or has been suspended.')
+    if not user.password_hash.startswith('$argon2id$'):
+        user.password_hash=password_hash(data.password)
+    if cloud_mode():clear_attempts(db,throttle)
     token=secrets.token_urlsafe(40)
     db.add(LoginSession(token_hash=token_hash(token),account_id=user.id,expires_at=now()+timedelta(hours=12)))
     audit(db,user.id,'session.signed_in',user.id);db.commit()
     return {'token':token,'user':account_view(user)}
+
+@router.post('/auth/login')
+def login(data:LoginInput,db=Depends(get_db)):
+    return sign_in(data,db,('clinic','admin'))
 
 @router.get('/auth/me')
 def me(user=Depends(actor)): return user
@@ -100,7 +118,8 @@ def logout(credential:HTTPAuthorizationCredentials=Depends(bearer),user=Depends(
 
 def profile_view(db,c):
     p=db.get(ClinicProfile,c.id)
-    return {'id':c.id,'name':c.name,'region':c.region,'district':c.district,'address':c.address, **{k:getattr(p,k) if p else '' for k in ['status','email','phone','website','description','hours','subscription','monthly_fee_minor','renewal_date','review_notes']}}
+    loc=db.get(ClinicLocation,c.id)
+    return {'id':c.id,'name':c.name,'region':c.region,'district':c.district,'address':c.address,'latitude':loc.latitude if loc else None,'longitude':loc.longitude if loc else None, **{k:getattr(p,k) if p else '' for k in ['status','email','phone','website','description','hours','subscription','monthly_fee_minor','renewal_date','review_notes']}}
 
 def state(db,p): return db.get(ProposalState,p.id)
 def proposal_view(db,p):
@@ -108,6 +127,17 @@ def proposal_view(db,p):
     data=base_view(db,p);s=state(db,p);c=db.get(Case,p.case_id)
     job=db.get(ExplanationJob,p.explanation_key)
     return data|{'case_title':c.title if c else 'Archived case','status':s.status if s else 'submitted','revision_of':s.revision_of if s else None,'moderation':s.moderation if s else 'unreviewed','review_notes':s.review_notes if s else '', 'explanation_status':job.status if job else data['explanation_status']}
+
+def explanation_job_view(db,job):
+    request=db.get(AIExplanationRequest,job.key)
+    explanation=db.get(Explanation,job.key)
+    return {
+        'key':job.key,'proposal_id':job.proposal_id,'status':job.status,
+        'attempts':job.attempts,'error':job.error,'created_at':job.created_at,
+        'updated_at':job.updated_at,'provider':request.provider if request else 'template',
+        'model':request.model if request else 'template-v1',
+        'output_mode':explanation.output.get('mode') if explanation else None,
+    }
 
 def case_view(db,c,user):
     is_admin=user['role']=='admin';clinic_id=user.get('clinic_id')
@@ -143,11 +173,14 @@ def glossary_snapshot(db):
 
 def enqueue(db,p,force=False):
     glossary=glossary_snapshot(db)
-    key=digest({'plan':canonical_source(p.plan),'glossary':glossary,'locale':'en','policy':'1','model':'template-v1'})
+    gateway=gateway_config()
+    model_tag='template-v1' if gateway.provider=='template' else f'{gateway.provider}:{gateway.model}:prompt-{gateway.prompt_version}'
+    key=digest({'plan':canonical_source(p.plan),'glossary':glossary,'locale':'en','policy':'1','model':model_tag})
     p.explanation_key=key
     job=db.get(ExplanationJob,key)
     if not job:
         db.add(ExplanationJob(key=key,proposal_id=p.id,status='completed' if db.get(Explanation,key) else 'pending',glossary=glossary))
+        db.add(AIExplanationRequest(key=key,provider=gateway.provider,model=gateway.model,prompt_version=gateway.prompt_version))
     elif force and job.status=='failed':job.status='pending';job.error='';job.updated_at=now()
 
 @router.get('/clinic/workspace')
@@ -272,13 +305,22 @@ def admin_workspace(user=Depends(require('admin')),db=Depends(get_db)):
     props=db.scalars(select(Proposal).order_by(Proposal.created_at.desc())).all()
     jobs=db.scalars(select(ExplanationJob).order_by(ExplanationJob.created_at.desc())).all()
     explanations=db.scalars(select(Explanation)).all()
-    return {'clinics':[profile_view(db,c) for c in db.scalars(select(Clinic).order_by(Clinic.name)).all()],'cases':[case_view(db,c,user) for c in cases],'proposals':[proposal_view(db,p) for p in props],'appointments':[appointment_view(db,a) for a in db.scalars(select(Appointment).order_by(Appointment.created_at.desc())).all()],'accounts':[account_view(a) for a in db.scalars(select(Account).order_by(Account.created_at.desc())).all()], 'jobs':[{'key':j.key,'proposal_id':j.proposal_id,'status':j.status,'attempts':j.attempts,'error':j.error,'created_at':j.created_at,'updated_at':j.updated_at} for j in jobs],'glossary':[{'code':g.code,'name':g.name,'explanation':g.explanation,'reviewed':g.reviewed,'reviewer':g.reviewer,'version':g.version} for g in db.scalars(select(GlossaryEntry)).all()], 'settings':db.get(PlatformSetting,'operations').value, 'audit':[{'id':a.id,'actor':a.actor,'action':a.action,'entity':a.entity,'created_at':a.created_at} for a in db.scalars(select(Audit).order_by(Audit.created_at.desc()).limit(1000)).all()], 'telemetry':{'explanations':len(explanations),'input_tokens':sum(e.input_tokens for e in explanations),'output_tokens':sum(e.output_tokens for e in explanations),'cost':sum(float(e.estimated_cost) for e in explanations),'provider':'Template interpreter'}}
+    gateway=gateway_status()
+    return {'clinics':[profile_view(db,c) for c in db.scalars(select(Clinic).order_by(Clinic.name)).all()],'cases':[case_view(db,c,user) for c in cases],'proposals':[proposal_view(db,p) for p in props],'appointments':[appointment_view(db,a) for a in db.scalars(select(Appointment).order_by(Appointment.created_at.desc())).all()],'accounts':[account_view(a) for a in db.scalars(select(Account).order_by(Account.created_at.desc())).all()], 'jobs':[explanation_job_view(db,j) for j in jobs],'glossary':[{'code':g.code,'name':g.name,'explanation':g.explanation,'reviewed':g.reviewed,'reviewer':g.reviewer,'version':g.version} for g in db.scalars(select(GlossaryEntry)).all()], 'settings':db.get(PlatformSetting,'operations').value, 'audit':[{'id':a.id,'actor':a.actor,'action':a.action,'entity':a.entity,'created_at':a.created_at} for a in db.scalars(select(Audit).order_by(Audit.created_at.desc()).limit(1000)).all()], 'telemetry':{'explanations':len(explanations),'input_tokens':sum(e.input_tokens for e in explanations),'output_tokens':sum(e.output_tokens for e in explanations),'cost':sum(float(e.estimated_cost) for e in explanations),'provider':gateway['provider'],'model':gateway['model'],'configured':gateway['configured']}}
+
+@router.get('/admin/ai/gateway',response_model=GatewayStatus)
+def admin_ai_gateway(user=Depends(require('admin'))):
+    """Non-secret gateway readiness for operations; credentials stay server-side."""
+    return gateway_status()
 
 @router.post('/admin/clinics',status_code=201)
 def create_clinic(data:ClinicCreate,user=Depends(require('admin')),db=Depends(get_db)):
     c=Clinic(id=str(uuid4()),name=data.name,region=data.region,district=data.district,address=data.address)
     p=ClinicProfile(clinic_id=c.id,**{k:getattr(data,k) for k in ('email','phone','website','description','hours')})
-    db.add(c);db.add(p);audit(db,user['id'],'clinic.created',c.id);db.commit();return profile_view(db,c)
+    db.add(c);db.add(p)
+    if data.latitude is not None:
+        db.add(ClinicLocation(clinic_id=c.id,latitude=data.latitude,longitude=data.longitude))
+    audit(db,user['id'],'clinic.created',c.id);db.commit();return profile_view(db,c)
 
 @router.patch('/admin/clinics/{clinic_id}/review')
 def review_clinic(clinic_id:str,data:ClinicReviewInput,user=Depends(require('admin')),db=Depends(get_db)):
@@ -351,4 +393,11 @@ def admin_profile(clinic_id:str,data:ClinicCreate,user=Depends(require('admin'))
     if not c or not p:raise HTTPException(404,'Clinic not found')
     for key in ('name','region','district','address'):setattr(c,key,getattr(data,key))
     for key in ('email','phone','website','description','hours'):setattr(p,key,getattr(data,key))
+    loc=db.get(ClinicLocation,clinic_id)
+    if data.latitude is None:
+        if loc:db.delete(loc)
+    elif loc:
+        loc.latitude=data.latitude;loc.longitude=data.longitude
+    else:
+        db.add(ClinicLocation(clinic_id=clinic_id,latitude=data.latitude,longitude=data.longitude))
     audit(db,user['id'],'clinic.profile_updated',clinic_id);db.commit();return profile_view(db,c)

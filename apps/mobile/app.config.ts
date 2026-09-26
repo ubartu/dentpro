@@ -7,7 +7,7 @@ const config: ExpoConfig = {
   scheme: "dentpro",
   orientation: "portrait",
   userInterfaceStyle: "light",
-  icon: "./assets/dentpro-blue-icon.png",
+  icon: "./assets/dentpro-brand-square.png",
   platforms: ["ios", "android"],
   ios: {
     supportsTablet: true,
@@ -22,8 +22,8 @@ const config: ExpoConfig = {
   android: {
     package: "com.dentpro.patient",
     adaptiveIcon: {
-      foregroundImage: "./assets/dentpro-blue-foreground.png",
-      backgroundColor: "#EFF6FF",
+      foregroundImage: "./assets/dentpro-brand-adaptive.png",
+      backgroundColor: "#FFFFFF",
     },
     permissions: [],
     blockedPermissions: [
@@ -39,12 +39,19 @@ const config: ExpoConfig = {
     "expo-secure-store",
     "expo-document-picker",
     "expo-image",
+    [
+      "expo-location",
+      {
+        locationWhenInUsePermission:
+          "Allow DENTpro to use your location to show nearby participating clinics.",
+      },
+    ],
     "expo-font",
     [
       "expo-splash-screen",
       {
         backgroundColor: "#FFFFFF",
-        image: "./assets/dentpro-blue-foreground.png",
+        image: "./assets/dentpro-brand-square.png",
         imageWidth: 160,
       },
     ],

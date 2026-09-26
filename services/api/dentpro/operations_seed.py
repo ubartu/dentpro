@@ -1,15 +1,18 @@
 from datetime import timedelta
 from .db import Session, Clinic, Case, Proposal, Appointment, Consent, now
 from .contracts import PROCEDURES
-from .operations_models import Account, ClinicProfile, ProposalState, GlossaryEntry, PlatformSetting, CaseReview
+from .operations_models import Account, ClinicProfile, ClinicLocation, ProposalState, GlossaryEntry, PlatformSetting, CaseReview
 from .auth import password_hash
+
+def seed_base_settings(db):
+    for code,(name,text) in PROCEDURES.items():
+        if not db.get(GlossaryEntry,code): db.add(GlossaryEntry(code=code,name=name,explanation=text))
+    if not db.get(PlatformSetting,'operations'):
+        db.add(PlatformSetting(key='operations',value={'explanations_enabled':True,'max_recipients':10,'upload_limit_mb':10}))
 
 def seed_operations():
     with Session() as db:
-        for code,(name,text) in PROCEDURES.items():
-            if not db.get(GlossaryEntry,code): db.add(GlossaryEntry(code=code,name=name,explanation=text))
-        if not db.get(PlatformSetting,'operations'):
-            db.add(PlatformSetting(key='operations',value={'explanations_enabled':True,'max_recipients':10,'upload_limit_mb':10}))
+        seed_base_settings(db)
         for c in db.query(Clinic).all():
             if not db.get(ClinicProfile,c.id): db.add(ClinicProfile(clinic_id=c.id,status='active',email=f'contact@{c.id}.example',subscription='trial'))
         accounts=[('clinic-account','clinic@dentpro.local','Dr. Deniz Kaya','clinic','clinic-1','Clinic123!'),('admin-account','admin@dentpro.local','Platform administrator','admin',None,'Admin123!')]
@@ -29,6 +32,15 @@ def seed_operations():
             if db.get(Proposal,'proposal-2') and not db.query(Appointment).filter_by(proposal_id='proposal-2',user_id='patient-demo').first():
                 db.add(Appointment(proposal_id='proposal-2',user_id='patient-demo',clinic_id='clinic-2',kind='callback'))
             db.add(PlatformSetting(key='operations_seed_v1',value={'done':True}))
+        # District-centre coordinates for synthetic demonstration clinics only.
+        for clinic_id, latitude, longitude in (
+            ('clinic-1', 40.9910, 29.0277),
+            ('clinic-2', 41.0447, 29.0073),
+            ('clinic-3', 41.0602, 28.9877),
+            ('clinic-4', 38.4325, 27.1384),
+        ):
+            if db.get(Clinic, clinic_id) and not db.get(ClinicLocation, clinic_id):
+                db.add(ClinicLocation(clinic_id=clinic_id, latitude=latitude, longitude=longitude))
         for p in db.query(Proposal).all():
             if not db.get(ProposalState,p.id): db.add(ProposalState(proposal_id=p.id))
         db.commit()

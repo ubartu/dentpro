@@ -8,6 +8,7 @@ import {
 import { Alert } from "react-native";
 import SignIn from "../src/app/sign-in";
 import NewCase from "../src/app/(patient)/new";
+import Share from "../src/app/(patient)/share/[id]";
 import ProposalDetail from "../src/app/(patient)/proposal/[id]";
 import Appointments from "../src/app/(patient)/(tabs)/appointments";
 import Compare from "../src/app/(patient)/compare/[id]";
@@ -17,6 +18,14 @@ const mockAccept = jest.fn();
 const mockExpire = jest.fn();
 const mockReplace = jest.fn();
 const mockRefresh = jest.fn();
+const mockLocationPermission = jest.fn();
+const mockCurrentPosition = jest.fn();
+jest.mock("expo-location", () => ({
+  Accuracy: { Balanced: 3 },
+  requestForegroundPermissionsAsync: (...args: unknown[]) =>
+    mockLocationPermission(...args),
+  getCurrentPositionAsync: (...args: unknown[]) => mockCurrentPosition(...args),
+}));
 jest.mock("expo-router", () => ({
   router: {
     replace: (...args: unknown[]) => mockReplace(...args),
@@ -125,7 +134,6 @@ it("shows loading during sign-in and restores entered details after a failure", 
 });
 it("requires consent and reuses the same case payload/key after an uncertain failure", async () => {
   data({
-    regions: ["Istanbul"],
     consent_version: "v1",
     consent_text: "Sharing terms",
   });
@@ -133,6 +141,7 @@ it("requires consent and reuses the same case payload/key after an uncertain fai
     .mockRejectedValueOnce(new ApiError(0, "Connection lost"))
     .mockResolvedValueOnce({ id: "new-case" });
   render(<NewCase />);
+  expect(screen.queryByText("Region")).toBeNull();
   fireEvent.changeText(
     screen.getByLabelText("Case title"),
     "Molar consultation",
@@ -151,6 +160,38 @@ it("requires consent and reuses the same case payload/key after an uncertain fai
     }),
   );
   expect(api.mock.calls[0]).toEqual(api.mock.calls[1]);
+  expect(api.mock.calls[0][3]).not.toHaveProperty("region");
+});
+it("keeps every clinic available without location and highlights nearby clinics after permission", async () => {
+  const values: Record<string, unknown> = {
+    "/patient/clinics": [
+      { id: "near", name: "Near clinic", region: "Istanbul", district: "Kadikoy", address: "Sample address", latitude: 40.991, longitude: 29.0277 },
+      { id: "far", name: "Far clinic", region: "Ankara", district: "Cankaya", address: "Sample address", latitude: 39.9208, longitude: 32.8541 },
+    ],
+    "/cases": [{ id: "p1", recipients: [], status: "draft" }],
+    "/patient/capabilities": { max_recipients: 10, consent_text: "Sharing terms" },
+  };
+  resource.mockImplementation(((path: string) => ({
+    data: values[path] ?? null,
+    error: "",
+    loading: false,
+    refresh: mockRefresh,
+    setData: jest.fn(),
+  })) as typeof useResource);
+  mockLocationPermission
+    .mockResolvedValueOnce({ granted: false })
+    .mockResolvedValueOnce({ granted: true });
+  mockCurrentPosition.mockResolvedValue({ coords: { latitude: 40.991, longitude: 29.0277 } });
+  render(<Share />);
+  expect(screen.getByText("All participating clinics · 2")).toBeTruthy();
+  expect(screen.getByText("Far clinic")).toBeTruthy();
+  fireEvent.press(screen.getByText("Use my location"));
+  await screen.findByText(/Location access was not allowed/);
+  expect(screen.getByText("Far clinic")).toBeTruthy();
+  fireEvent.press(screen.getByText("Use my location"));
+  await screen.findByText("Near you · 1");
+  expect(screen.getAllByText("Near clinic")).toHaveLength(2);
+  expect(screen.getByText("Far clinic")).toBeTruthy();
 });
 it("keeps the original proposal readable when its explanation failed", () => {
   data(proposal);
@@ -158,6 +199,43 @@ it("keeps the original proposal readable when its explanation failed", () => {
   expect(screen.getByText("Source note")).toBeTruthy();
   expect(screen.getByText(/explanation is currently unavailable/)).toBeTruthy();
   expect(screen.queryByText(/being prepared/)).toBeNull();
+});
+it("identifies AI wording and its clinical review status on a proposal", () => {
+  data({
+    ...proposal,
+    explanation: {
+      plain_summary: "The clinic proposes root canal treatment over two visits.",
+      procedures: [],
+      missing_information: [],
+      questions_to_ask_clinic: [],
+      disclaimer: "The clinic should confirm the plan after an examination.",
+      mode: "ai",
+      glossary_status: "draft_requires_dentist_review",
+    },
+    explanation_status: "ready",
+  });
+  render(<ProposalDetail />);
+  expect(screen.getByText("AI-ASSISTED SUMMARY")).toBeTruthy();
+  expect(screen.getByText(/wording has not been clinically reviewed/)).toBeTruthy();
+  expect(screen.getByText(/The clinic proposes root canal treatment/)).toBeTruthy();
+});
+it("labels a failed AI gateway as a template explanation", () => {
+  data({
+    ...proposal,
+    explanation: {
+      plain_summary: "The clinic has proposed a treatment plan.",
+      procedures: [],
+      missing_information: [],
+      questions_to_ask_clinic: [],
+      disclaimer: "The clinic should confirm the plan after an examination.",
+      mode: "template_fallback",
+      glossary_status: "draft_requires_dentist_review",
+    },
+    explanation_status: "ready",
+  });
+  render(<ProposalDetail />);
+  expect(screen.getByText("TEMPLATE SUMMARY · AI UNAVAILABLE")).toBeTruthy();
+  expect(screen.queryByText("AI-ASSISTED SUMMARY")).toBeNull();
 });
 it("does not book a proposal that became unavailable on a stale screen", async () => {
   data(proposal);

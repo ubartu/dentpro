@@ -1,0 +1,24 @@
+{$DENTPRO_WEB_DOMAIN} {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        X-Frame-Options DENY
+    }
+    reverse_proxy web:3000
+}
+
+{$DENTPRO_API_DOMAIN} {
+    request_body {
+        max_size 12MB
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        X-Frame-Options DENY
+        Cache-Control no-store
+    }
+    reverse_proxy api:8000
+}

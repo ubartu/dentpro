@@ -5,3 +5,4 @@ python-multipart>=0.0.20,<1
 psycopg[binary]>=3.2,<4
 pytest>=8,<10
 httpx>=0.28,<1
+argon2-cffi>=23.1,<26

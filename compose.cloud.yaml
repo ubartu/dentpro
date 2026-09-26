@@ -1,0 +1,100 @@
+# Portable cloud staging stack. PostgreSQL is managed outside this stack.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      APP_ENV: cloud
+      DATABASE_URL_FILE: /run/secrets/database_url
+      DENTPRO_CORS_ORIGINS: https://${DENTPRO_WEB_DOMAIN:?set DENTPRO_WEB_DOMAIN}
+      DENTPRO_AI_PROVIDER: template
+    secrets:
+      - database_url
+      - db_ca
+    expose:
+      - "8000"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["python", "-m", "dentpro.worker"]
+    environment:
+      APP_ENV: cloud
+      DATABASE_URL_FILE: /run/secrets/database_url
+      DENTPRO_CORS_ORIGINS: https://${DENTPRO_WEB_DOMAIN:?set DENTPRO_WEB_DOMAIN}
+      DENTPRO_AI_PROVIDER: template
+    secrets:
+      - database_url
+      - db_ca
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: https://${DENTPRO_API_DOMAIN:?set DENTPRO_API_DOMAIN}
+    expose:
+      - "3000"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  edge:
+    image: caddy:2.10-alpine
+    environment:
+      DENTPRO_WEB_DOMAIN: ${DENTPRO_WEB_DOMAIN:?set DENTPRO_WEB_DOMAIN}
+      DENTPRO_API_DOMAIN: ${DENTPRO_API_DOMAIN:?set DENTPRO_API_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+secrets:
+  database_url:
+    file: ./secrets/database_url
+  db_ca:
+    file: ./secrets/db-ca.pem
+
+volumes:
+  caddy_data:
+  caddy_config:

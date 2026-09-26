@@ -8,8 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from .auth import require, password_hash, password_matches, token_hash, account_view
 from .contracts import StrictModel, AppointmentOutput
 from .db import get_db, now, audit, Appointment, Proposal, Case, Clinic
-from .operations_models import Account, LoginSession, PatientProfile, ClinicProfile, AppointmentDetail, PlatformSetting
-from .operations import LoginInput, login
+from .operations_models import Account, LoginSession, PatientProfile, ClinicProfile, ClinicLocation, AppointmentDetail, PlatformSetting
+from .operations import LoginInput, sign_in
 
 router = APIRouter(prefix='/patient', tags=['patient'])
 
@@ -37,7 +37,6 @@ class PatientSession(StrictModel):
     user: PatientAccount
 
 class Capabilities(StrictModel):
-    regions: list[str]
     upload_limit_mb: int
     max_recipients: int
     consent_version: str
@@ -59,6 +58,8 @@ class PatientClinic(StrictModel):
     phone: str
     description: str
     hours: str
+    latitude: float | None
+    longitude: float | None
 
 CONSENT_VERSION = 'patient-sharing-1'
 CONSENT_TEXT = 'I agree to store this case and share its X-ray and case details with the clinics I select for a preliminary treatment proposal. My contact details will be shared with a clinic when I request an appointment or callback.'
@@ -85,10 +86,7 @@ def register(data: Registration, db=Depends(get_db)):
 
 @router.post('/login', response_model=PatientSession)
 def patient_login(data: LoginInput, db=Depends(get_db)):
-    account = db.scalar(select(Account).where(Account.email == data.email.lower()))
-    if not account or account.role != 'patient':
-        raise HTTPException(401, 'Email or password is incorrect.')
-    result = login(data, db)
+    result = sign_in(data, db, ('patient',))
     return result | {'user': patient_view(db, result['user'])}
 
 @router.get('/me', response_model=PatientAccount)
@@ -127,12 +125,23 @@ def change_password(data: PasswordChange, user=Depends(require('patient')), db=D
 def capabilities(user=Depends(require('patient')), db=Depends(get_db)):
     settings = db.get(PlatformSetting, 'operations')
     values = settings.value if settings else {}
-    return {'regions': ['Istanbul','Ankara','Izmir'], 'upload_limit_mb': values.get('upload_limit_mb',10), 'max_recipients': values.get('max_recipients',10), 'consent_version': CONSENT_VERSION, 'consent_text': CONSENT_TEXT}
+    return {'upload_limit_mb': values.get('upload_limit_mb',10), 'max_recipients': values.get('max_recipients',10), 'consent_version': CONSENT_VERSION, 'consent_text': CONSENT_TEXT}
 
 @router.get('/clinics', response_model=list[PatientClinic])
 def clinics(user=Depends(require('patient')), db=Depends(get_db)):
-    rows = db.execute(select(Clinic, ClinicProfile).join(ClinicProfile, Clinic.id == ClinicProfile.clinic_id).where(ClinicProfile.status == 'active').order_by(Clinic.name)).all()
-    return [{k: getattr(c,k) for k in ('id','name','region','district','address')} | {k: getattr(p,k) for k in ('phone','description','hours')} for c,p in rows]
+    rows = db.execute(
+        select(Clinic, ClinicProfile, ClinicLocation)
+        .join(ClinicProfile, Clinic.id == ClinicProfile.clinic_id)
+        .outerjoin(ClinicLocation, Clinic.id == ClinicLocation.clinic_id)
+        .where(ClinicProfile.status == 'active')
+        .order_by(Clinic.name)
+    ).all()
+    return [
+        {k: getattr(c,k) for k in ('id','name','region','district','address')}
+        | {k: getattr(p,k) for k in ('phone','description','hours')}
+        | {'latitude': loc.latitude if loc else None, 'longitude': loc.longitude if loc else None}
+        for c,p,loc in rows
+    ]
 
 @router.get('/appointments', response_model=list[PatientAppointment])
 def appointments(user=Depends(require('patient')), db=Depends(get_db)):

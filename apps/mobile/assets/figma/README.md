@@ -15,6 +15,6 @@ Local PNG exports from the second file:
 
 These are the original exports, not redrawn artwork. The native UI uses blend compositing and opacity over blue cards. Their resolution reflects the available exports. File access does not establish redistribution rights; the upstream Community terms govern the reference artwork.
 
-The DENTpro badge is separately drawn in native views (`src/components/logo-mark.tsx`) and as `assets/brand-mark.svg`. Its perspective rotation runs only during loading, pauses in the background, and stops for the device's reduced-motion preference. The PNG launcher/splash variants are rendered from that SVG, with a pale blue background for the launcher icon and transparency for the foreground.
+The current DENTpro tooth logo was supplied separately from these Figma references. Its original is stored at `assets/dentpro-logo-original.jpeg`; square adaptations are stored at `assets/dentpro-brand-square.png` and `assets/dentpro-brand-adaptive.png`. `src/components/logo-mark.tsx` renders the square logo and rotates it only during loading, pausing in the background and respecting the device's reduced-motion preference. The older `brand-mark.svg` and related PNGs remain as unused historical assets.
 
 The source templates' unrelated meditation content and unconnected social authentication/password recovery controls are not included. All visible patient actions connect to DENTpro's existing workflows.

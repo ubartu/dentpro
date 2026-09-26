@@ -1,8 +1,9 @@
 import os
 from datetime import datetime, timezone
 from uuid import uuid4
-from sqlalchemy import create_engine, String, JSON, Integer, DateTime, UniqueConstraint
+from sqlalchemy import create_engine, String, JSON, Integer, DateTime, UniqueConstraint, LargeBinary
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+from .runtime import cloud_mode, database_url
 
 
 def uid(): return str(uuid4())
@@ -83,9 +84,16 @@ class Consent(Base):
     version: Mapped[str] = mapped_column(default='demo-1')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
-os.makedirs('.data', exist_ok=True)
-url = os.getenv('DATABASE_URL', 'sqlite:///.data/dentpro.db')
-engine = create_engine(url, connect_args={'check_same_thread': False} if url.startswith('sqlite') else {})
+class XrayAsset(Base):
+    """Bounded private image/PDF bytes; database backups include the file."""
+    __tablename__ = 'xray_assets'
+    case_id: Mapped[str] = mapped_column(String, primary_key=True)
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+if not cloud_mode(): os.makedirs('.data', exist_ok=True)
+url = database_url()
+engine = create_engine(url, connect_args={'check_same_thread': False} if url.startswith('sqlite') else {}, pool_pre_ping=True)
 Session = sessionmaker(engine, expire_on_commit=False)
 
 def get_db():

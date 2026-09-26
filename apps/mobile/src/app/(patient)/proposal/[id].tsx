@@ -100,8 +100,17 @@ export default function ProposalDetail() {
             <Text style={styles.badge}>PLAIN-LANGUAGE EXPLANATION</Text>
             {p.explanation ? (
               <>
+                <Text style={styles.badge}>
+                  {p.explanation.mode === "ai"
+                    ? "AI-ASSISTED SUMMARY"
+                    : p.explanation.mode === "template_fallback"
+                      ? "TEMPLATE SUMMARY · AI UNAVAILABLE"
+                      : "TEMPLATE SUMMARY"}
+                </Text>
                 <Text style={styles.muted}>
-                  Prepared from the procedure glossary ·{" "}
+                  {p.explanation.mode === "ai"
+                    ? "AI reworded the clinic’s structured plan; its wording has not been clinically reviewed. Procedure explanations come from the glossary. "
+                    : "Prepared from the procedure glossary. "}
                   {p.explanation.glossary_status === "dentist_review_recorded"
                     ? "Reviewer attribution recorded"
                     : "Clinical wording review pending"}

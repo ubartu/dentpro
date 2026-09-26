@@ -1,5 +1,24 @@
 # Verification — 24 September 2026
 
+## Cloud staging security foundation — 25 September 2026
+
+- Added a fail-closed cloud mode requiring a fresh versioned managed PostgreSQL schema, `sslmode=verify-full`, explicit HTTPS CORS origin, no demo session route or seeded credentials, Argon2id password hashes, shared failed-sign-in limits, database-backed private X-ray bytes, restricted API docs, health DB check and security headers. Existing local PBKDF2 hashes remain usable and upgrade on successful sign-in.
+- Added non-root API/web Docker images, an API/worker/web/Caddy Compose stack, HTTPS edge configuration, private DB URL/CA secret mounts and an interactive admin bootstrap. The AI provider is forced to template mode in this stack.
+- **27 API tests passed**, including cloud configuration rejection, route removal, blank cloud schema, password compatibility, durable sign-in throttling and image storage. Web typecheck/build, `docker compose config --quiet` and the existing staff-panel browser regression passed. The standalone Next.js server returned `/login` with security headers in a local smoke test. A Docker daemon and managed PostgreSQL were unavailable, so image build, container startup, TLS issuance, restore and remote end-to-end operation were not verified.
+
+## Optional AI proposal-summary gateway — 25 September 2026
+
+- Added a server-side OpenAI Responses adapter behind `DENTPRO_AI_PROVIDER=openai` and `OPENAI_API_KEY`; the default remains the deterministic template. The adapter sends only canonical clinic-plan fields and a template summary, requests a strict JSON schema with `store=false`, and validates the response before use. No provider credentials are stored in the app or admin API.
+- A per-explanation gateway snapshot separates template/OpenAI cache keys; the worker records model and token usage. Provider timeout or invalid output uses the template and labels it as fallback. The patient proposal screen and admin job table show the explanation source.
+- Mocked gateway tests verify the outbound payload boundary, status access, provider snapshot, AI result and fallback. **21 API tests and 18 mobile tests passed**, including proposal source and fallback labels, with web and mobile typechecks, mobile lint and web optimized build. No live model call or clinical quality acceptance test was performed.
+
+## Clinic discovery and logo — 25 September 2026
+
+- Case creation no longer asks the patient for a region. The sharing screen offers opt-in foreground location, shows clinics within 30 km by approximate straight-line distance, and keeps all active participating clinics available when location is denied or unavailable. Patient coordinates are not sent to the API.
+- Admin clinic profiles accept paired latitude/longitude values. Existing clinic records remain valid without coordinates; the four demo clinics receive approximate district-centre coordinates. Cross-region dispatch is permitted for selected active clinics.
+- The user-supplied tooth illustration has a square adaptation for mobile branding, native launcher/splash configuration, web login/sidebar branding and the Next.js tab icon. A second square variant provides more margin for Android adaptive-icon masking. The original is retained in `apps/mobile/assets/dentpro-logo-original.jpeg`.
+- **19 API tests and 16 mobile Jest tests passed**, including cross-region dispatch, coordinate persistence, nearby ranking and permission fallback. Mobile lint/typecheck, Expo Doctor (21/21), web typecheck and optimized build, and iOS/Android Hermes exports passed. The web login logo was visually checked in the local browser. The updated app bundled and launched in Android Expo Go without a JavaScript error; the signed native launcher icon and physical-device location behavior were not verified by these checks.
+
 ## Separate clinic and admin panels
 
 - **18 API regression tests passed.** Covers the patient API foundation and distinct panel workflows: tenant/role isolation, login/logout, session revocation, suspension, account management, draft persistence, idempotent publication, immutable revisions, withdrawal, appointment transitions, source moderation, admin clinic editing, consent-preserving redispatch, case archiving, glossary versioning, queue pause/resume and bounded failure retries. Patient coverage includes registration, profile/password changes, all-session revocation, case idempotency, consent versions, active clinic filtering, contact visibility and request cancellation.
@@ -62,6 +81,6 @@ Only synthetic records were used. Local API, worker, mobile and staff panels sha
 
 ## Unverified / external boundaries
 
-PostgreSQL/Docker execution, managed cloud deployment, notification delivery, payment processing, external LLM integration, clinical validation, production security/identity workflows, physical-device testing, signed native builds/store submission, and real patient data handling are not claimed as completed. iOS has only been bundle-checked: Xcode is not installed on this host, so no iOS simulator run was performed. Subscription and appointment updates persist local operational records; they do not send messages, charge cards, or create external bookings.
+PostgreSQL/Docker execution, managed cloud deployment, notification delivery, payment processing, live external LLM calls, clinical validation, production security/identity workflows, physical-device testing, signed native builds/store submission, and real patient data handling are not claimed as completed. iOS has only been bundle-checked: Xcode is not installed on this host, so no iOS simulator run was performed. Subscription and appointment updates persist local operational records; they do not send messages, charge cards, or create external bookings.
 
 See `implementation-status.md` and the README route/workflow tables for the implemented scope.

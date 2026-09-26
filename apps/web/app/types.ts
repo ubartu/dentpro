@@ -14,6 +14,8 @@ export type Clinic = {
   region: string;
   district: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   status: string;
   email: string;
   phone: string;
@@ -68,6 +70,7 @@ export type Explanation = {
   questions_to_ask_clinic: string[];
   disclaimer: string;
   glossary_status: string;
+  mode: "template" | "ai" | "template_fallback";
 };
 export type Proposal = {
   id: string;
@@ -117,6 +120,9 @@ export type Job = {
   error: string;
   created_at: string;
   updated_at: string;
+  provider: string;
+  model: string;
+  output_mode: string | null;
 };
 export type Glossary = {
   code: string;
@@ -149,6 +155,8 @@ export type Workspace = {
     output_tokens: number;
     cost: number;
     provider: string;
+    model: string;
+    configured: boolean;
   };
 };
 export type Action = (

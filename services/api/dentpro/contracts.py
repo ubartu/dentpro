@@ -14,7 +14,7 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
 class CaseInput(StrictModel):
     title: str = Field(min_length=3, max_length=80)
-    region: Literal['Istanbul', 'Ankara', 'Izmir'] = 'Istanbul'
+    region: Literal['Istanbul', 'Ankara', 'Izmir', 'All regions'] = 'All regions'
     consent: Literal[True]
     consent_version: str | None = Field(default=None, max_length=80)
 class DispatchInput(StrictModel):
@@ -73,7 +73,7 @@ class ExplanationOutput(BaseModel):
     missing_information: list[str]
     questions_to_ask_clinic: list[str]
     disclaimer: str
-    mode: Literal['template']
+    mode: Literal['template','ai','template_fallback']
     glossary_status: Literal['draft_requires_dentist_review','dentist_review_recorded']
 
 class ProposalOutput(BaseModel):

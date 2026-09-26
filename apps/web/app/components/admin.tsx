@@ -184,15 +184,15 @@ export default function AdminScreen({
               </div>
               <div className="mini-summary">
                 <span>Provider</span>
-                <strong>Template</strong>
+                <strong>{telemetry.configured ? `OpenAI · ${telemetry.model}` : "Template"}</strong>
               </div>
               <div className="mini-summary">
                 <span>Stored explanations</span>
                 <strong>{telemetry.explanations}</strong>
               </div>
               <div className="mini-summary">
-                <span>Recorded provider cost</span>
-                <strong>${telemetry.cost.toFixed(4)}</strong>
+                <span>Provider usage</span>
+                <strong>{telemetry.input_tokens} input / {telemetry.output_tokens} output tokens</strong>
               </div>
               <Link className="secondary" href="/admin/interpreter">
                 Inspect queue
@@ -714,18 +714,15 @@ export default function AdminScreen({
               note="Stopped after bounded retries"
             />
             <Stat
-              label="Provider spend"
-              value={`$${telemetry.cost.toFixed(4)}`}
-              note={`${telemetry.input_tokens} input / ${telemetry.output_tokens} output tokens`}
+              label="Gateway"
+              value={telemetry.configured ? "OpenAI ready" : "Template only"}
+              note={telemetry.configured ? telemetry.model : "Set server-side provider and key to enable AI"}
             />
           </div>
           <div className="notice">
             <ShieldCheck size={20} />
             <p>
-              Current provider: <strong>template interpreter</strong>. No
-              X-rays, patient identifiers, or clinical notes are sent to an
-              external model. Regeneration reuses an existing output if its
-              source and glossary versions are unchanged.
+              Current provider: <strong>{telemetry.configured ? `OpenAI ${telemetry.model}` : "template interpreter"}</strong>. The gateway sends only structured clinic plan fields and a template summary; X-rays, patient identifiers, contact details, and clinical notes stay outside its payload. Invalid or unavailable AI output falls back to the template. Cached versions are not regenerated on page views.
             </p>
           </div>
           <div className="toolbar">
@@ -753,6 +750,7 @@ export default function AdminScreen({
                   <tr>
                     <th>Job / proposal</th>
                     <th>Status</th>
+                    <th>Gateway / output</th>
                     <th>Attempts</th>
                     <th>Last update</th>
                     <th />
@@ -775,6 +773,11 @@ export default function AdminScreen({
                         </td>
                         <td>
                           <Badge>{j.status}</Badge>
+                        </td>
+                        <td>
+                          <strong>{j.provider === "openai" ? "OpenAI" : "Template"}</strong>
+                          <small>{j.model}</small>
+                          {j.output_mode && <Badge>{j.output_mode.replaceAll("_", " ")}</Badge>}
                         </td>
                         <td>{j.attempts}</td>
                         <td>{datetime(j.updated_at)}</td>

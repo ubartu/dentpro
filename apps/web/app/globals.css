@@ -140,6 +140,13 @@ code {
 .wordmark svg {
   color: var(--accent);
 }
+.wordmark img {
+  display: block;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 8px;
+}
 .wordmark > span {
   font-weight: 400;
   color: var(--accent);
@@ -1812,6 +1819,17 @@ footer {
 }
 .login-story .wordmark {
   font-size: 29px;
+}
+.login-story .wordmark img {
+  width: 45px;
+  height: 45px;
+}
+.login-hero-logo {
+  display: block;
+  width: min(170px, 45%);
+  height: auto;
+  border-radius: 18px;
+  margin-bottom: 18px;
 }
 .login-story h1 {
   font-family: Georgia, serif;

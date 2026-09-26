@@ -8,6 +8,8 @@ __pycache__/
 *.tsbuildinfo
 .env
 .env.local
+.env.cloud
+secrets/
 .data/
 tmp/
 *.db

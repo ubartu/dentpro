@@ -476,7 +476,7 @@ export function ProposalDetail({
             <Sparkles size={18} />
             Patient explanation
           </h3>
-          <Badge>{p.explanation_status}</Badge>
+          <Badge>{p.explanation?.mode?.replaceAll("_", " ") || p.explanation_status}</Badge>
         </div>
         {p.explanation ? (
           <>
@@ -991,6 +991,31 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
         />
       </Field>
       <div className="form-grid">
+        <Field
+          label="Latitude"
+          hint="Optional. Add both coordinates to include this clinic in nearby results."
+        >
+          <input
+            type="number"
+            name="latitude"
+            min={-90}
+            max={90}
+            step="any"
+            defaultValue={clinic?.latitude ?? ""}
+          />
+        </Field>
+        <Field label="Longitude">
+          <input
+            type="number"
+            name="longitude"
+            min={-180}
+            max={180}
+            step="any"
+            defaultValue={clinic?.longitude ?? ""}
+          />
+        </Field>
+      </div>
+      <div className="form-grid">
         <Field label="Contact email">
           <input
             type="email"
@@ -1030,16 +1055,20 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
   );
 }
 export function profileData(f: FormData) {
-  return Object.fromEntries(
-    [
-      "name",
-      "district",
-      "address",
-      "email",
-      "phone",
-      "website",
-      "description",
-      "hours",
-    ].map((k) => [k, String(f.get(k) || "")]),
-  );
+  return {
+    ...Object.fromEntries(
+      [
+        "name",
+        "district",
+        "address",
+        "email",
+        "phone",
+        "website",
+        "description",
+        "hours",
+      ].map((k) => [k, String(f.get(k) || "")]),
+    ),
+    latitude: f.get("latitude") ? Number(f.get("latitude")) : null,
+    longitude: f.get("longitude") ? Number(f.get("longitude")) : null,
+  };
 }

@@ -2,25 +2,33 @@ import hashlib
 import hmac
 import secrets
 from datetime import datetime, timezone
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError, InvalidHashError, VerificationError
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .db import Session
 from .operations_models import Account, LoginSession, ClinicProfile
+from .runtime import cloud_mode
 
 # Local synthetic patient identity for exercising the future mobile API.
-TOKENS = {name: secrets.token_urlsafe(32) for name in ('patient',)}
-ACTORS = {'patient': {'id':'patient-demo','role':'patient'}}
+TOKENS = {} if cloud_mode() else {'patient': secrets.token_urlsafe(32)}
+ACTORS = {} if cloud_mode() else {'patient': {'id':'patient-demo','role':'patient'}}
 bearer = HTTPBearer()
+hasher = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
 
 def password_hash(password):
-    salt=secrets.token_hex(16)
-    value=hashlib.pbkdf2_hmac('sha256',password.encode(),salt.encode(),310000).hex()
-    return f'{salt}:{value}'
+    return hasher.hash(password)
 
 def password_matches(password, stored):
-    salt, expected=stored.split(':',1)
-    value=hashlib.pbkdf2_hmac('sha256',password.encode(),salt.encode(),310000).hex()
-    return hmac.compare_digest(value,expected)
+    if stored.startswith('$argon2id$'):
+        try: return hasher.verify(stored,password)
+        except (VerifyMismatchError, InvalidHashError, VerificationError): return False
+    # Existing local demo accounts remain usable until their passwords are rotated.
+    try:
+        salt, expected=stored.split(':',1)
+        value=hashlib.pbkdf2_hmac('sha256',password.encode(),salt.encode(),310000).hex()
+        return hmac.compare_digest(value,expected)
+    except (ValueError, TypeError): return False
 
 def token_hash(token): return hashlib.sha256(token.encode()).hexdigest()
 

@@ -4,13 +4,12 @@ import {
   Animated,
   AppState,
   Easing,
-  StyleSheet,
   View,
   useAnimatedValue,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
-/** A layered badge with native perspective rotation; no WebView or 3D runtime. */
+const logo = require("../../assets/dentpro-brand-square.png");
+
 export function LogoMark({
   loading = false,
   size = 32,
@@ -71,75 +70,16 @@ export function LogoMark({
       accessibilityState={{ busy: loading }}
       style={{ width: size, height: size }}
     >
-      {[0, 1, 2, 3, 4, 5].map((layer) => (
-        <Animated.View
-          key={layer}
-          style={{
-            ...StyleSheet.absoluteFill,
-            borderRadius: size * 0.28,
-            backgroundColor: [
-              "#103D9E",
-              "#1448B5",
-              "#1957C8",
-              "#2468DC",
-              "#347AEC",
-              "#246BEB",
-            ][layer],
-            transform: [
-              { perspective: size * 7 },
-              {
-                translateX: progress.interpolate({
-                  inputRange: [0, 0.25, 0.5, 0.75, 1],
-                  outputRange: [
-                    0,
-                    (5 - layer) * size * 0.027,
-                    0,
-                    -(5 - layer) * size * 0.027,
-                    0,
-                  ],
-                }),
-              },
-              { rotateY },
-              { rotateX: loading && !reduceMotion ? "-12deg" : "0deg" },
-            ],
-          }}
-        >
-          {layer === 5 && (
-            <LinearGradient
-              colors={["#72B1FF", "#317BEF", "#195BDE"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                flex: 1,
-                borderRadius: size * 0.28,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: "#76AEFF",
-              }}
-            >
-              <View
-                style={{
-                  position: "absolute",
-                  width: size * 0.52,
-                  height: size * 0.09,
-                  borderRadius: size * 0.025,
-                  backgroundColor: "white",
-                }}
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  height: size * 0.52,
-                  width: size * 0.09,
-                  borderRadius: size * 0.025,
-                  backgroundColor: "white",
-                }}
-              />
-            </LinearGradient>
-          )}
-        </Animated.View>
-      ))}
+      <Animated.Image
+        source={logo}
+        resizeMode="contain"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size * 0.16,
+          transform: [{ perspective: size * 7 }, { rotateY }],
+        }}
+      />
     </View>
   );
 }

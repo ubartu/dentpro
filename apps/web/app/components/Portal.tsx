@@ -1,9 +1,9 @@
 "use client";
 import { Suspense, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  Stethoscope,
   LayoutDashboard,
   Inbox,
   FileText,
@@ -188,7 +188,7 @@ export default function Portal({
     <div className={"portal " + role}>
       <aside className={"sidebar " + (mobile ? "open" : "")}>
         <Link href={"/" + role} className="wordmark">
-          <Stethoscope size={26} />
+          <Image src="/dentpro-brand-square.png" alt="" width={38} height={38} />
           DENT<span>pro</span>
         </Link>
         <div className="workspace-chip">

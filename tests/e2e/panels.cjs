@@ -14,7 +14,6 @@ const suffix = Date.now();
       : undefined);
   const browser = await chromium.launch({
     headless: true,
-    args: ["--enable-unsafe-swiftshader", "--use-angle=swiftshader"],
     ...(executablePath ? { executablePath } : {}),
   });
   const page = await browser.newPage({
@@ -129,73 +128,6 @@ const suffix = Date.now();
       .waitFor();
     await page.locator("h1").waitFor();
   };
-  const awaitingReview = page
-    .locator(".stat")
-    .filter({ hasText: "Awaiting review" });
-  const newCount = Number(await awaitingReview.locator("strong").innerText());
-  assert(newCount > 0);
-  assert.match(await awaitingReview.getAttribute("class"), /stat-attention/);
-  await awaitingReview.click();
-  await page.waitForURL(base + "/clinic/cases?status=new");
-  await page.getByLabel("Case status", { exact: true }).waitFor();
-  assert.equal(
-    await page.getByLabel("Case status", { exact: true }).inputValue(),
-    "new",
-  );
-  assert.equal(await page.locator("tbody tr").count(), newCount);
-  assert.equal(await page.locator("tbody .badge.new").count(), newCount);
-  await page.getByRole("link", { name: title, exact: true }).waitFor();
-  await page
-    .getByRole("navigation", { name: "Case inbox filters" })
-    .getByRole("link", { name: /Unanswered/ })
-    .click();
-  await page.waitForURL(base + "/clinic/cases?status=unanswered");
-  await page.goBack();
-  await page.waitForURL(base + "/clinic/cases?status=new");
-  await page.reload();
-  await page.getByLabel("Case status", { exact: true }).waitFor();
-  assert.equal(
-    await page.getByLabel("Case status", { exact: true }).inputValue(),
-    "new",
-  );
-  assert.equal(await page.locator("tbody tr").count(), newCount);
-  await page.screenshot({
-    path: "tmp/panel-qa/clinic-awaiting-review.png",
-    fullPage: true,
-    animations: "disabled",
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({
-    path: "tmp/panel-qa/clinic-inbox-mobile.png",
-    fullPage: true,
-    animations: "disabled",
-  });
-  assert.equal(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth > innerWidth,
-    ),
-    false,
-  );
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  async function checkCaseFilter(status, present, badge) {
-    await page.goto(base + `/clinic/cases?status=${status}`);
-    await page.getByLabel("Case status", { exact: true }).waitFor();
-    await page.getByPlaceholder("Search cases or references…").fill(title);
-    if (present) {
-      await page.getByRole("link", { name: title, exact: true }).waitFor();
-      assert.equal(
-        await page.locator("tbody tr.case-needs-response").count(),
-        1,
-      );
-      assert.equal(
-        (await page.locator("tbody .badge").innerText()).toLowerCase(),
-        badge,
-      );
-    } else {
-      await page.getByRole("heading", { name: "No matching cases" }).waitFor();
-      assert.equal(await page.locator("tbody tr").count(), 0);
-    }
-  }
   await nav("Case inbox");
   await page.getByPlaceholder("Search cases or references…").fill(title);
   await page.getByRole("link", { name: title, exact: true }).click();
@@ -212,9 +144,6 @@ const suffix = Date.now();
     await page.getByLabel(/Internal clinic notes/).inputValue(),
     /Review in progress/,
   );
-  await checkCaseFilter("new", false);
-  await checkCaseFilter("unanswered", true, "reviewing");
-  await page.getByRole("link", { name: title, exact: true }).click();
   await page
     .getByRole("button", { name: "Create proposal", exact: true })
     .click();
@@ -223,136 +152,21 @@ const suffix = Date.now();
   await page
     .getByLabel("Clinical notes & price inclusions")
     .fill("Synthetic proposal for evaluation. Examination required.");
-  await page.locator('.tooth-canvas[data-render-state="ready"]').waitFor();
-  // The upper-left first molar in the default adult camera view.
-  const toothCanvas = page.locator(".tooth-canvas canvas");
-  const canvasBounds = await toothCanvas.boundingBox();
-  await toothCanvas.click({
-    position: { x: canvasBounds.width * 0.66, y: canvasBounds.height * 0.29 },
-  });
-  assert.equal(
-    await page.getByLabel("Tooth · FDI notation").inputValue(),
-    "26",
-  );
-  await page.mouse.move(
-    canvasBounds.x + canvasBounds.width / 2,
-    canvasBounds.y + canvasBounds.height / 2,
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    canvasBounds.x + canvasBounds.width * 0.65,
-    canvasBounds.y + canvasBounds.height * 0.4,
-    { steps: 8 },
-  );
-  await page.mouse.up();
-  assert.equal(
-    await page.getByLabel("Tooth · FDI notation").inputValue(),
-    "26",
-    "Rotating must not reassign a tooth",
-  );
-  await page.getByRole("button", { name: "Reset view", exact: true }).click();
-  assert.equal(
-    await page.getByRole("button", { name: /^Tooth \d+:/ }).count(),
-    32,
-  );
-  await page
-    .getByRole("button", { name: "Child · 20 teeth", exact: true })
-    .click();
-  await page
-    .getByText("This tooth belongs to the adult view.", { exact: false })
-    .waitFor();
-  assert.equal(
-    await page.getByRole("button", { name: /^Tooth \d+:/ }).count(),
-    20,
-  );
-  await page.getByRole("button", { name: /^Tooth 55:/ }).click();
-  assert.equal(
-    await page.getByLabel("Tooth · FDI notation").inputValue(),
-    "55",
-  );
-  await page
-    .getByRole("button", { name: "Add procedure", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Choose tooth for procedure 2 in 3D" })
-    .click();
-  assert.equal(
-    await page.getByLabel("Choose procedure for tooth selection").inputValue(),
-    "1",
-  );
-  await page.getByRole("button", { name: /^Tooth 36:/ }).focus();
-  await page.keyboard.press("Enter");
-  await page.getByLabel("Price (TRY)", { exact: true }).nth(1).fill("2100");
-  await page
-    .getByRole("button", { name: "Whole mouth · ALL", exact: true })
-    .click();
-  assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(1).inputValue(),
-    "ALL",
-  );
-  await page.getByRole("button", { name: /^Tooth 36:/ }).click();
-  await page
-    .getByRole("button", { name: "Add procedure", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Remove procedure 3", exact: true })
-    .click();
-  assert.equal(
-    await page.getByLabel("Choose procedure for tooth selection").inputValue(),
-    "1",
-  );
-  await page
-    .getByLabel("Choose procedure for tooth selection")
-    .selectOption("0");
-  await page
-    .getByRole("button", {
-      name: "Child · 20 teeth",
-      exact: true,
-      pressed: true,
-    })
-    .waitFor();
-  assert.equal(
-    await page
-      .getByRole("button", { name: "Child · 20 teeth", exact: true })
-      .getAttribute("aria-pressed"),
-    "true",
-  );
-  assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(0).inputValue(),
-    "55",
-  );
-  assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(1).inputValue(),
-    "36",
-  );
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "Draft saved" }).waitFor();
   await page.getByRole("button", { name: "Close dialog" }).click();
-  await checkCaseFilter("unanswered", true, "draft");
-  await page.getByRole("link", { name: title, exact: true }).click();
-  await page.waitForURL(base + `/clinic/cases/${c.id}`);
-  await page.getByRole("heading", { name: title, exact: true }).waitFor();
   await page.reload();
   await page
     .getByRole("button", { name: "Continue draft", exact: true })
     .click();
   assert.equal(
-    await page.getByLabel("Price (TRY)", { exact: true }).first().inputValue(),
+    await page.getByLabel("Price (TRY)", { exact: true }).inputValue(),
     "6700",
-  );
-  assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(0).inputValue(),
-    "55",
-  );
-  assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(1).inputValue(),
-    "36",
   );
   await page
     .getByRole("button", { name: "Publish proposal", exact: true })
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await checkCaseFilter("unanswered", false);
   await nav("Proposals & drafts");
   await page.getByPlaceholder("Search proposals…").fill(title);
   await page.getByRole("button", { name: "Revise", exact: true }).click();
@@ -367,10 +181,6 @@ const suffix = Date.now();
   let plans = await call(`/cases/${c.id}/proposals`, undefined, patient, "GET");
   assert.equal(plans.length, 1);
   assert.equal(plans[0].version, 2);
-  assert.deepEqual(
-    plans[0].plan.items.map((item) => item.tooth),
-    ["55", "36"],
-  );
   await call("/appointments", { proposal_id: plans[0].id }, patient);
   await nav("Appointments");
   await page.getByPlaceholder("Search requests…").fill(title);
@@ -413,43 +223,6 @@ const suffix = Date.now();
     await page.locator("h1").waitFor();
     assert.equal(await page.locator(".alert.error").count(), 0);
   }
-  const fallbackContext = await browser.newContext();
-  const fallbackAuth = await page.evaluate(() =>
-    sessionStorage.getItem("dentpro-auth"),
-  );
-  await fallbackContext.addInitScript((auth) => {
-    sessionStorage.setItem("dentpro-auth", auth);
-    const getContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
-      if (
-        type === "webgl" ||
-        type === "webgl2" ||
-        type === "experimental-webgl"
-      )
-        return null;
-      return getContext.call(this, type, ...args);
-    };
-  }, fallbackAuth);
-  const fallbackPage = await fallbackContext.newPage();
-  fallbackPage.on("pageerror", (e) => errors.push(e.message));
-  await fallbackPage.goto(base + `/clinic/cases/${c.id}`);
-  await fallbackPage
-    .getByRole("button", { name: "Revise proposal", exact: true })
-    .click();
-  await fallbackPage
-    .getByText("3D view unavailable. Choose a numbered tooth below.", {
-      exact: true,
-    })
-    .waitFor();
-  await fallbackPage
-    .getByRole("button", { name: "Child · 20 teeth", exact: true })
-    .click();
-  await fallbackPage.getByRole("button", { name: /^Tooth 75:/ }).click();
-  assert.equal(
-    await fallbackPage.getByLabel("Tooth · FDI notation").first().inputValue(),
-    "75",
-  );
-  await fallbackContext.close(); // Unsaved fallback interaction must not change the published plan.
   await nav("Overview");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({

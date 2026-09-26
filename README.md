@@ -24,7 +24,13 @@ Open http://127.0.0.1:3000/login. The root URL redirects to `/clinic`; unauthent
 
 The login page can fill these local credentials. Choose the correct portal, then sign in. There is no in-workspace role switcher. Sign out before entering the other portal. Passwords are salted/hashed; sessions are opaque, hashed in the database, expire after 12 hours and are revoked on sign-out, account deactivation, password reset, or clinic suspension. Seeded passwords are not reset on server restart. Additional accounts can be created in the panels.
 
-This is a local synthetic evaluation environment, not a publicly deployable clinical service. `APP_ENV` values other than `development` are rejected. Live payments, messaging, external LLMs, cloud storage and production identity onboarding are not connected. Do not use real patient data.
+This local environment uses synthetic data. A separate, security-gated `APP_ENV=cloud` Docker stack is available for **cloud staging with synthetic data**; see [cloud deployment and remaining security requirements](docs/cloud-deployment.md). It does not establish clinical production readiness. Live payments, messaging, production identity onboarding and clinical validation are not connected. Do not use real patient data.
+
+### Optional AI proposal-summary gateway
+
+The worker normally creates deterministic glossary/template explanations. To exercise the provider gateway with synthetic plans, set `DENTPRO_AI_PROVIDER=openai`, `DENTPRO_AI_MODEL=gpt-5.4-nano`, and `OPENAI_API_KEY` in the **API/worker process environment**, then restart `scripts/dev.py`. The key is never entered in the web or mobile app. `GET /admin/ai/gateway` reports non-secret readiness, and the admin interpreter page shows each job's provider, model and output mode. Missing credentials leave the template provider active; provider errors or invalid responses use a labelled template fallback.
+
+The external request contains only canonical structured clinic-plan fields and the existing template summary. X-rays, patient names, contact details, case IDs and clinic free-text notes are excluded. The provider rewrites only the plain summary; procedure explanations, missing-information items, questions and disclaimer stay deterministic. No live OpenAI request or clinical quality review has been completed. The gateway is intended for synthetic evaluation until clinical, privacy and deployment work is finished.
 
 ## Patient mobile app
 
@@ -101,7 +107,8 @@ SQLite defaults to `.data/dentpro.db`. An inherited `DATABASE_URL` overrides thi
 - `services/api/dentpro/operations.py`: authenticated clinic/admin API.
 - `services/api/dentpro/operations_models.py`: additive account, draft, lifecycle, queue and configuration tables.
 - `services/api/dentpro/main.py`: original mobile marketplace API and app bootstrap.
-- `services/api/dentpro/worker.py`: durable template interpreter with bounded retries.
+- `services/api/dentpro/worker.py`: durable interpreter with bounded retries and template fallback.
+- `services/api/dentpro/ai_gateway.py`: optional server-side OpenAI Responses adapter and payload boundary.
 - `services/api/tests`: API workflow and authorization regressions.
 - `tests/e2e/panels.cjs`: browser workflows for both portals.
 - `packages/contracts`: exported OpenAPI and proposal JSON Schema.
