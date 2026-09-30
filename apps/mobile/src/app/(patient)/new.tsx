@@ -57,7 +57,7 @@ export default function NewCase() {
         if (
           error instanceof ApiError &&
           error.status === 409 &&
-          error.message.includes("Consent")
+          error.message.includes("Onay koşulları")
         ) {
           pending.current = null;
           setSubmitted(false);
@@ -70,39 +70,39 @@ export default function NewCase() {
   return (
     <Screen>
       <Heading
-        title="Start with your case"
-        subtitle="Create your case, add an X-ray, then choose who receives it."
+        title="Vakanızı oluşturun"
+        subtitle="Vakanızı açın, röntgen ekleyin ve alıcı klinikleri seçin."
       />
       <Notice text={r.error || action.error} error />
       {r.loading && !r.data && <Loading />}
-      {r.error && <Button title="Retry" onPress={() => void r.refresh()} />}
+      {!!r.error && <Button title="Yeniden dene" onPress={() => void r.refresh()} />}
       <Card>
         <Field
-          label="Case title"
-          placeholder="For example: Upper molar consultation"
+          label="Vaka başlığı"
+          placeholder="Örneğin: Üst azı dişi danışması"
           value={title}
           onChangeText={setTitle}
           maxLength={80}
           editable={!submitted}
         />
         <Text style={styles.muted}>
-          After adding your X-ray, choose from all participating clinics. You can
-          use your location to see nearby options first.
+          Röntgeninizi ekledikten sonra platformdaki kliniklerden seçim yapın.
+          Yakınınızdaki klinikleri önce görmek için konumunuzu kullanabilirsiniz.
         </Text>
       </Card>
       {r.data && (
         <Card>
-          <Text style={styles.heading}>Your information, your choice</Text>
+          <Text style={styles.heading}>Bilgileriniz, sizin kararınız</Text>
           <Text style={styles.muted}>{r.data.consent_text}</Text>
           <Check
-            label="I have read and agree to this sharing consent"
+            label="Bu paylaşım onayını okudum ve kabul ediyorum"
             checked={consent}
             disabled={submitted}
             onChange={() => setConsent(!consent)}
           />
           <Button
             title={
-              submitted ? "Retry this submission" : "Create case & add X-ray"
+              submitted ? "Gönderimi yeniden dene" : "Vaka oluştur ve röntgen ekle"
             }
             onPress={() => void create()}
             busy={action.busy}
@@ -110,8 +110,8 @@ export default function NewCase() {
           />
         </Card>
       )}
-      {submitted && action.error && (
-        <Notice text="The same submission will be retried safely. You can also return to My cases to check whether it was saved." />
+      {submitted && !!action.error && (
+        <Notice text="Aynı gönderim güvenle yeniden denenecek. Kaydedilip kaydedilmediğini görmek için Vakalarınız ekranına da dönebilirsiniz." />
       )}
     </Screen>
   );

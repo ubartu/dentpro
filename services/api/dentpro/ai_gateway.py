@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .interpreter import canonical_source
 
-PROMPT_VERSION = '1'
+PROMPT_VERSION = '2'
 OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
 
 
@@ -61,10 +61,10 @@ class CandidateSummary(BaseModel):
 
 def validate_summary(text: str) -> str:
     """Reject obvious diagnosis, direction and unsupported promotional claims."""
-    if not text.lower().startswith('the clinic '):
-        raise ValueError('Summary must attribute its source to the clinic')
-    if re.search(r'\b(you have|you need|you should|we recommend|best clinic|cheapest|guarantee|diagnos\w*|cure\w*|success rate)\b', text, re.I):
-        raise ValueError('Summary crosses the source-only boundary')
+    if not re.match(r'^klinik(?:[ ,:])', text, re.I):
+        raise ValueError('Özet, kaynağını kliniğe atfetmelidir')
+    if re.search(r'\b(sende|siz(?:de|in)|ihtiyacınız|öneriyoruz|en iyi klinik|en ucuz|garanti|tanı|teşhis|kesin iyileşme|başarı oranı)\b', text, re.I):
+        raise ValueError('Özet, yalnızca kaynak bilgilerini aktarma sınırını aşıyor')
     return text
 
 
@@ -88,11 +88,11 @@ def explain_with_openai(plan: dict, template_summary: str, config: GatewayConfig
         'max_output_tokens': 350,
         'input': [
             {'role': 'system', 'content': (
-                'Rewrite the clinic-authored dental plan in plain English. '
-                'State only what the clinic listed. Do not diagnose, recommend treatment, '
-                'interpret an X-ray, rank clinics, predict outcomes, or add facts. '
-                'Use neutral wording such as "The clinic proposes...". '
-                'Return only the requested JSON.'
+                'Klinik tarafından hazırlanan diş tedavi planını sade Türkçe ile yeniden yazın. '
+                'Yalnızca kliniğin belirttiklerini aktarın. Tanı koymayın, tedavi önermeyin, '
+                'röntgen yorumlamayın, klinikleri sıralamayın, sonuç öngörmeyin veya yeni bilgi eklemeyin. '
+                '"Klinik ... öneriyor" gibi tarafsız bir dil kullanın. '
+                'Yalnızca istenen JSON verisini döndürün.'
             )},
             {'role': 'user', 'content': json.dumps({
                 'structured_clinic_plan': source,
@@ -101,7 +101,7 @@ def explain_with_openai(plan: dict, template_summary: str, config: GatewayConfig
         ],
         'text': {'format': {
             'type': 'json_schema',
-            'name': 'dentpro_proposal_summary_v1',
+            'name': 'dentpro_proposal_summary_v2',
             'strict': True,
             'schema': schema,
         }},

@@ -89,15 +89,15 @@ beforeEach(() => {
 it("registers a patient without offering staff roles", async () => {
   api.mockResolvedValue({ token: "new", user: { role: "patient" } });
   render(<SignIn />);
-  fireEvent.press(screen.getByText("New here? Create an account"));
-  fireEvent.changeText(screen.getByLabelText("Full name"), "Test Patient");
-  fireEvent.changeText(screen.getByLabelText("Phone number"), "+905550102020");
-  fireEvent.changeText(screen.getByLabelText("Email"), "patient@example.org");
+  fireEvent.press(screen.getByText("Yeni misiniz? Hesap oluşturun"));
+  fireEvent.changeText(screen.getByLabelText("Ad soyad"), "Test Patient");
+  fireEvent.changeText(screen.getByLabelText("Telefon numarası"), "+905550102020");
+  fireEvent.changeText(screen.getByLabelText("E-posta"), "patient@example.org");
   fireEvent.changeText(
-    screen.getByLabelText("Password (at least 10 characters)"),
+    screen.getByLabelText("Şifre (en az 10 karakter)"),
     "Patient123!",
   );
-  fireEvent.press(screen.getByText("Create account"));
+  fireEvent.press(screen.getByText("Hesap oluştur"));
   await waitFor(() => expect(mockAccept).toHaveBeenCalled());
   expect(api).toHaveBeenCalledWith(
     "/patient/register",
@@ -116,21 +116,21 @@ it("shows loading during sign-in and restores entered details after a failure", 
       }),
   );
   render(<SignIn />);
-  fireEvent.changeText(screen.getByLabelText("Email"), "patient@example.org");
-  fireEvent.changeText(screen.getByLabelText("Password"), "Patient123!");
-  fireEvent.press(screen.getByText("Sign in"));
-  expect(screen.getByLabelText("DENTRIVO loading")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
+  fireEvent.changeText(screen.getByLabelText("E-posta"), "patient@example.org");
+  fireEvent.changeText(screen.getByLabelText("Şifre"), "Patient123!");
+  fireEvent.press(screen.getByText("Giriş yap"));
+  expect(screen.getByLabelText("DENTRIVO yükleniyor")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Giriş yap" })).toBeNull();
   await act(async () => {
     rejectLogin(new ApiError(401, "Invalid credentials"));
   });
   expect(screen.getByText("Invalid credentials")).toBeTruthy();
-  expect(screen.getByLabelText("Email")).toHaveDisplayValue(
+  expect(screen.getByLabelText("E-posta")).toHaveDisplayValue(
     "patient@example.org",
   );
-  expect(screen.getByLabelText("Password")).toHaveDisplayValue("Patient123!");
-  expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled();
-  expect(screen.queryByLabelText("DENTRIVO loading")).toBeNull();
+  expect(screen.getByLabelText("Şifre")).toHaveDisplayValue("Patient123!");
+  expect(screen.getByRole("button", { name: "Giriş yap" })).toBeEnabled();
+  expect(screen.queryByLabelText("DENTRIVO yükleniyor")).toBeNull();
   expect(api).toHaveBeenCalledTimes(1);
 });
 it("requires consent and reuses the same case payload/key after an uncertain failure", async () => {
@@ -139,21 +139,21 @@ it("requires consent and reuses the same case payload/key after an uncertain fai
     consent_text: "Sharing terms",
   });
   api
-    .mockRejectedValueOnce(new ApiError(0, "Connection lost"))
+    .mockRejectedValueOnce(new ApiError(0, "Bağlantı kesildi"))
     .mockResolvedValueOnce({ id: "new-case" });
   render(<NewCase />);
   expect(screen.queryByText("Region")).toBeNull();
   fireEvent.changeText(
-    screen.getByLabelText("Case title"),
+    screen.getByLabelText("Vaka başlığı"),
     "Molar consultation",
   );
   expect(
-    screen.getByRole("button", { name: "Create case & add X-ray" }),
+    screen.getByRole("button", { name: "Vaka oluştur ve röntgen ekle" }),
   ).toBeDisabled();
   fireEvent.press(screen.getByRole("checkbox"));
-  fireEvent.press(screen.getByText("Create case & add X-ray"));
-  await screen.findByText("Connection lost");
-  fireEvent.press(screen.getByText("Retry this submission"));
+  fireEvent.press(screen.getByText("Vaka oluştur ve röntgen ekle"));
+  await screen.findByText("Bağlantı kesildi");
+  fireEvent.press(screen.getByText("Gönderimi yeniden dene"));
   await waitFor(() =>
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: "/case/[id]",
@@ -205,13 +205,13 @@ it("keeps every clinic available without location and highlights nearby clinics 
     coords: { latitude: 40.991, longitude: 29.0277 },
   });
   render(<Share />);
-  expect(screen.getByText("All participating clinics · 2")).toBeTruthy();
+  expect(screen.getByText("Tüm katılımcı klinikler · 2")).toBeTruthy();
   expect(screen.getByText("Far clinic")).toBeTruthy();
-  fireEvent.press(screen.getByText("Use my location"));
-  await screen.findByText(/Location access was not allowed/);
+  fireEvent.press(screen.getByText("Konumumu kullan"));
+  await screen.findByText(/Konum izni verilmedi/);
   expect(screen.getByText("Far clinic")).toBeTruthy();
-  fireEvent.press(screen.getByText("Use my location"));
-  await screen.findByText("Near you · 1");
+  fireEvent.press(screen.getByText("Konumumu kullan"));
+  await screen.findByText("Yakınınızda · 1");
   expect(screen.getAllByText("Near clinic")).toHaveLength(2);
   expect(screen.getByText("Far clinic")).toBeTruthy();
 });
@@ -219,8 +219,8 @@ it("keeps the original proposal readable when its explanation failed", () => {
   data(proposal);
   render(<ProposalDetail />);
   expect(screen.getByText("Source note")).toBeTruthy();
-  expect(screen.getByText(/explanation is currently unavailable/)).toBeTruthy();
-  expect(screen.queryByText(/being prepared/)).toBeNull();
+  expect(screen.getByText(/Açıklama şu anda kullanılamıyor/)).toBeTruthy();
+  expect(screen.queryByText(/Açıklama hazırlanıyor/)).toBeNull();
 });
 
 it("shows the proposal currency, canal count and clinic-assigned urgency", () => {
@@ -239,9 +239,9 @@ it("shows the proposal currency, canal count and clinic-assigned urgency", () =>
     },
   });
   render(<ProposalDetail />);
-  expect(screen.getByText("Root canal — 2 canals")).toBeTruthy();
-  expect(screen.getByText(/Priority: Urgent/)).toBeTruthy();
-  expect(screen.getAllByText(/€6,500.50/).length).toBeGreaterThan(0);
+  expect(screen.getByText("Kanal tedavisi — 2 kanallı")).toBeTruthy();
+  expect(screen.getByText(/Öncelik: Acil/)).toBeTruthy();
+  expect(screen.getAllByText(/6\.500,50/).length).toBeGreaterThan(0);
 });
 
 it("compares mixed currencies using their original units and clinic priorities", () => {
@@ -273,10 +273,10 @@ it("compares mixed currencies using their original units and clinic priorities",
   ).toBeTruthy();
   expect(screen.getByText("USD")).toBeTruthy();
   expect(screen.getByText("EUR")).toBeTruthy();
-  expect(screen.getAllByText(/\$6,500.50/).length).toBeGreaterThan(0);
-  expect(screen.getAllByText(/€6,500.50/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/6\.500,50/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/6\.500,50/).length).toBeGreaterThan(0);
   expect(
-    screen.getByText(/Root canal — multiple canals\s+Priority: Soon/),
+    screen.getByText(/Kanal tedavisi — çok kanallı\s+Öncelik: Yakında/),
   ).toBeTruthy();
 });
 it("identifies AI wording and its clinical review status on a proposal", () => {
@@ -295,9 +295,9 @@ it("identifies AI wording and its clinical review status on a proposal", () => {
     explanation_status: "ready",
   });
   render(<ProposalDetail />);
-  expect(screen.getByText("AI-ASSISTED SUMMARY")).toBeTruthy();
+  expect(screen.getByText("YAPAY ZEKÂ DESTEKLİ ÖZET")).toBeTruthy();
   expect(
-    screen.getByText(/wording has not been clinically reviewed/),
+    screen.getByText(/ifade klinik olarak incelenmedi/),
   ).toBeTruthy();
   expect(
     screen.getByText(/The clinic proposes root canal treatment/),
@@ -318,22 +318,22 @@ it("labels a failed AI gateway as a template explanation", () => {
     explanation_status: "ready",
   });
   render(<ProposalDetail />);
-  expect(screen.getByText("TEMPLATE SUMMARY · AI UNAVAILABLE")).toBeTruthy();
-  expect(screen.queryByText("AI-ASSISTED SUMMARY")).toBeNull();
+  expect(screen.getByText("ŞABLON ÖZET · YAPAY ZEKÂ KULLANILAMADI")).toBeTruthy();
+  expect(screen.queryByText("YAPAY ZEKÂ DESTEKLİ ÖZET")).toBeNull();
 });
 it("does not book a proposal that became unavailable on a stale screen", async () => {
   data(proposal);
-  api.mockRejectedValue(new ApiError(404, "Proposal unavailable"));
+  api.mockRejectedValue(new ApiError(404, "Teklif kullanılamıyor"));
   const alert = jest.spyOn(Alert, "alert");
   render(<ProposalDetail />);
-  fireEvent.press(screen.getByText("Request a callback"));
+  fireEvent.press(screen.getByText("Geri arama iste"));
   const confirm = alert.mock.calls[0][2]?.find(
-    (b) => b.text === "Send request",
+    (b) => b.text === "Talebi gönder",
   );
   await act(async () => {
     confirm?.onPress?.();
   });
-  await screen.findByText("Proposal unavailable");
+  await screen.findByText("Teklif kullanılamıyor");
   expect(api).toHaveBeenCalledTimes(1);
   expect(api).toHaveBeenCalledWith("/proposals/p1", "token");
   expect(mockReplace).not.toHaveBeenCalled();
@@ -352,9 +352,9 @@ it("shows scheduled requests and disables cancellation for completed visits", ()
     },
   ]);
   render(<Appointments />);
-  expect(screen.getByText("Completed")).toBeTruthy();
-  expect(screen.queryByText("Cancel request")).toBeNull();
-  expect(screen.queryByText("Date and time not confirmed")).toBeNull();
+  expect(screen.getByText("Tamamlandı")).toBeTruthy();
+  expect(screen.queryByText("Talebi iptal et")).toBeNull();
+  expect(screen.queryByText("Tarih ve saat onaylanmadı")).toBeNull();
 });
 it("compares material, visits and scope without inventing a winner", () => {
   data({
@@ -372,8 +372,8 @@ it("compares material, visits and scope without inventing a winner", () => {
   render(<Compare />);
   expect(screen.getByText("Harbour Dental")).toBeTruthy();
   expect(screen.getByText("City Dental")).toBeTruthy();
-  expect(screen.getAllByText("Total visits")).toHaveLength(2);
-  expect(screen.getAllByText(/Material not specified/)).toHaveLength(2);
+  expect(screen.getAllByText("Toplam seans")).toHaveLength(2);
+  expect(screen.getAllByText(/Malzeme belirtilmedi/)).toHaveLength(2);
   expect(screen.queryByText(/Best clinic/)).toBeNull();
 });
 
@@ -397,12 +397,12 @@ it("confirms draft deletion, then removes the card and refreshes", async () => {
   api.mockResolvedValue({});
   const alert = jest.spyOn(Alert, "alert");
   render(<Cases />);
-  expect(screen.queryByLabelText("Delete draft Shared case")).toBeNull();
-  fireEvent.press(screen.getByLabelText("Delete draft Unshared draft"));
+  expect(screen.queryByLabelText("Shared case taslağını sil")).toBeNull();
+  fireEvent.press(screen.getByLabelText("Unshared draft taslağını sil"));
   expect(api).not.toHaveBeenCalled();
-  expect(alert.mock.calls[0][2]?.find((b) => b.text === "Cancel")).toBeTruthy();
+  expect(alert.mock.calls[0][2]?.find((b) => b.text === "Vazgeç")).toBeTruthy();
   await act(async () => {
-    alert.mock.calls[0][2]?.find((b) => b.text === "Delete draft")?.onPress?.();
+    alert.mock.calls[0][2]?.find((b) => b.text === "Taslağı sil")?.onPress?.();
   });
   expect(api).toHaveBeenCalledWith("/cases/draft1", "token", "DELETE");
   expect(mockRefresh).toHaveBeenCalledTimes(1);
@@ -425,18 +425,18 @@ it("retains the draft and shows a server conflict on failed deletion", async () 
     },
   ]);
   api.mockRejectedValue(
-    new ApiError(409, "Only unshared draft cases can be deleted."),
+    new ApiError(409, "Yalnızca paylaşılmamış taslak vakalar silinebilir."),
   );
   const alert = jest.spyOn(Alert, "alert");
   render(<Cases />);
-  fireEvent.press(screen.getByLabelText("Delete draft Stale draft"));
+  fireEvent.press(screen.getByLabelText("Stale draft taslağını sil"));
   await act(async () => {
-    alert.mock.calls[0][2]?.find((b) => b.text === "Delete draft")?.onPress?.();
+    alert.mock.calls[0][2]?.find((b) => b.text === "Taslağı sil")?.onPress?.();
   });
   expect(
-    await screen.findByText("Only unshared draft cases can be deleted."),
+    await screen.findByText("Yalnızca paylaşılmamış taslak vakalar silinebilir."),
   ).toBeTruthy();
-  expect(screen.getByLabelText("Open Stale draft")).toBeTruthy();
+  expect(screen.getByLabelText("Stale draft vakasını aç")).toBeTruthy();
   expect(mockRefresh).not.toHaveBeenCalled();
   alert.mockRestore();
 });

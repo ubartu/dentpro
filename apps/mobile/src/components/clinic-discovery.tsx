@@ -19,7 +19,7 @@ function ExternalLink({ title, url }: { title: string; url: string }) {
       >
         <Text style={local.linkText}>{title} ↗</Text>
       </Pressable>
-      {error && <Text style={styles.muted}>Could not open this link.</Text>}
+      {error && <Text style={styles.muted}>Bağlantı açılamadı.</Text>}
     </>
   );
 }
@@ -27,10 +27,9 @@ function ExternalLink({ title, url }: { title: string; url: string }) {
 export function ClinicSocialProfiles({ clinic }: { clinic: Clinic }) {
   return (
     <>
-      {" "}
       {(clinic.social_links || []).length > 0 && (
         <View style={local.socials}>
-          <Text style={styles.muted}>Profiles supplied by the clinic</Text>
+          <Text style={styles.muted}>Klinik tarafından eklenen sosyal medya hesapları</Text>
           <View style={styles.row}>
             {clinic.social_links.map((link) => (
               <ExternalLink
@@ -71,13 +70,13 @@ export function ClinicDiscovery({
         <View style={local.google}>
           {!profile && (
             <Button
-              title="Show Google rating & photo"
+              title="Google puanını ve fotoğrafını göster"
               secondary
               busy={loading}
               onPress={load}
             />
           )}
-          {error && <Notice text={error} error />}
+          {!!error && <Notice text={error} error />}
           {profile?.status === "ready" && (
             <>
               <View style={local.attribution}>
@@ -91,13 +90,13 @@ export function ClinicDiscovery({
               <Text style={local.rating}>
                 {profile.rating != null
                   ? `★ ${profile.rating.toFixed(1)} / 5`
-                  : "No Google rating available"}
+                  : "Google puanı bulunmuyor"}
                 {profile.review_count != null
-                  ? ` · ${profile.review_count} reviews`
+                  ? ` · ${profile.review_count} yorum`
                   : ""}
               </Text>
               <Text style={styles.muted}>
-                Google user ratings are not a clinical quality assessment.
+                Google kullanıcı puanları klinik kalite değerlendirmesi değildir.
               </Text>
               {profile.photo && (
                 <>
@@ -106,14 +105,14 @@ export function ClinicDiscovery({
                       source={{ uri: profile.photo.uri }}
                       cachePolicy="none"
                       contentFit="cover"
-                      accessibilityLabel={`${clinic.name} photo from Google Maps`}
+                      accessibilityLabel={`${clinic.name} için Google Haritalar fotoğrafı`}
                       style={local.photo}
                       onError={() => setFailedPhoto(profile.photo!.uri)}
                     />
                   )}
                   {(profile.photo.authors || []).map((author, index) => (
                     <View key={index} style={styles.row}>
-                      {author.avatar_url && (
+                      {!!author.avatar_url && (
                         <Image
                           source={{ uri: author.avatar_url }}
                           cachePolicy="none"
@@ -123,17 +122,17 @@ export function ClinicDiscovery({
                       )}
                       {author.profile_url ? (
                         <ExternalLink
-                          title={`Photo: ${author.name}`}
+                          title={`Fotoğraf: ${author.name}`}
                           url={author.profile_url}
                         />
                       ) : (
-                        <Text style={styles.muted}>Photo: {author.name}</Text>
+                        <Text style={styles.muted}>Fotoğraf: {author.name}</Text>
                       )}
                     </View>
                   ))}
-                  {profile.photo.google_maps_url && (
+                  {!!profile.photo.google_maps_url && (
                     <ExternalLink
-                      title="View source photo on Google Maps"
+                      title="Kaynak fotoğrafı Google Haritalar'da gör"
                       url={profile.photo.google_maps_url}
                     />
                   )}
@@ -152,15 +151,15 @@ export function ClinicDiscovery({
                   </Text>
                 ),
               )}
-              {profile.google_maps_url && (
+              {!!profile.google_maps_url && (
                 <ExternalLink
-                  title="View clinic on Google Maps"
+                  title="Kliniği Google Haritalar'da gör"
                   url={profile.google_maps_url}
                 />
               )}
-              {profile.website_url && (
+              {!!profile.website_url && (
                 <ExternalLink
-                  title="Clinic website"
+                  title="Klinik web sitesi"
                   url={profile.website_url}
                 />
               )}
@@ -169,10 +168,10 @@ export function ClinicDiscovery({
           {profile && profile.status !== "ready" && (
             <Text style={styles.muted}>
               {profile.status === "disabled"
-                ? "Google rating and photos are not connected yet."
+                ? "Google puanı ve fotoğrafları henüz bağlı değil."
                 : profile.status === "not_linked"
-                  ? "No Google profile linked to this clinic."
-                  : "Google information is temporarily unavailable. You can still select this clinic."}
+                  ? "Bu kliniğe bağlı bir Google profili yok."
+                  : "Google bilgileri geçici olarak kullanılamıyor. Bu kliniği yine de seçebilirsiniz."}
             </Text>
           )}
         </View>

@@ -28,6 +28,7 @@ import {
   datetime,
   names,
   urgencies,
+  label,
   csv,
 } from "../types";
 import {
@@ -113,7 +114,7 @@ export function ProposalEditor({
           { plan, revision_of: revisionOf },
           "PUT",
         );
-        setSaved("Draft saved. It is visible only to your clinic.");
+        setSaved("Taslak kaydedildi. Yalnızca kliniğiniz görebilir.");
       } else {
         await act(`/clinic/cases/${c.id}/publish`, {
           plan,
@@ -130,9 +131,7 @@ export function ProposalEditor({
   }
   return (
     <Modal
-      title={
-        revisionOf ? "Revise treatment proposal" : "Create treatment proposal"
-      }
+      title={revisionOf ? "Tedavi teklifini düzenle" : "Tedavi teklifi oluştur"}
       close={close}
       wide
     >
@@ -141,10 +140,11 @@ export function ProposalEditor({
         <div>
           <strong>{c.title}</strong>
           <small>
-            {c.reference} · {c.region} · Patient-selected clinic review
+            {c.reference} · {label(c.region)} · Hastanın seçtiği klinik
+            incelemesi
           </small>
         </div>
-        <Badge>{revisionOf ? "New version" : "Draft"}</Badge>
+        <Badge>{revisionOf ? "Yeni sürüm" : "Taslak"}</Badge>
       </div>
       <form
         onSubmit={submit}
@@ -154,20 +154,20 @@ export function ProposalEditor({
         }}
       >
         <div className="editor-label">
-          <h3>1. Treatment plan</h3>
-          <p>Your professional assessment is the source of this proposal.</p>
+          <h3>1. Tedavi planı</h3>
+          <p>Bu teklifin kaynağı mesleki değerlendirmenizdir.</p>
         </div>
         <Field
-          label="Proposal currency"
-          hint="Changing the currency does not convert prices. Review all amounts before publishing."
+          label="Teklif para birimi"
+          hint="Para birimini değiştirmek fiyatları dönüştürmez. Yayımlamadan önce tüm tutarları kontrol edin."
         >
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value as Plan["currency"])}
           >
-            <option value="TRY">TRY · Turkish lira</option>
-            <option value="USD">USD · US dollar</option>
-            <option value="EUR">EUR · Euro</option>
+            <option value="TRY">TRY · Türk lirası</option>
+            <option value="USD">USD · ABD doları</option>
+            <option value="EUR">EUR · Avro</option>
           </select>
         </Field>
         <button
@@ -186,9 +186,9 @@ export function ProposalEditor({
             setSaved("");
           }}
         >
-          Order by urgency
+          Aciliyete göre sırala
         </button>
-        <Field label="Choose procedure for tooth selection">
+        <Field label="Diş seçimi için işlem belirleyin">
           <select
             value={activeProcedure}
             onChange={(e) => {
@@ -198,8 +198,7 @@ export function ProposalEditor({
           >
             {items.map((item, i) => (
               <option key={i} value={i}>
-                Procedure {i + 1} · {names[item.procedure_code]} · Tooth{" "}
-                {item.tooth}
+                İşlem {i + 1} · {names[item.procedure_code]} · Diş {item.tooth}
               </option>
             ))}
           </select>
@@ -222,12 +221,12 @@ export function ProposalEditor({
             onFocusCapture={() => setActiveProcedure(i)}
           >
             <div className="spread">
-              <strong>Procedure {i + 1}</strong>
+              <strong>İşlem {i + 1}</strong>
               <div className="procedure-actions">
                 <button
                   type="button"
                   className="text-link"
-                  aria-label={`Choose tooth for procedure ${i + 1} in 3D`}
+                  aria-label={`${i + 1}. işlem için dişi 3B görünümde seç`}
                   onClick={() => {
                     setActiveProcedure(i);
                     toothSelectorRef.current?.scrollIntoView({
@@ -236,12 +235,12 @@ export function ProposalEditor({
                     });
                   }}
                 >
-                  Choose tooth in 3D
+                  Dişi 3B görünümde seç
                 </button>
                 <button
                   type="button"
                   className="icon-btn danger"
-                  aria-label={`Remove procedure ${i + 1}`}
+                  aria-label={`İşlem ${i + 1} sil`}
                   disabled={items.length === 1}
                   onClick={() => {
                     setItems(items.filter((_, j) => j !== i));
@@ -259,7 +258,7 @@ export function ProposalEditor({
               </div>
             </div>
             <div className="form-grid three">
-              <Field label="Procedure">
+              <Field label="İşlem">
                 <select
                   value={item.procedure_code}
                   onChange={(e) =>
@@ -273,7 +272,7 @@ export function ProposalEditor({
                   ))}
                 </select>
               </Field>
-              <Field label="Tooth · FDI notation">
+              <Field label="Diş · FDI numaralandırması">
                 <input
                   required
                   pattern="([1-4][1-8]|[5-8][1-5]|ALL)"
@@ -281,7 +280,7 @@ export function ProposalEditor({
                   onChange={(e) => update(i, { tooth: e.target.value })}
                 />
               </Field>
-              <Field label={`Price (${currency})`}>
+              <Field label={`Fiyat (${currency})`}>
                 <input
                   required
                   type="number"
@@ -296,17 +295,17 @@ export function ProposalEditor({
                   }
                 />
               </Field>
-              <Field label="Material / brand">
+              <Field label="Malzeme / marka">
                 <input
                   maxLength={80}
-                  placeholder="Specify or leave blank"
+                  placeholder="Belirtin veya boş bırakın"
                   value={item.material || ""}
                   onChange={(e) =>
                     update(i, { material: e.target.value || null })
                   }
                 />
               </Field>
-              <Field label="Procedure sessions">
+              <Field label="İşlem seansları">
                 <input
                   required
                   type="number"
@@ -319,8 +318,8 @@ export function ProposalEditor({
                 />
               </Field>
               <Field
-                label="Treatment urgency"
-                hint="Priority set by the treating clinician."
+                label="Tedavi aciliyeti"
+                hint="Önceliği tedaviyi uygulayan hekim belirler."
               >
                 <select
                   value={item.urgency || "routine"}
@@ -359,14 +358,14 @@ export function ProposalEditor({
           }}
         >
           <Plus size={16} />
-          Add procedure
+          İşlem ekle
         </button>
         <div className="editor-label">
-          <h3>2. Visits & availability</h3>
-          <p>Overall visits may combine more than one procedure.</p>
+          <h3>2. Seanslar ve uygunluk</h3>
+          <p>Bir seansta birden fazla işlem yapılabilir.</p>
         </div>
         <div className="form-grid">
-          <Field label="Total planned visits">
+          <Field label="Planlanan toplam seans">
             <input
               required
               type="number"
@@ -376,7 +375,7 @@ export function ProposalEditor({
               defaultValue={initial?.sessions || 1}
             />
           </Field>
-          <Field label="First available appointment">
+          <Field label="İlk uygun randevu">
             <input
               type="datetime-local"
               name="slot"
@@ -390,21 +389,21 @@ export function ProposalEditor({
             name="exam"
             defaultChecked={initial?.requires_exam ?? true}
           />
-          In-person examination required to finalize this plan
+          Bu planı kesinleştirmek için yüz yüze muayene gerekli
         </label>
-        <Field label="Clinical notes & price inclusions">
+        <Field label="Klinik notlar ve fiyata dahil olanlar">
           <textarea
             name="notes"
             rows={4}
             maxLength={1000}
             defaultValue={initial?.notes || ""}
-            placeholder="Clarify the proposed plan, materials, inclusions and examination requirements."
+            placeholder="Önerilen planı, malzemeleri, dahil olanları ve muayene gerekliliklerini açıklayın."
           />
         </Field>
         <div className="proposal-total">
           <div>
-            <span>Preliminary total</span>
-            <small>Final pricing is subject to clinical examination.</small>
+            <span>Tahmini toplam</span>
+            <small>Kesin fiyat klinik muayeneye bağlıdır.</small>
           </div>
           <strong>
             {money(
@@ -416,8 +415,8 @@ export function ProposalEditor({
         <div className="notice">
           <Sparkles size={18} />
           <p>
-            A separate plain-language explanation is queued after publishing. It
-            will not alter your treatment plan.
+            Yayımdan sonra ayrı bir sade dilli açıklama hazırlanır. Tedavi
+            planınız değiştirilmez.
           </p>
         </div>
         {error && (
@@ -439,7 +438,7 @@ export function ProposalEditor({
             disabled={busy}
           >
             <Save size={16} />
-            Save draft
+            Taslağı kaydet
           </button>
           <button
             className="primary"
@@ -450,10 +449,10 @@ export function ProposalEditor({
           >
             <Send size={16} />
             {busy
-              ? "Saving…"
+              ? "Kaydediliyor…"
               : revisionOf
-                ? "Publish revision"
-                : "Publish proposal"}
+                ? "Yeni sürümü yayımla"
+                : "Teklifi yayımla"}
           </button>
         </div>
       </form>
@@ -475,7 +474,7 @@ export function ProposalDetail({
 }) {
   const [inspectedTooth, setInspectedTooth] = useState(p.plan.items[0].tooth);
   return (
-    <Modal title={`Proposal · version ${p.version}`} close={close} wide>
+    <Modal title={`Teklif · sürüm ${p.version}`} close={close} wide>
       <div className="proposal-detail-header">
         <div>
           <h3>{p.clinic_name}</h3>
@@ -496,12 +495,12 @@ export function ProposalDetail({
         <table>
           <thead>
             <tr>
-              <th>Procedure</th>
-              <th>Tooth</th>
-              <th>Material</th>
-              <th>Sessions</th>
-              <th>Urgency</th>
-              <th>Price</th>
+              <th>İşlem</th>
+              <th>Diş</th>
+              <th>Malzeme</th>
+              <th>Seans</th>
+              <th>Aciliyet</th>
+              <th>Fiyat</th>
             </tr>
           </thead>
           <tbody>
@@ -509,10 +508,10 @@ export function ProposalDetail({
               <tr key={i}>
                 <td>{names[x.procedure_code]}</td>
                 <td>{x.tooth}</td>
-                <td>{x.material || "Not specified"}</td>
+                <td>{x.material || "Belirtilmedi"}</td>
                 <td>{x.sessions}</td>
                 <td>
-                  <Badge>{urgencies[x.urgency || "routine"]}</Badge>
+                  <Badge>{x.urgency || "routine"}</Badge>
                 </td>
                 <td>{money(x.price_minor, p.plan.currency)}</td>
               </tr>
@@ -522,32 +521,30 @@ export function ProposalDetail({
       </div>
       <div className="proposal-total">
         <span>
-          {p.plan.sessions} total visits ·{" "}
+          {p.plan.sessions} toplam seans ·{" "}
           {p.plan.requires_exam
-            ? "Examination required"
-            : "No examination requirement marked"}
+            ? "Muayene gerekli"
+            : "Muayene gerekliliği işaretlenmedi"}
         </span>
         <strong>{money(p.total_minor, p.plan.currency)}</strong>
       </div>
       <dl className="details">
         <div>
-          <dt>First availability</dt>
+          <dt>İlk uygun tarih</dt>
           <dd>{datetime(p.plan.first_available_slot)}</dd>
         </div>
         <div>
-          <dt>Notes & inclusions</dt>
-          <dd>{p.plan.notes || "No notes supplied."}</dd>
+          <dt>Notlar ve dahil olanlar</dt>
+          <dd>{p.plan.notes || "Not eklenmedi."}</dd>
         </div>
       </dl>
       <section className="explanation">
         <div className="spread">
           <h3>
             <Sparkles size={18} />
-            Patient explanation
+            Hasta açıklaması
           </h3>
-          <Badge>
-            {p.explanation?.mode?.replaceAll("_", " ") || p.explanation_status}
-          </Badge>
+          <Badge>{p.explanation?.mode || p.explanation_status}</Badge>
         </div>
         {p.explanation ? (
           <>
@@ -557,7 +554,7 @@ export function ProposalDetail({
             ))}
             {!!p.explanation.missing_information.length && (
               <>
-                <h4>Information to clarify</h4>
+                <h4>Netleştirilecek bilgiler</h4>
                 {p.explanation.missing_information.map((x) => (
                   <p key={x}>{x}</p>
                 ))}
@@ -565,19 +562,16 @@ export function ProposalDetail({
             )}
             <small>{p.explanation.disclaimer}</small>
             <p className="tiny">
-              Glossary: {p.explanation.glossary_status.replaceAll("_", " ")}
+              Sözlük: {label(p.explanation.glossary_status)}
             </p>
           </>
         ) : (
-          <p>
-            The interpreter is preparing this explanation. The submitted clinic
-            plan is saved.
-          </p>
+          <p>Açıklama hazırlanıyor. Gönderilen klinik planı kaydedildi.</p>
         )}
       </section>
       {role === "admin" ? (
         <Form
-          label="Save review"
+          label="İncelemeyi kaydet"
           onSave={async (f) => {
             await act(
               `/admin/proposals/${p.id}/review`,
@@ -588,20 +582,20 @@ export function ProposalDetail({
           }}
         >
           <div className="editor-label">
-            <h3>Platform review</h3>
+            <h3>Platform incelemesi</h3>
             <p>
-              Flagged proposals are hidden from patient-facing API results until
-              cleared.
+              İşaretlenen teklifler, işaret kaldırılana kadar hasta API
+              sonuçlarında gösterilmez.
             </p>
           </div>
-          <Field label="Review decision">
+          <Field label="İnceleme kararı">
             <select name="moderation" defaultValue={p.moderation}>
-              <option value="unreviewed">Unreviewed</option>
-              <option value="approved">Approved</option>
-              <option value="flagged">Flagged</option>
+              <option value="unreviewed">İncelenmedi</option>
+              <option value="approved">Onaylandı</option>
+              <option value="flagged">İşaretlendi</option>
             </select>
           </Field>
-          <Field label="Review notes">
+          <Field label="İnceleme notları">
             <textarea
               name="notes"
               defaultValue={p.review_notes}
@@ -614,13 +608,13 @@ export function ProposalDetail({
         <>
           {p.review_notes && (
             <div className="notice">
-              <p>Platform review: {p.review_notes}</p>
+              <p>Platform incelemesi: {p.review_notes}</p>
             </div>
           )}
           {p.status === "submitted" && (
             <div className="form-actions">
               <button className="primary" onClick={() => onRevise?.(p)}>
-                Revise proposal
+                Teklifi düzenle
                 <ArrowUpRight size={15} />
               </button>
             </div>
@@ -655,14 +649,14 @@ export function AppointmentsPanel({
         <SearchBox
           value={search}
           set={setSearch}
-          placeholder="Search requests…"
+          placeholder="Taleplerde ara…"
         />
         <select
-          aria-label="Filter requests by status"
+          aria-label="Talepleri duruma göre filtrele"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
-          <option value="all">All statuses</option>
+          <option value="all">Tüm durumlar</option>
           {[
             "requested",
             "contacted",
@@ -670,7 +664,9 @@ export function AppointmentsPanel({
             "completed",
             "cancelled",
           ].map((s) => (
-            <option key={s}>{s}</option>
+            <option key={s} value={s}>
+              {label(s)}
+            </option>
           ))}
         </select>
         <button
@@ -690,7 +686,7 @@ export function AppointmentsPanel({
           }
         >
           <Download size={15} />
-          Export
+          Dışa aktar
         </button>
       </div>
       <div className="panel flush">
@@ -698,11 +694,11 @@ export function AppointmentsPanel({
           <table>
             <thead>
               <tr>
-                <th>Case / request</th>
-                {role === "admin" && <th>Clinic</th>}
-                <th>Requested</th>
-                <th>Scheduled for</th>
-                <th>Status</th>
+                <th>Vaka / talep</th>
+                {role === "admin" && <th>Klinik</th>}
+                <th>Talep tarihi</th>
+                <th>Planlanan tarih</th>
+                <th>Durum</th>
                 <th />
               </tr>
             </thead>
@@ -713,8 +709,8 @@ export function AppointmentsPanel({
                     <strong>{a.case_title}</strong>
                     <small>
                       {a.kind === "callback"
-                        ? "Callback request"
-                        : "Appointment request"}
+                        ? "Geri arama talebi"
+                        : "Randevu talebi"}
                     </small>
                   </td>
                   {role === "admin" && <td>{a.clinic_name}</td>}
@@ -725,7 +721,7 @@ export function AppointmentsPanel({
                   </td>
                   <td>
                     <button className="text-link" onClick={() => setEditing(a)}>
-                      Manage
+                      Yönet
                       <ArrowUpRight size={14} />
                     </button>
                   </td>
@@ -736,16 +732,13 @@ export function AppointmentsPanel({
         </div>
         {!rows.length && (
           <Empty
-            title="No matching requests"
-            description="Requests from the patient mobile API will appear here."
+            title="Eşleşen talep yok"
+            description="Hasta mobil API'sinden gelen talepler burada görünecek."
           />
         )}
       </div>
       {editing && (
-        <Modal
-          title="Manage appointment request"
-          close={() => setEditing(null)}
-        >
+        <Modal title="Randevu talebini yönet" close={() => setEditing(null)}>
           <div className="editor-context">
             <CalendarDays size={21} />
             <div>
@@ -779,7 +772,7 @@ export function AppointmentsPanel({
               setEditing(null);
             }}
           >
-            <Field label="Request status">
+            <Field label="Talep durumu">
               <select name="status" defaultValue={editing.status}>
                 {(
                   {
@@ -795,13 +788,15 @@ export function AppointmentsPanel({
                     cancelled: ["cancelled"],
                   }[editing.status] || []
                 ).map((s) => (
-                  <option key={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {label(s)}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field
-              label="Appointment date & time"
-              hint="Required when confirming an appointment."
+              label="Randevu tarihi ve saati"
+              hint="Randevuyu onaylarken gereklidir."
             >
               <input
                 name="scheduled"
@@ -819,7 +814,7 @@ export function AppointmentsPanel({
                 }
               />
             </Field>
-            <Field label="Internal coordination notes">
+            <Field label="İç koordinasyon notları">
               <textarea
                 rows={4}
                 name="notes"
@@ -829,8 +824,8 @@ export function AppointmentsPanel({
             </Field>
             <div className="notice">
               <p>
-                Changes update the request record. No email, SMS, or phone call
-                is sent from this local environment.
+                Değişiklikler talep kaydını günceller. Bu yerel ortamdan
+                e-posta, SMS veya arama yapılmaz.
               </p>
             </div>
           </Form>
@@ -864,11 +859,11 @@ export function MembersPanel({
         <SearchBox
           value={search}
           set={setSearch}
-          placeholder="Search accounts…"
+          placeholder="Hesaplarda ara…"
         />
         <button className="primary" onClick={() => setAdding(true)}>
           <Plus size={16} />
-          Add {role === "clinic" ? "team member" : "account"}
+          {role === "clinic" ? "Ekip üyesi ekle" : "Hesap ekle"}
         </button>
       </div>
       <div className="panel flush">
@@ -876,10 +871,10 @@ export function MembersPanel({
           <table>
             <thead>
               <tr>
-                <th>Account</th>
-                <th>Role</th>
-                {role === "admin" && <th>Clinic</th>}
-                <th>Status</th>
+                <th>Hesap</th>
+                <th>Rol</th>
+                {role === "admin" && <th>Klinik</th>}
+                <th>Durum</th>
                 <th />
               </tr>
             </thead>
@@ -889,7 +884,7 @@ export function MembersPanel({
                   <td>
                     <strong>
                       {a.name}
-                      {a.id === currentId ? " (you)" : ""}
+                      {a.id === currentId ? " (siz)" : ""}
                     </strong>
                     <small>{a.email}</small>
                   </td>
@@ -907,7 +902,7 @@ export function MembersPanel({
                   </td>
                   <td>
                     <button className="text-link" onClick={() => setEditing(a)}>
-                      Manage
+                      Yönet
                       <ArrowUpRight size={14} />
                     </button>
                   </td>
@@ -918,18 +913,18 @@ export function MembersPanel({
         </div>
         {!rows.length && (
           <Empty
-            title="No matching accounts"
-            description="Try another name or email."
+            title="Eşleşen hesap yok"
+            description="Başka bir ad veya e-posta deneyin."
           />
         )}
       </div>
       {adding && (
         <Modal
-          title={role === "clinic" ? "Add team member" : "Create account"}
+          title={role === "clinic" ? "Ekip üyesi ekle" : "Hesap oluştur"}
           close={() => setAdding(false)}
         >
           <Form
-            label="Create account"
+            label="Hesap oluştur"
             onSave={async (f) => {
               await act("/operations/accounts", {
                 name: f.get("name"),
@@ -942,23 +937,23 @@ export function MembersPanel({
               setAdding(false);
             }}
           >
-            <Field label="Full name">
+            <Field label="Ad soyad">
               <input name="name" required minLength={2} maxLength={100} />
             </Field>
-            <Field label="Email">
+            <Field label="E-posta">
               <input type="email" name="email" required />
             </Field>
             {role === "admin" && (
               <div className="form-grid">
-                <Field label="Role">
+                <Field label="Rol">
                   <select name="role">
-                    <option value="clinic">Clinic staff</option>
-                    <option value="admin">Administrator</option>
+                    <option value="clinic">Klinik personeli</option>
+                    <option value="admin">Yönetici</option>
                   </select>
                 </Field>
-                <Field label="Clinic">
+                <Field label="Klinik">
                   <select name="clinic_id">
-                    <option value="">None (administrators only)</option>
+                    <option value="">Yok (yalnızca yöneticiler)</option>
                     {clinics.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -969,8 +964,8 @@ export function MembersPanel({
               </div>
             )}
             <Field
-              label="Initial password"
-              hint="At least 10 characters. Share through your organization’s secure process."
+              label="İlk şifre"
+              hint="En az 10 karakter. Kurumunuzun güvenli yöntemiyle paylaşın."
             >
               <input
                 type="password"
@@ -985,7 +980,7 @@ export function MembersPanel({
         </Modal>
       )}
       {editing && (
-        <Modal title="Account access" close={() => setEditing(null)}>
+        <Modal title="Hesap erişimi" close={() => setEditing(null)}>
           <h3>{editing.name}</h3>
           <p className="muted">{editing.email}</p>
           <Form
@@ -1009,11 +1004,11 @@ export function MembersPanel({
                 disabled={editing.id === currentId}
                 defaultChecked={editing.active}
               />
-              Account is active
+              Hesap aktif
             </label>
             <Field
-              label="Reset password"
-              hint="Leave blank to keep the current password. A reset revokes active sessions."
+              label="Şifreyi sıfırla"
+              hint="Mevcut şifreyi korumak için boş bırakın. Sıfırlama açık oturumları kapatır."
             >
               <input
                 type="password"
@@ -1049,7 +1044,7 @@ export function DiscoveryFields({
       {includeGoogle && (
         <Field
           label="Google Place ID"
-          hint="Verify the Google listing belongs to this clinic. Leave blank to disconnect."
+          hint="Google kaydının bu kliniğe ait olduğunu doğrulayın. Bağlantıyı kaldırmak için boş bırakın."
         >
           <input
             name="google_place_id"
@@ -1060,9 +1055,8 @@ export function DiscoveryFields({
         </Field>
       )}
       <p className="muted">
-        Social profiles are supplied by the clinic, separately from Google
-        ratings and photos. Use full HTTPS profile URLs without tracking
-        parameters.
+        Sosyal medya profillerini klinik sağlar; Google puan ve fotoğraflarından
+        ayrıdır. İzleme parametresi içermeyen tam HTTPS adreslerini kullanın.
       </p>
       <div className="form-grid">
         {socialPlatforms.map((platform) => (
@@ -1070,15 +1064,15 @@ export function DiscoveryFields({
             key={platform}
             label={
               platform === "x"
-                ? "X profile"
-                : `${platform[0].toUpperCase() + platform.slice(1)} profile`
+                ? "X profili"
+                : `${platform[0].toUpperCase() + platform.slice(1)} profili`
             }
           >
             <input
               name={`social_${platform}`}
               type="url"
               maxLength={500}
-              placeholder={`https://${platform}.com/your-profile`}
+              placeholder={`https://${platform}.com/profiliniz`}
               defaultValue={
                 clinic.social_links?.find((link) => link.platform === platform)
                   ?.url || ""
@@ -1109,7 +1103,7 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
   return (
     <>
       <div className="form-grid">
-        <Field label="Clinic name">
+        <Field label="Klinik adı">
           <input
             name="name"
             required
@@ -1118,7 +1112,7 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
             defaultValue={clinic?.name}
           />
         </Field>
-        <Field label="District">
+        <Field label="İlçe">
           <input
             name="district"
             required
@@ -1128,7 +1122,7 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
           />
         </Field>
       </div>
-      <Field label="Address">
+      <Field label="Adres">
         <input
           name="address"
           required
@@ -1139,8 +1133,8 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
       </Field>
       <div className="form-grid">
         <Field
-          label="Latitude"
-          hint="Optional. Add both coordinates to include this clinic in nearby results."
+          label="Enlem"
+          hint="İsteğe bağlıdır. Yakın sonuçlarda görünmesi için iki koordinatı da ekleyin."
         >
           <input
             type="number"
@@ -1151,7 +1145,7 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
             defaultValue={clinic?.latitude ?? ""}
           />
         </Field>
-        <Field label="Longitude">
+        <Field label="Boylam">
           <input
             type="number"
             name="longitude"
@@ -1163,7 +1157,7 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
         </Field>
       </div>
       <div className="form-grid">
-        <Field label="Contact email">
+        <Field label="İletişim e-postası">
           <input
             type="email"
             name="email"
@@ -1171,11 +1165,11 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
             defaultValue={clinic?.email}
           />
         </Field>
-        <Field label="Phone">
+        <Field label="Telefon">
           <input name="phone" maxLength={40} defaultValue={clinic?.phone} />
         </Field>
       </div>
-      <Field label="Website">
+      <Field label="Web sitesi">
         <input
           name="website"
           maxLength={150}
@@ -1183,14 +1177,14 @@ export function ProfileFields({ clinic }: { clinic?: Clinic }) {
           placeholder="https://"
         />
       </Field>
-      <Field label="Opening hours">
+      <Field label="Çalışma saatleri">
         <input
           name="hours"
           maxLength={500}
-          defaultValue={clinic?.hours || "Monday–Friday, 09:00–18:00"}
+          defaultValue={clinic?.hours || "Pazartesi–Cuma, 09.00–18.00"}
         />
       </Field>
-      <Field label="About the clinic">
+      <Field label="Klinik hakkında">
         <textarea
           name="description"
           rows={4}

@@ -74,13 +74,13 @@ it("shows the clinic map, opens the full profile and recovers from map failure",
       isTopFrame: true,
     }),
   ).toBe(false);
-  fireEvent.press(screen.getByText("View full Google profile ↗"));
+  fireEvent.press(screen.getByText("Google profilini aç ↗"));
   await waitFor(() =>
     expect(open).toHaveBeenCalledWith(clinicGoogleProfile(clinic)),
   );
   fireEvent(map, "httpError");
   expect(screen.queryByTestId("clinic-embedded-map")).toBeNull();
-  fireEvent.press(screen.getByText("Retry map"));
+  fireEvent.press(screen.getByText("Haritayı yeniden dene"));
   expect(screen.getByTestId("clinic-embedded-map")).toBeTruthy();
   open.mockRestore();
 });
@@ -95,6 +95,6 @@ it("keeps clinics without a mapping useful and does not render a false map", () 
   });
   render(<ClinicDetail />);
   expect(screen.queryByTestId("clinic-embedded-map")).toBeNull();
-  expect(screen.getByText(/no verified Google listing/)).toBeTruthy();
-  expect(screen.getByText("Search on Google Maps ↗")).toBeTruthy();
+  expect(screen.getByText(/doğrulanmış bir Google kaydı/)).toBeTruthy();
+  expect(screen.getByText("Google Haritalar'da ara ↗")).toBeTruthy();
 });

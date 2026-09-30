@@ -200,7 +200,7 @@ def test_openai_gateway_sends_only_structured_source(monkeypatch):
     class Response:
         def raise_for_status(self): pass
         def json(self):
-            return {'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':'{"plain_summary":"The clinic lists one procedure over two visits."}'}]}],'usage':{'input_tokens':42,'output_tokens':12}}
+            return {'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':'{"plain_summary":"Klinik, iki seansta bir işlem sunuyor."}'}]}],'usage':{'input_tokens':42,'output_tokens':12}}
     def fake_post(url, **kwargs):
         seen['url']=url;seen.update(kwargs)
         return Response()
@@ -208,10 +208,10 @@ def test_openai_gateway_sends_only_structured_source(monkeypatch):
     monkeypatch.setattr('dentpro.ai_gateway.httpx.post',fake_post)
     summary,input_tokens,output_tokens=explain_with_openai(
         plan(notes='Secret patient name and phone'),
-        'The clinic lists one procedure over two visits.',
+        'Klinik, iki seansta bir işlem sunuyor.',
         GatewayConfig(provider='openai',model='gpt-5.4-nano'),
     )
-    assert summary.startswith('The clinic') and (input_tokens,output_tokens)==(42,12)
+    assert summary.startswith('Klinik') and (input_tokens,output_tokens)==(42,12)
     assert seen['url']=='https://api.openai.com/v1/responses'
     assert seen['json']['store'] is False
     assert seen['json']['text']['format']['strict'] is True
@@ -238,11 +238,11 @@ def test_ai_gateway_snapshots_provider_and_falls_back(client,monkeypatch):
         p=db.get(Proposal,proposal_id)
         request=db.get(AIExplanationRequest,p.explanation_key)
         assert request.provider=='openai' and request.model=='gpt-5.4-nano'
-    monkeypatch.setattr(worker,'explain_with_openai',lambda *_:('The clinic proposes one root canal procedure over two visits.',40,15))
+    monkeypatch.setattr(worker,'explain_with_openai',lambda *_:('Klinik, iki seansta bir kanal tedavisi öneriyor.',40,15))
     run_once()
     result=client.get(f'/proposals/{proposal_id}',headers=patient).json()
     assert result['explanation']['mode']=='ai'
-    assert result['explanation']['plain_summary'].startswith('The clinic proposes')
+    assert result['explanation']['plain_summary'].startswith('Klinik')
     with Session() as db:
         record=db.get(Explanation,db.get(Proposal,proposal_id).explanation_key)
         assert record.model=='gpt-5.4-nano' and (record.input_tokens,record.output_tokens)==(40,15)
@@ -315,14 +315,14 @@ def test_treatment_currency_urgency_catalog_and_revision(client):
     run_once()
     explained=client.get('/proposals/'+p['id'],headers=patient).json()
     assert explained['explanation_status']=='ready'
-    assert 'one canal' in explained['explanation']['procedures'][0]['simple_explanation']
-    assert 'two canals' in explained['explanation']['procedures'][1]['simple_explanation']
-    assert 'multiple canals' in explained['explanation']['procedures'][2]['simple_explanation']
+    assert 'tek kanalına' in explained['explanation']['procedures'][0]['simple_explanation']
+    assert 'iki kanalına' in explained['explanation']['procedures'][1]['simple_explanation']
+    assert 'birden çok kanalına' in explained['explanation']['procedures'][2]['simple_explanation']
     assert client.post('/operations/accounts',headers=admin,json={'name':'Currency QA staff','email':'currency.qa@example.org','role':'clinic','clinic_id':'clinic-2','password':'CurrencyQA123!'}).status_code==201
     second=signin(client,'currency.qa@example.org','CurrencyQA123!')
     assert client.post(f'/clinic/cases/{cid}/publish',headers=second|{'Idempotency-Key':'currency-qa-second'},json={'plan':source|{'currency':'EUR'}}).status_code==201
     comparison=client.post(f'/cases/{cid}/compare',headers=patient).json()
-    assert comparison['currency'] is None and 'No exchange-rate conversion' in comparison['notice']
+    assert comparison['currency'] is None and 'Döviz kuru dönüşümü yapılmadığı' in comparison['notice']
     assert {p['plan']['currency'] for p in comparison['proposals']}=={'USD','EUR'}
     revision=client.post(f'/clinic/cases/{cid}/publish',headers=clinic|{'Idempotency-Key':'currency-qa-revision'},json={'plan':source|{'currency':'TRY'},'revision_of':p['id']})
     assert revision.status_code==201 and revision.json()['plan']['items'][0]['urgency']=='urgent'
@@ -596,3 +596,26 @@ def test_draft_deletion_removes_database_xray(client,monkeypatch):
     monkeypatch.setattr(main,'cloud_mode',lambda:True)
     assert client.delete(f'/cases/{cid}',headers=patient).status_code==204
     with Session() as db: assert not db.get(XrayAsset,cid)
+
+def test_existing_generated_explanation_is_presented_in_turkish_without_editing_custom_text():
+    from dentpro.interpreter import localize_legacy_output
+    legacy = {
+        'plain_summary': 'The clinic lists one procedure over two visits.',
+        'procedures': [
+            {'source_item_id': '1', 'simple_explanation': 'The clinic proposes treatment inside the tooth’s root canals.'},
+            {'source_item_id': '2', 'simple_explanation': 'Custom clinician explanation'},
+        ],
+        'missing_information': ['Material is not specified for item 1.', 'The first available appointment has not been provided.'],
+        'questions_to_ask_clinic': ['What is included in the preliminary price?'],
+        'disclaimer': 'This explanation simplifies the clinic’s proposal. It is not an independent diagnosis or treatment recommendation.',
+        'mode': 'ai',
+        'glossary_status': 'draft_requires_dentist_review',
+    }
+    shown = localize_legacy_output(legacy, plan())
+    assert shown['plain_summary'].startswith('Klinik,')
+    assert shown['mode'] == 'template'
+    assert 'kanallarına' in shown['procedures'][0]['simple_explanation']
+    assert shown['procedures'][1]['simple_explanation'] == 'Custom clinician explanation'
+    assert shown['missing_information'][0].startswith('1. işlem')
+    assert shown['disclaimer'].startswith('Bu açıklama')
+    assert legacy['plain_summary'].startswith('The clinic')

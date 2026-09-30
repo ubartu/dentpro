@@ -24,12 +24,12 @@ export default function ProposalDetail() {
   const p = r.data;
   function book(kind: "callback" | "appointment") {
     Alert.alert(
-      kind === "callback" ? "Request a callback?" : "Request an appointment?",
-      "Your name and phone number will be shared with this clinic. The clinic must confirm an appointment before it is booked.",
+      kind === "callback" ? "Geri arama isteği gönderilsin mi?" : "Randevu isteği gönderilsin mi?",
+      "Adınız ve telefon numaranız bu klinikle paylaşılacak. Randevu kesinleşmeden önce klinik tarafından onaylanmalıdır.",
       [
-        { text: "Not now", style: "cancel" },
+        { text: "Şimdi değil", style: "cancel" },
         {
-          text: "Send request",
+          text: "Talebi gönder",
           onPress: () =>
             void action.run(async () => {
               await request(`/proposals/${id}`, token!);
@@ -46,23 +46,23 @@ export default function ProposalDetail() {
   return (
     <Screen refresh={() => void r.refresh()} refreshing={r.loading && !!p}>
       <Notice text={r.error || action.error} error />
-      {r.error && (
-        <Button title="Refresh proposal" onPress={() => void r.refresh()} />
+      {!!r.error && (
+        <Button title="Teklifi yenile" onPress={() => void r.refresh()} />
       )}
       {r.loading && !p && <Loading />}
       {p && (
         <>
           <Heading
             title={p.clinic_name}
-            subtitle={`${p.district} · Version ${p.version} · ${date(p.created_at)}`}
+            subtitle={`${p.district} · Sürüm ${p.version} · ${date(p.created_at)}`}
           />
           <Card>
-            <Text style={styles.badge}>CLINIC’S PROPOSAL</Text>
+            <Text style={styles.badge}>KLİNİĞİN TEKLİFİ</Text>
             <Text style={styles.title}>
               {money(p.total_minor, p.plan.currency)}
             </Text>
             <Text style={styles.muted}>
-              Preliminary total · {p.plan.sessions} visits
+              Tahmini toplam · {p.plan.sessions} seans
             </Text>
             {p.plan.items.map((item, i) => (
               <View
@@ -76,54 +76,54 @@ export default function ProposalDetail() {
               >
                 <Text style={styles.heading}>{label(item.procedure_code)}</Text>
                 <Text style={styles.text}>
-                  Tooth {item.tooth} ·{" "}
+                  Diş {item.tooth} ·{" "}
                   {money(item.price_minor, p.plan.currency)}
                 </Text>
                 <Text style={styles.muted}>
-                  Priority: {urgencyLabel(item.urgency)} · Set by the clinic
+                  Öncelik: {urgencyLabel(item.urgency)} · Klinik tarafından belirlendi
                   {"\n"}
-                  Material: {item.material || "Not specified"}
-                  {"\n"}Sessions: {item.sessions}
+                  Malzeme: {item.material || "Belirtilmedi"}
+                  {"\n"}Seans: {item.sessions}
                 </Text>
               </View>
             ))}
             <Text style={styles.text}>
-              Examination:{" "}
-              {p.plan.requires_exam ? "Required" : "Not specified as required"}
+              Muayene:{" "}
+              {p.plan.requires_exam ? "Gerekli" : "Gerekliliği belirtilmedi"}
             </Text>
             <Text style={styles.muted}>
-              First availability: {date(p.plan.first_available_slot)}
+              İlk uygun tarih: {date(p.plan.first_available_slot)}
             </Text>
             {!!p.plan.notes && (
               <>
-                <Text style={styles.heading}>Clinic notes</Text>
+                <Text style={styles.heading}>Klinik notları</Text>
                 <Text style={styles.text}>{p.plan.notes}</Text>
               </>
             )}
           </Card>
           <Card>
-            <Text style={styles.badge}>PLAIN-LANGUAGE EXPLANATION</Text>
+            <Text style={styles.badge}>SADE DİLDE AÇIKLAMA</Text>
             {p.explanation ? (
               <>
                 <Text style={styles.badge}>
                   {p.explanation.mode === "ai"
-                    ? "AI-ASSISTED SUMMARY"
+                    ? "YAPAY ZEKÂ DESTEKLİ ÖZET"
                     : p.explanation.mode === "template_fallback"
-                      ? "TEMPLATE SUMMARY · AI UNAVAILABLE"
-                      : "TEMPLATE SUMMARY"}
+                      ? "ŞABLON ÖZET · YAPAY ZEKÂ KULLANILAMADI"
+                      : "ŞABLON ÖZET"}
                 </Text>
                 <Text style={styles.muted}>
                   {p.explanation.mode === "ai"
-                    ? "AI reworded the clinic’s structured plan; its wording has not been clinically reviewed. Procedure explanations come from the glossary. "
-                    : "Prepared from the procedure glossary. "}
+                    ? "Yapay zekâ kliniğin yapılandırılmış planını yeniden ifade etti; bu ifade klinik olarak incelenmedi. İşlem açıklamaları sözlükten gelir. "
+                    : "İşlem sözlüğünden hazırlandı. "}
                   {p.explanation.glossary_status === "dentist_review_recorded"
-                    ? "Reviewer attribution recorded"
-                    : "Clinical wording review pending"}
+                    ? "İnceleyen kişi kaydedildi"
+                    : "Klinik ifade incelemesi bekleniyor"}
                 </Text>
                 <Text style={styles.text}>{p.explanation.plain_summary}</Text>
                 <Section
-                  title="Understand each procedure"
-                  detail={`${p.explanation.procedures.length} ${p.explanation.procedures.length === 1 ? "item" : "items"} explained`}
+                  title="İşlemleri anlayın"
+                  detail={`${p.explanation.procedures.length} işlem açıklandı`}
                 >
                   {p.explanation.procedures.map((e) => (
                     <Text key={e.source_item_id} style={styles.text}>
@@ -132,7 +132,7 @@ export default function ProposalDetail() {
                   ))}
                 </Section>
                 {!!p.explanation.missing_information.length && (
-                  <Section title="Information to clarify">
+                  <Section title="Netleştirilmesi gerekenler">
                     {p.explanation.missing_information.map((v, i) => (
                       <Text key={i} style={styles.muted}>
                         • {v}
@@ -141,7 +141,7 @@ export default function ProposalDetail() {
                   </Section>
                 )}
                 {!!p.explanation.questions_to_ask_clinic.length && (
-                  <Section title="Ask your clinic">
+                  <Section title="Kliniğe sorulacaklar">
                     {p.explanation.questions_to_ask_clinic.map((v, i) => (
                       <Text key={i} style={styles.muted}>
                         • {v}
@@ -155,20 +155,20 @@ export default function ProposalDetail() {
               <Notice
                 text={
                   p.explanation_status === "pending"
-                    ? "The explanation is being prepared. You can read the clinic’s proposal now."
-                    : "The explanation is currently unavailable. You can still review the original clinic proposal. Check back later."
+                    ? "Açıklama hazırlanıyor. Bu sırada kliniğin teklifini okuyabilirsiniz."
+                    : "Açıklama şu anda kullanılamıyor. Kliniğin özgün teklifini inceleyebilir, daha sonra tekrar bakabilirsiniz."
                 }
               />
             )}
           </Card>
-          <Notice text="This is a preliminary proposal, not a confirmed treatment plan or diagnosis. A clinic examination may change the scope and price." />
+          <Notice text="Bu bir ön tekliftir; kesin tedavi planı veya tanı değildir. Klinik muayenesi kapsamı ve fiyatı değiştirebilir." />
           <Button
-            title="Request a callback"
+            title="Geri arama iste"
             busy={action.busy}
             onPress={() => book("callback")}
           />
           <Button
-            title="Request an appointment"
+            title="Randevu iste"
             secondary
             busy={action.busy}
             onPress={() => book("appointment")}

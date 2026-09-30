@@ -20,12 +20,12 @@ export default function Appointments() {
   const action = useAction();
   function cancel(a: Appointment) {
     Alert.alert(
-      "Cancel this request?",
-      `${a.clinic_name} will see the cancellation.`,
+      "Bu talep iptal edilsin mi?",
+      `${a.clinic_name} iptali görecek.`,
       [
-        { text: "Keep request", style: "cancel" },
+        { text: "Talebi koru", style: "cancel" },
         {
-          text: "Cancel request",
+          text: "Talebi iptal et",
           style: "destructive",
           onPress: () =>
             void action.run(async () => {
@@ -43,16 +43,16 @@ export default function Appointments() {
   return (
     <Screen refresh={() => void r.refresh()} refreshing={r.loading && !!r.data}>
       <Heading
-        title="Your requests"
-        subtitle="Callbacks and appointments, in one place."
+        title="Talepleriniz"
+        subtitle="Geri arama ve randevu talepleriniz tek yerde."
       />
       <Notice text={r.error || action.error} error />
-      {r.error && <Button title="Retry" onPress={() => void r.refresh()} />}
+      {!!r.error && <Button title="Yeniden dene" onPress={() => void r.refresh()} />}
       {r.loading && !r.data && <Loading />}
       {r.data?.length === 0 && (
         <Empty
-          title="No requests yet"
-          detail="Open a clinic proposal to request an appointment or callback."
+          title="Henüz talebiniz yok"
+          detail="Randevu veya geri arama istemek için bir klinik teklifini açın."
         />
       )}
       {r.data?.map((a) => (
@@ -65,17 +65,16 @@ export default function Appointments() {
           <Text style={styles.text}>
             {a.scheduled_at
               ? date(a.scheduled_at)
-              : "Date and time not confirmed"}
+              : "Tarih ve saat henüz onaylanmadı"}
           </Text>
           {a.status === "requested" && (
             <Text style={styles.muted}>
-              The clinic will contact you using the phone number in your
-              profile.
+              Klinik, profilinizdeki telefon numarasından size ulaşacak.
             </Text>
           )}
           {!!a.clinic_phone && (
             <Button
-              title="Call clinic"
+              title="Kliniği ara"
               secondary
               onPress={() =>
                 void action.run(async () => {
@@ -88,7 +87,7 @@ export default function Appointments() {
           )}
           {!["completed", "cancelled"].includes(a.status) && (
             <Button
-              title="Cancel request"
+              title="Talebi iptal et"
               quiet
               busy={action.busy}
               onPress={() => cancel(a)}
@@ -96,7 +95,7 @@ export default function Appointments() {
           )}
         </Card>
       ))}
-      <Notice text="Your appointment is confirmed when the clinic assigns a date and time. Pull down to check for updates." />
+      <Notice text="Randevunuz, klinik tarih ve saat belirlediğinde onaylanır. Güncellemeleri görmek için ekranı aşağı çekin." />
     </Screen>
   );
 }

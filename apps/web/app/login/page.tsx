@@ -26,37 +26,36 @@ export default function Login() {
           <Image
             className="login-hero-logo"
             src="/dentrivo-icon.png"
-            alt="DENTRIVO logo"
+            alt="DENTRIVO logosu"
             width={170}
             height={170}
             loading="eager"
           />
-          <div className="eyebrow">BUILT AROUND BETTER CARE</div>
+          <div className="eyebrow">DAHA İYİ BAKIM İÇİN TASARLANDI</div>
           <h1>
-            Less administration.
+            Daha az idari iş.
             <br />
-            More room for care.
+            Bakıma daha çok zaman.
           </h1>
           <p>
-            A dedicated workspace for the professionals behind every treatment
-            plan.
+            Her tedavi planını hazırlayan uzmanlar için özel bir çalışma alanı.
           </p>
           <div className="login-points">
             <span>
               <Check size={17} />
-              One place for every case and proposal
+              Tüm vakalar ve teklifler tek yerde
             </span>
             <span>
               <Check size={17} />
-              Clear handoffs from request to appointment
+              Talepten randevuya açık bir süreç
             </span>
             <span>
               <Check size={17} />
-              Accountable operations, with a complete audit trail
+              Eksiksiz denetim kaydıyla izlenebilir işlemler
             </span>
           </div>
         </div>
-        <small>DENTRIVO · Clinic & platform operations</small>
+        <small>DENTRIVO · Klinik ve platform işlemleri</small>
       </section>
       <section className="login-form">
         <div className="portal-tabs">
@@ -65,31 +64,29 @@ export default function Login() {
             onClick={() => setPortal("clinic")}
           >
             <Building2 size={17} />
-            Clinic portal
+            Klinik portalı
           </button>
           <button
             className={portal === "admin" ? "selected" : ""}
             onClick={() => setPortal("admin")}
           >
             <ShieldCheck size={17} />
-            Admin portal
+            Yönetim portalı
           </button>
         </div>
         <div className="eyebrow">
-          {portal === "clinic" ? "WELCOME BACK" : "PLATFORM OPERATIONS"}
+          {portal === "clinic" ? "TEKRAR HOŞ GELDİNİZ" : "PLATFORM İŞLEMLERİ"}
         </div>
         <h2>
-          {portal === "clinic"
-            ? "Sign in to your clinic"
-            : "Administrator sign-in"}
+          {portal === "clinic" ? "Kliniğinize giriş yapın" : "Yönetici girişi"}
         </h2>
         <p>
-          Use your{" "}
-          {portal === "clinic" ? "clinic team" : "platform administrator"}{" "}
-          account to continue.
+          Devam etmek için{" "}
+          {portal === "clinic" ? "klinik ekibi" : "platform yöneticisi"}{" "}
+          hesabınızı kullanın.
         </p>
         <Form
-          label="Sign in to workspace"
+          label="Çalışma alanına giriş yap"
           onSave={async () => {
             const r = await fetch(API + "/auth/login", {
               method: "POST",
@@ -97,17 +94,17 @@ export default function Login() {
               body: JSON.stringify({ email, password }),
             });
             const data = await r.json();
-            if (!r.ok) throw Error(data.detail || "Unable to sign in");
+            if (!r.ok) throw Error(data.detail || "Giriş yapılamadı");
             const auth = data as Auth;
             if (auth.user.role !== portal)
               throw Error(
-                `This account belongs to the ${auth.user.role} portal. Select the correct portal above.`,
+                `Bu hesap ${auth.user.role === "clinic" ? "klinik" : "yönetim"} portalına ait. Yukarıdan doğru portalı seçin.`,
               );
             sessionStorage.setItem("dentpro-auth", JSON.stringify(auth));
             router.push("/" + portal);
           }}
         >
-          <Field label="Email address">
+          <Field label="E-posta adresi">
             <input
               type="email"
               autoComplete="username"
@@ -116,7 +113,7 @@ export default function Login() {
               required
             />
           </Field>
-          <Field label="Password">
+          <Field label="Şifre">
             <input
               type="password"
               autoComplete="current-password"
@@ -127,13 +124,13 @@ export default function Login() {
           </Field>
         </Form>
         <p>
-          <Link href="/forgot-password">Forgot your password?</Link>
+          <Link href="/forgot-password">Şifrenizi mi unuttunuz?</Link>
         </p>
         <div className="demo-login">
-          <strong>Local evaluation access</strong>
+          <strong>Yerel demo erişimi</strong>
           <p>
-            Synthetic data environment. Use the supplied account to evaluate
-            this portal.
+            Sentetik veri ortamı. Bu portalı denemek için verilen hesabı
+            kullanın.
           </p>
           <button
             onClick={() => {
@@ -145,7 +142,7 @@ export default function Login() {
               setPassword(portal === "clinic" ? "Clinic123!" : "Admin123!");
             }}
           >
-            Fill {portal} evaluation credentials
+            {portal === "clinic" ? "Klinik" : "Yönetim"} demo bilgilerini doldur
             <ArrowRight size={14} />
           </button>
         </div>

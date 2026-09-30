@@ -37,17 +37,17 @@ const suffix = Date.now();
       await page.goto(base + "/login");
       await page
         .getByRole("button", {
-          name: role === "clinic" ? "Clinic portal" : "Admin portal",
+          name: role === "clinic" ? "Klinik portalı" : "Yönetim portalı",
           exact: true,
         })
         .click();
       await page
-        .getByRole("button", { name: `Fill ${role} evaluation credentials` })
+        .getByRole("button", { name: `${role === "clinic" ? "Klinik" : "Yönetim"} demo bilgilerini doldur` })
         .click();
-      await page.getByRole("button", { name: "Sign in to workspace" }).click();
+      await page.getByRole("button", { name: "Çalışma alanına giriş yap" }).click();
       await page
         .getByRole("heading", {
-          name: role === "clinic" ? /Good to see you/ : /A clear view/,
+          name: role === "clinic" ? /Tekrar hoş geldiniz/ : /Platformunuza genel bakış/,
         })
         .waitFor();
       await page.setViewportSize({ width: 1440, height: 1000 });
@@ -68,10 +68,10 @@ const suffix = Date.now();
         ),
         false,
       );
-      await page.getByRole("button", { name: "Open navigation" }).click();
-      await page.getByRole("button", { name: "Sign out", exact: true }).click();
+      await page.getByRole("button", { name: "Gezinmeyi aç" }).click();
+      await page.getByRole("button", { name: "Çıkış yap", exact: true }).click();
       await page
-        .getByRole("heading", { name: "Sign in to your clinic" })
+        .getByRole("heading", { name: "Kliniğinize giriş yapın" })
         .waitFor();
     }
     assert.deepEqual(errors, []);
@@ -104,14 +104,14 @@ const suffix = Date.now();
   assert(upload.ok());
   await call(`/cases/${c.id}/dispatch`, { clinic_ids: ["clinic-1"] }, patient);
   await page.goto(base + "/clinic");
-  await page.getByRole("heading", { name: "Sign in to your clinic" }).waitFor();
+  await page.getByRole("heading", { name: "Kliniğinize giriş yapın" }).waitFor();
   await page
-    .getByRole("button", { name: "Fill clinic evaluation credentials" })
+    .getByRole("button", { name: "Klinik demo bilgilerini doldur" })
     .click();
-  await page.getByRole("button", { name: "Sign in to workspace" }).click();
-  await page.getByRole("heading", { name: /Good to see you/ }).waitFor();
+  await page.getByRole("button", { name: "Çalışma alanına giriş yap" }).click();
+  await page.getByRole("heading", { name: /Tekrar hoş geldiniz/ }).waitFor();
   assert.equal(
-    await page.getByRole("combobox", { name: "Demo workspace" }).count(),
+    await page.getByRole("combobox", { name: "Demo çalışma alanı" }).count(),
     0,
   );
   await page.screenshot({
@@ -131,31 +131,31 @@ const suffix = Date.now();
   };
   const awaitingReview = page
     .locator(".stat")
-    .filter({ hasText: "Awaiting review" });
+    .filter({ hasText: "İnceleme bekliyor" });
   const newCount = Number(await awaitingReview.locator("strong").innerText());
   assert(newCount > 0);
   assert.match(await awaitingReview.getAttribute("class"), /stat-attention/);
   await awaitingReview.click();
   await page.waitForURL(base + "/clinic/cases?status=new");
-  await page.getByLabel("Case status", { exact: true }).waitFor();
+  await page.getByLabel("Vaka durumu", { exact: true }).waitFor();
   assert.equal(
-    await page.getByLabel("Case status", { exact: true }).inputValue(),
+    await page.getByLabel("Vaka durumu", { exact: true }).inputValue(),
     "new",
   );
   assert.equal(await page.locator("tbody tr").count(), newCount);
   assert.equal(await page.locator("tbody .badge.new").count(), newCount);
   await page.getByRole("link", { name: title, exact: true }).waitFor();
   await page
-    .getByRole("navigation", { name: "Case inbox filters" })
-    .getByRole("link", { name: /Unanswered/ })
+    .getByRole("navigation", { name: "Vaka gelen kutusu filtreleri" })
+    .getByRole("link", { name: /Yanıtsız/ })
     .click();
   await page.waitForURL(base + "/clinic/cases?status=unanswered");
   await page.goBack();
   await page.waitForURL(base + "/clinic/cases?status=new");
   await page.reload();
-  await page.getByLabel("Case status", { exact: true }).waitFor();
+  await page.getByLabel("Vaka durumu", { exact: true }).waitFor();
   assert.equal(
-    await page.getByLabel("Case status", { exact: true }).inputValue(),
+    await page.getByLabel("Vaka durumu", { exact: true }).inputValue(),
     "new",
   );
   assert.equal(await page.locator("tbody tr").count(), newCount);
@@ -179,8 +179,8 @@ const suffix = Date.now();
   await page.setViewportSize({ width: 1440, height: 1000 });
   async function checkCaseFilter(status, present, badge) {
     await page.goto(base + `/clinic/cases?status=${status}`);
-    await page.getByLabel("Case status", { exact: true }).waitFor();
-    await page.getByPlaceholder("Search cases or references…").fill(title);
+    await page.getByLabel("Vaka durumu", { exact: true }).waitFor();
+    await page.getByPlaceholder("Vaka veya referans ara…").fill(title);
     if (present) {
       await page.getByRole("link", { name: title, exact: true }).waitFor();
       assert.equal(
@@ -188,40 +188,40 @@ const suffix = Date.now();
         1,
       );
       assert.equal(
-        (await page.locator("tbody .badge").innerText()).toLowerCase(),
+        (await page.locator("tbody .badge").innerText()).toLocaleLowerCase("tr-TR"),
         badge,
       );
     } else {
-      await page.getByRole("heading", { name: "No matching cases" }).waitFor();
+      await page.getByRole("heading", { name: "Eşleşen vaka yok" }).waitFor();
       assert.equal(await page.locator("tbody tr").count(), 0);
     }
   }
-  await nav("Case inbox");
-  await page.getByPlaceholder("Search cases or references…").fill(title);
+  await nav("Vaka gelen kutusu");
+  await page.getByPlaceholder("Vaka veya referans ara…").fill(title);
   await page.getByRole("link", { name: title, exact: true }).click();
   await page.getByRole("heading", { name: title, exact: true }).waitFor();
-  await page.getByLabel("Your review status").selectOption("reviewing");
+  await page.getByLabel("İnceleme durumunuz").selectOption("reviewing");
   await page
-    .getByLabel(/Internal clinic notes/)
+    .getByLabel(/Klinik içi notlar/)
     .fill("Review in progress. Synthetic browser verification.");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Changes saved" }).waitFor();
+  await page.getByRole("button", { name: "Değişiklikleri kaydet", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Değişiklikler kaydedildi" }).waitFor();
   await page.reload();
-  await page.getByLabel(/Internal clinic notes/).waitFor();
+  await page.getByLabel(/Klinik içi notlar/).waitFor();
   assert.match(
-    await page.getByLabel(/Internal clinic notes/).inputValue(),
+    await page.getByLabel(/Klinik içi notlar/).inputValue(),
     /Review in progress/,
   );
   await checkCaseFilter("new", false);
-  await checkCaseFilter("unanswered", true, "reviewing");
+  await checkCaseFilter("unanswered", true, "inceleniyor");
   await page.getByRole("link", { name: title, exact: true }).click();
   await page
-    .getByRole("button", { name: "Create proposal", exact: true })
+    .getByRole("button", { name: "Teklif oluştur", exact: true })
     .click();
-  await page.getByLabel("Price (TRY)", { exact: true }).fill("6700");
-  await page.getByLabel("Total planned visits", { exact: true }).fill("2");
+  await page.getByLabel("Fiyat (TRY)", { exact: true }).fill("6700");
+  await page.getByLabel("Planlanan toplam seans", { exact: true }).fill("2");
   await page
-    .getByLabel("Clinical notes & price inclusions")
+    .getByLabel("Klinik notlar ve fiyata dahil olanlar")
     .fill("Synthetic proposal for evaluation. Examination required.");
   await page.locator('.tooth-canvas[data-render-state="ready"]').waitFor();
   // The upper-left first molar in the default adult camera view.
@@ -231,7 +231,7 @@ const suffix = Date.now();
     position: { x: canvasBounds.width * 0.66, y: canvasBounds.height * 0.29 },
   });
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").inputValue(),
     "26",
   );
   await page.mouse.move(
@@ -246,195 +246,195 @@ const suffix = Date.now();
   );
   await page.mouse.up();
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").inputValue(),
     "26",
     "Rotating must not reassign a tooth",
   );
-  await page.getByRole("button", { name: "Reset view", exact: true }).click();
+  await page.getByRole("button", { name: "Görünümü sıfırla", exact: true }).click();
   assert.equal(
-    await page.getByRole("button", { name: /^Tooth \d+:/ }).count(),
+    await page.getByRole("button", { name: /^Diş \d+:/ }).count(),
     32,
   );
   await page
-    .getByRole("button", { name: "Child · 20 teeth", exact: true })
+    .getByRole("button", { name: "Çocuk · 20 diş", exact: true })
     .click();
   await page
-    .getByText("This tooth belongs to the adult view.", { exact: false })
+    .getByText("Bu diş yetişkin görünümüne ait.", { exact: false })
     .waitFor();
   assert.equal(
-    await page.getByRole("button", { name: /^Tooth \d+:/ }).count(),
+    await page.getByRole("button", { name: /^Diş \d+:/ }).count(),
     20,
   );
-  await page.getByRole("button", { name: /^Tooth 55:/ }).click();
+  await page.getByRole("button", { name: /^Diş 55:/ }).click();
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").inputValue(),
     "55",
   );
   await page
-    .getByRole("button", { name: "Add procedure", exact: true })
+    .getByRole("button", { name: "İşlem ekle", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Choose tooth for procedure 2 in 3D" })
+    .getByRole("button", { name: "2. işlem için dişi 3B görünümde seç" })
     .click();
   assert.equal(
-    await page.getByLabel("Choose procedure for tooth selection").inputValue(),
+    await page.getByLabel("Diş seçimi için işlem belirleyin").inputValue(),
     "1",
   );
-  await page.getByRole("button", { name: /^Tooth 36:/ }).focus();
+  await page.getByRole("button", { name: /^Diş 36:/ }).focus();
   await page.keyboard.press("Enter");
-  await page.getByLabel("Price (TRY)", { exact: true }).nth(1).fill("2100");
+  await page.getByLabel("Fiyat (TRY)", { exact: true }).nth(1).fill("2100");
   await page
-    .getByRole("button", { name: "Whole mouth · ALL", exact: true })
+    .getByRole("button", { name: "Tüm ağız · HEPSİ", exact: true })
     .click();
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(1).inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").nth(1).inputValue(),
     "ALL",
   );
-  await page.getByRole("button", { name: /^Tooth 36:/ }).click();
+  await page.getByRole("button", { name: /^Diş 36:/ }).click();
   await page
-    .getByRole("button", { name: "Add procedure", exact: true })
+    .getByRole("button", { name: "İşlem ekle", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Remove procedure 3", exact: true })
+    .getByRole("button", { name: "İşlem 3 sil", exact: true })
     .click();
   assert.equal(
-    await page.getByLabel("Choose procedure for tooth selection").inputValue(),
+    await page.getByLabel("Diş seçimi için işlem belirleyin").inputValue(),
     "1",
   );
   await page
-    .getByLabel("Choose procedure for tooth selection")
+    .getByLabel("Diş seçimi için işlem belirleyin")
     .selectOption("0");
   await page
     .getByRole("button", {
-      name: "Child · 20 teeth",
+      name: "Çocuk · 20 diş",
       exact: true,
       pressed: true,
     })
     .waitFor();
   assert.equal(
     await page
-      .getByRole("button", { name: "Child · 20 teeth", exact: true })
+      .getByRole("button", { name: "Çocuk · 20 diş", exact: true })
       .getAttribute("aria-pressed"),
     "true",
   );
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(0).inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").nth(0).inputValue(),
     "55",
   );
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(1).inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").nth(1).inputValue(),
     "36",
   );
   await page
-    .getByLabel("Proposal currency", { exact: true })
+    .getByLabel("Teklif para birimi", { exact: true })
     .selectOption("USD");
   assert.equal(
-    await page.getByLabel("Price (USD)", { exact: true }).first().inputValue(),
+    await page.getByLabel("Fiyat (USD)", { exact: true }).first().inputValue(),
     "6700",
   );
   await page
-    .getByLabel("Procedure", { exact: true })
+    .getByLabel("İşlem", { exact: true })
     .first()
     .selectOption("ROOT_CANAL_DOUBLE");
   await page
-    .getByLabel("Treatment urgency", { exact: true })
+    .getByLabel("Tedavi aciliyeti", { exact: true })
     .nth(0)
     .selectOption("soon");
   await page
-    .getByLabel("Treatment urgency", { exact: true })
+    .getByLabel("Tedavi aciliyeti", { exact: true })
     .nth(1)
     .selectOption("urgent");
   await page
-    .getByRole("button", { name: "Order by urgency", exact: true })
+    .getByRole("button", { name: "Aciliyete göre sırala", exact: true })
     .click();
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(0).inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").nth(0).inputValue(),
     "36",
   );
   assert.equal(
     await page
-      .getByLabel("Treatment urgency", { exact: true })
+      .getByLabel("Tedavi aciliyeti", { exact: true })
       .nth(0)
       .inputValue(),
     "urgent",
   );
-  await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Draft saved" }).waitFor();
-  await page.getByRole("button", { name: "Close dialog" }).click();
-  await checkCaseFilter("unanswered", true, "draft");
+  await page.getByRole("button", { name: "Taslağı kaydet", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Taslak kaydedildi" }).waitFor();
+  await page.getByRole("button", { name: "Pencereyi kapat" }).click();
+  await checkCaseFilter("unanswered", true, "taslak");
   await page.getByRole("link", { name: title, exact: true }).click();
   await page.waitForURL(base + `/clinic/cases/${c.id}`);
   await page.getByRole("heading", { name: title, exact: true }).waitFor();
   await page.reload();
   await page
-    .getByRole("button", { name: "Continue draft", exact: true })
+    .getByRole("button", { name: "Taslağa devam et", exact: true })
     .click();
   assert.equal(
-    await page.getByLabel("Price (USD)", { exact: true }).first().inputValue(),
+    await page.getByLabel("Fiyat (USD)", { exact: true }).first().inputValue(),
     "2100",
   );
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(0).inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").nth(0).inputValue(),
     "36",
   );
   assert.equal(
-    await page.getByLabel("Tooth · FDI notation").nth(1).inputValue(),
+    await page.getByLabel("Diş · FDI numaralandırması").nth(1).inputValue(),
     "55",
   );
   await page
-    .getByRole("button", { name: "Publish proposal", exact: true })
+    .getByRole("button", { name: "Teklifi yayımla", exact: true })
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await checkCaseFilter("unanswered", false);
-  await nav("Proposals & drafts");
-  await page.getByPlaceholder("Search proposals…").fill(title);
-  await page.getByRole("button", { name: "View", exact: true }).click();
+  await nav("Teklifler ve taslaklar");
+  await page.getByPlaceholder("Tekliflerde ara…").fill(title);
+  await page.getByRole("button", { name: "Görüntüle", exact: true }).click();
   const treatmentView = page.getByRole("region", {
-    name: "Proposed treatment teeth",
+    name: "Tedavi önerilen dişler",
   });
   await treatmentView
     .locator('.tooth-canvas[data-render-state="ready"]')
     .waitFor();
   assert.equal(
     await treatmentView
-      .getByRole("button", { name: /^Tooth 36:/ })
+      .getByRole("button", { name: /^Diş 36:/ })
       .getAttribute("class"),
     "assigned",
   );
   await treatmentView
-    .getByRole("button", { name: "Child · 20 teeth", exact: true })
+    .getByRole("button", { name: "Çocuk · 20 diş", exact: true })
     .click();
   assert.equal(
     await treatmentView
-      .getByRole("button", { name: /^Tooth 55:/ })
+      .getByRole("button", { name: /^Diş 55:/ })
       .getAttribute("class"),
     "assigned",
   );
-  await treatmentView.getByRole("button", { name: /^Tooth 54:/ }).click();
+  await treatmentView.getByRole("button", { name: /^Diş 54:/ }).click();
   await treatmentView
-    .getByText("Not included in this proposal", { exact: true })
+    .getByText("Bu teklife dahil değil", { exact: true })
     .waitFor();
   await page.screenshot({
     path: "tmp/panel-qa/active-proposal-teeth.png",
     fullPage: true,
     animations: "disabled",
   });
-  await page.getByRole("button", { name: "Close dialog" }).click();
-  await page.getByRole("button", { name: "Revise", exact: true }).click();
+  await page.getByRole("button", { name: "Pencereyi kapat" }).click();
+  await page.getByRole("button", { name: "Düzenle", exact: true }).click();
   assert.equal(
-    await page.getByLabel("Proposal currency", { exact: true }).inputValue(),
+    await page.getByLabel("Teklif para birimi", { exact: true }).inputValue(),
     "USD",
   );
   assert.equal(
     await page
-      .getByLabel("Treatment urgency", { exact: true })
+      .getByLabel("Tedavi aciliyeti", { exact: true })
       .nth(0)
       .inputValue(),
     "urgent",
   );
-  await page.getByLabel("Total planned visits", { exact: true }).fill("3");
+  await page.getByLabel("Planlanan toplam seans", { exact: true }).fill("3");
   await page
-    .getByRole("button", { name: "Publish revision", exact: true })
+    .getByRole("button", { name: "Yeni sürümü yayımla", exact: true })
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   let clinicAuth = JSON.parse(
@@ -454,42 +454,42 @@ const suffix = Date.now();
   );
   assert.equal(plans[0].plan.items[1].procedure_code, "ROOT_CANAL_DOUBLE");
   await call("/appointments", { proposal_id: plans[0].id }, patient);
-  await nav("Appointments");
-  await page.getByPlaceholder("Search requests…").fill(title);
-  await page.getByRole("button", { name: "Manage", exact: true }).click();
+  await nav("Randevular");
+  await page.getByPlaceholder("Taleplerde ara…").fill(title);
+  await page.getByRole("button", { name: "Yönet", exact: true }).click();
   await page
-    .getByLabel("Request status", { exact: true })
+    .getByLabel("Talep durumu", { exact: true })
     .selectOption("contacted");
   await page
-    .getByLabel("Internal coordination notes")
+    .getByLabel("İç koordinasyon notları")
     .fill("Contacted and coordinated a synthetic appointment.");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await page.getByRole("button", { name: "Değişiklikleri kaydet", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await page.getByRole("button", { name: "Manage", exact: true }).click();
+  await page.getByRole("button", { name: "Yönet", exact: true }).click();
   await page
-    .getByLabel("Request status", { exact: true })
+    .getByLabel("Talep durumu", { exact: true })
     .selectOption("confirmed");
-  await page.getByLabel(/Appointment date & time/).fill("2027-01-15T10:00");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await page.getByLabel(/Randevu tarihi ve saati/).fill("2027-01-15T10:00");
+  await page.getByRole("button", { name: "Değişiklikleri kaydet", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await nav("Team members");
-  await page.getByRole("button", { name: "Add team member" }).click();
-  await page.getByLabel("Full name").fill("QA Coordinator");
+  await nav("Ekip üyeleri");
+  await page.getByRole("button", { name: "Ekip üyesi ekle" }).click();
+  await page.getByLabel("Ad soyad").fill("QA Coordinator");
   await page
-    .getByLabel("Email", { exact: true })
+    .getByLabel("E-posta", { exact: true })
     .fill(`qa-${suffix}@example.org`);
-  await page.getByLabel(/Initial password/).fill("Local-QA-password-123!");
-  await page.getByRole("button", { name: "Create account" }).click();
+  await page.getByLabel(/İlk şifre/).fill("Local-QA-password-123!");
+  await page.getByRole("button", { name: "Hesap oluştur" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await page.getByPlaceholder("Search accounts…").fill(`qa-${suffix}`);
-  await page.getByRole("button", { name: "Manage", exact: true }).click();
-  await page.getByLabel("Account is active").uncheck();
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await page.getByPlaceholder("Hesaplarda ara…").fill(`qa-${suffix}`);
+  await page.getByRole("button", { name: "Yönet", exact: true }).click();
+  await page.getByLabel("Hesap aktif").uncheck();
+  await page.getByRole("button", { name: "Değişiklikleri kaydet", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   for (const name of [
-    "Clinic profile",
-    "Subscription",
-    "Activity & response",
+    "Klinik profili",
+    "Abonelik",
+    "Etkinlik ve yanıtlar",
   ]) {
     await nav(name);
     await page.locator("h1").waitFor();
@@ -516,23 +516,23 @@ const suffix = Date.now();
   fallbackPage.on("pageerror", (e) => errors.push(e.message));
   await fallbackPage.goto(base + `/clinic/cases/${c.id}`);
   await fallbackPage
-    .getByRole("button", { name: "Revise proposal", exact: true })
+    .getByRole("button", { name: "Teklifi düzenle", exact: true })
     .click();
   await fallbackPage
-    .getByText("3D view unavailable. Choose a numbered tooth below.", {
+    .getByText("3B görünüm kullanılamıyor. Aşağıdan numaralı bir diş seçin.", {
       exact: true,
     })
     .waitFor();
   await fallbackPage
-    .getByRole("button", { name: "Child · 20 teeth", exact: true })
+    .getByRole("button", { name: "Çocuk · 20 diş", exact: true })
     .click();
-  await fallbackPage.getByRole("button", { name: /^Tooth 75:/ }).click();
+  await fallbackPage.getByRole("button", { name: /^Diş 75:/ }).click();
   assert.equal(
-    await fallbackPage.getByLabel("Tooth · FDI notation").first().inputValue(),
+    await fallbackPage.getByLabel("Diş · FDI numaralandırması").first().inputValue(),
     "75",
   );
   await fallbackContext.close(); // Unsaved fallback interaction must not change the published plan.
-  await nav("Overview");
+  await nav("Genel bakış");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: "tmp/panel-qa/clinic-mobile.png",
@@ -546,107 +546,107 @@ const suffix = Date.now();
     false,
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
-  await page.getByRole("button", { name: "Admin portal", exact: true }).click();
+  await page.getByRole("button", { name: "Çıkış yap", exact: true }).click();
+  await page.getByRole("button", { name: "Yönetim portalı", exact: true }).click();
   await page
-    .getByRole("button", { name: "Fill admin evaluation credentials" })
+    .getByRole("button", { name: "Yönetim demo bilgilerini doldur" })
     .click();
-  await page.getByRole("button", { name: "Sign in to workspace" }).click();
+  await page.getByRole("button", { name: "Çalışma alanına giriş yap" }).click();
   await page
-    .getByRole("heading", { name: "A clear view of your platform." })
+    .getByRole("heading", { name: "Platformunuza genel bakış." })
     .waitFor();
   await page.screenshot({
     path: "tmp/panel-qa/admin-overview.png",
     fullPage: true,
     animations: "disabled",
   });
-  await nav("Clinics");
-  await page.getByRole("button", { name: "Add clinic", exact: true }).click();
+  await nav("Klinikler");
+  await page.getByRole("button", { name: "Klinik ekle", exact: true }).click();
   await page
-    .getByLabel("Clinic name", { exact: true })
+    .getByLabel("Klinik adı", { exact: true })
     .fill(`QA Dental ${suffix}`);
-  await page.getByLabel("District", { exact: true }).fill("Kadıköy");
+  await page.getByLabel("İlçe", { exact: true }).fill("Kadıköy");
   await page
-    .getByLabel("Address", { exact: true })
+    .getByLabel("Adres", { exact: true })
     .fill("Synthetic clinic address");
   await page
-    .getByLabel("Contact email", { exact: true })
+    .getByLabel("İletişim e-postası", { exact: true })
     .fill(`qa-clinic-${suffix}@example.org`);
-  await page.getByRole("button", { name: "Create clinic for review" }).click();
+  await page.getByRole("button", { name: "İncelenmek üzere klinik oluştur" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page
-    .getByPlaceholder("Search clinics or regions…")
+    .getByPlaceholder("Klinik veya bölge ara…")
     .fill(`QA Dental ${suffix}`);
-  await page.getByRole("button", { name: "Review clinic" }).click();
+  await page.getByRole("button", { name: "Kliniği incele" }).click();
   await page
-    .getByLabel("Account status", { exact: true })
+    .getByLabel("Hesap durumu", { exact: true })
     .selectOption("active");
   await page
-    .getByLabel(/Verification \/ decision notes/)
+    .getByLabel(/Doğrulama \/ karar notları/)
     .fill("Synthetic evaluation approval");
-  await page.getByRole("button", { name: "Save clinic decision" }).click();
+  await page.getByRole("button", { name: "Klinik kararını kaydet" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await page.getByRole("button", { name: "Review clinic" }).click();
+  await page.getByRole("button", { name: "Kliniği incele" }).click();
   await page
-    .getByText("Google Maps & social profiles", { exact: true })
+    .getByText("Google Haritalar ve sosyal medya profilleri", { exact: true })
     .click();
   await page
     .getByLabel("Google Place ID", { exact: true })
     .fill(`ChIJSyntheticQA${suffix}`);
   await page
-    .getByLabel("Instagram profile", { exact: true })
+    .getByLabel("Instagram profili", { exact: true })
     .fill("https://www.instagram.com/dentpro_synthetic_qa/");
-  await page.getByRole("button", { name: "Save discovery profile" }).click();
+  await page.getByRole("button", { name: "Keşif profilini kaydet" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await nav("Proposal oversight");
-  await page.getByPlaceholder("Search clinic or case…").fill(title);
+  await nav("Teklif denetimi");
+  await page.getByPlaceholder("Klinik veya vaka ara…").fill(title);
   await page
-    .getByRole("button", { name: "Review", exact: true })
+    .getByRole("button", { name: "İncele", exact: true })
     .first()
     .click();
-  await page.getByLabel("Review decision").selectOption("approved");
+  await page.getByLabel("İnceleme kararı").selectOption("approved");
   await page
-    .getByLabel("Review notes", { exact: true })
+    .getByLabel("İnceleme notları", { exact: true })
     .fill("Source and explanation reviewed for synthetic QA.");
-  await page.getByRole("button", { name: "Save review" }).click();
+  await page.getByRole("button", { name: "İncelemeyi kaydet" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await nav("Subscriptions");
+  await nav("Abonelikler");
   const billingRow = page
     .getByRole("row")
     .filter({ hasText: `QA Dental ${suffix}` });
-  await billingRow.getByRole("button", { name: "Manage", exact: true }).click();
-  await page.getByLabel("Subscription status").selectOption("active");
-  await page.getByLabel("Monthly fee (TRY)").fill("1900");
-  await page.getByLabel("Renewal date").fill("2027-01-01");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await billingRow.getByRole("button", { name: "Yönet", exact: true }).click();
+  await page.getByLabel("Abonelik durumu").selectOption("active");
+  await page.getByLabel("Aylık ücret (TRY)").fill("1900");
+  await page.getByLabel("Yenileme tarihi").fill("2027-01-01");
+  await page.getByRole("button", { name: "Değişiklikleri kaydet", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await nav("Procedure glossary");
-  await page.getByRole("button", { name: "Edit & review" }).first().click();
+  await nav("İşlem sözlüğü");
+  await page.getByRole("button", { name: "Düzenle ve incele" }).first().click();
   assert(
-    (await page.getByLabel("Plain-language explanation").inputValue()).length >
+    (await page.getByLabel("Sade dilli açıklama").inputValue()).length >
       20,
   );
-  await page.getByRole("button", { name: "Close dialog" }).click();
-  await nav("Explanation jobs");
+  await page.getByRole("button", { name: "Pencereyi kapat" }).click();
+  await nav("Açıklama işleri");
   await page
-    .getByRole("heading", { name: "Explanations & jobs", exact: true })
+    .getByRole("heading", { name: "Açıklamalar ve işler", exact: true })
     .waitFor();
-  await nav("Settings");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Changes saved" }).waitFor();
-  await nav("Audit trail");
+  await nav("Ayarlar");
+  await page.getByRole("button", { name: "Değişiklikleri kaydet", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Değişiklikler kaydedildi" }).waitFor();
+  await nav("Denetim kaydı");
   await page
-    .getByPlaceholder("Search actor, action, or entity…")
+    .getByPlaceholder("Kullanıcı, işlem veya varlık ara…")
     .fill("subscription.updated");
   assert(
     (await page
-      .getByRole("cell", { name: "subscription.updated", exact: true })
+      .getByRole("cell", { name: "Abonelik güncellendi", exact: true })
       .count()) > 0,
   );
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export filtered events" }).click();
+  await page.getByRole("button", { name: "Filtrelenmiş olayları dışa aktar" }).click();
   assert.match((await download).suggestedFilename(), /audit.csv/);
-  for (const name of ["Platform cases", "Appointments", "Accounts & access"]) {
+  for (const name of ["Platform vakaları", "Randevular", "Hesaplar ve erişim"]) {
     await nav(name);
     await page.locator("h1").waitFor();
     assert.equal(await page.locator(".alert.error").count(), 0);
@@ -685,7 +685,7 @@ const suffix = Date.now();
     headers: { Authorization: `Bearer ${clinicAuth.token}` },
   });
   assert.equal(denied.status(), 401); // logout revoked the clinic session
-  await nav("Overview");
+  await nav("Genel bakış");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: "tmp/panel-qa/admin-mobile.png",

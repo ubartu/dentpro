@@ -26,6 +26,7 @@ import {
   money,
   date,
   datetime,
+  label,
   csv,
 } from "../types";
 import {
@@ -83,43 +84,43 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="PLATFORM OPERATIONS"
-            title="A clear view of your platform."
-            description="Monitor clinic participation, case flow, and the quality of every handoff."
+            eyebrow="PLATFORM İŞLEMLERİ"
+            title="Platformunuza genel bakış."
+            description="Klinik katılımını, vaka akışını ve süreç adımlarını izleyin."
           >
             <Link className="primary" href="/admin/clinics">
-              Manage clinics
+              Klinikleri yönet
               <ArrowRight size={16} />
             </Link>
           </Heading>
           <div className="stats">
             <Stat
-              label="Active clinics"
+              label="Aktif klinikler"
               value={clinics.filter((c) => c.status === "active").length}
-              note={`${clinics.filter((c) => c.status === "pending").length} waiting for approval`}
+              note={`${clinics.filter((c) => c.status === "pending").length} onay bekliyor`}
               href="/admin/clinics"
             />
             <Stat
-              label="Shared cases"
+              label="Paylaşılan vakalar"
               value={data.cases.filter((c) => c.status === "shared").length}
-              note="Across participating clinics"
+              note="Katılımcı kliniklerde"
               href="/admin/cases"
             />
             <Stat
-              label="Proposals to review"
+              label="İncelenecek teklifler"
               value={
                 data.proposals.filter(
                   (p) =>
                     p.moderation === "unreviewed" && p.status === "submitted",
                 ).length
               }
-              note="Current, unreviewed submissions"
+              note="Güncel, incelenmemiş gönderimler"
               href="/admin/proposals"
             />
             <Stat
-              label="Explanation queue"
+              label="Açıklama kuyruğu"
               value={jobs.filter((j) => j.status === "pending").length}
-              note={`${jobs.filter((j) => j.status === "failed").length} failed jobs`}
+              note={`${jobs.filter((j) => j.status === "failed").length} başarısız iş`}
               href="/admin/interpreter"
             />
           </div>
@@ -127,8 +128,8 @@ export default function AdminScreen({
             <section className="panel">
               <div className="panel-heading unpadded">
                 <div>
-                  <h2>Needs your attention</h2>
-                  <p>Approval and quality work across the platform.</p>
+                  <h2>Dikkat gerektirenler</h2>
+                  <p>Platform genelinde onay ve kalite işlemleri.</p>
                 </div>
                 <ShieldCheck size={20} />
               </div>
@@ -137,8 +138,11 @@ export default function AdminScreen({
                   <Building2 size={19} />
                 </span>
                 <div>
-                  <strong>Clinic applications</strong>
-                  <small>Review clinics before they can access cases.</small>
+                  <strong>Klinik başvuruları</strong>
+                  <small>
+                    Vakaları görmelerine izin vermeden önce klinikleri
+                    inceleyin.
+                  </small>
                 </div>
                 <b>{clinics.filter((c) => c.status === "pending").length}</b>
                 <ArrowRight size={16} />
@@ -148,9 +152,9 @@ export default function AdminScreen({
                   <FileText size={19} />
                 </span>
                 <div>
-                  <strong>Flagged proposals</strong>
+                  <strong>İşaretlenen teklifler</strong>
                   <small>
-                    Review source plans and resolve quality concerns.
+                    Kaynak planları inceleyip kalite sorunlarını giderin.
                   </small>
                 </div>
                 <b>
@@ -166,8 +170,8 @@ export default function AdminScreen({
                   <BookOpen size={19} />
                 </span>
                 <div>
-                  <strong>Glossary review</strong>
-                  <small>Entries without a recorded dentist review.</small>
+                  <strong>Sözlük incelemesi</strong>
+                  <small>Diş hekimi incelemesi kaydedilmemiş girdiler.</small>
                 </div>
                 <b>{glossaries.filter((g) => !g.reviewed).length}</b>
                 <ArrowRight size={16} />
@@ -177,56 +181,54 @@ export default function AdminScreen({
               <span className="square-icon">
                 <Activity size={23} />
               </span>
-              <h2>Interpreter operations</h2>
+              <h2>Açıklama işlemleri</h2>
               <div className="mini-summary">
-                <span>Worker processing</span>
+                <span>İşleyici durumu</span>
                 <Badge>
                   {settings.explanations_enabled ? "enabled" : "paused"}
                 </Badge>
               </div>
               <div className="mini-summary">
-                <span>Provider</span>
+                <span>Sağlayıcı</span>
                 <strong>
                   {telemetry.configured
                     ? `OpenAI · ${telemetry.model}`
-                    : "Template"}
+                    : "Şablon"}
                 </strong>
               </div>
               <div className="mini-summary">
-                <span>Stored explanations</span>
+                <span>Kayıtlı açıklamalar</span>
                 <strong>{telemetry.explanations}</strong>
               </div>
               <div className="mini-summary">
-                <span>Provider usage</span>
+                <span>Sağlayıcı kullanımı</span>
                 <strong>
-                  {telemetry.input_tokens} input / {telemetry.output_tokens}{" "}
-                  output tokens
+                  {telemetry.input_tokens} giriş / {telemetry.output_tokens}{" "}
+                  çıkış tokeni
                 </strong>
               </div>
               <Link className="secondary" href="/admin/interpreter">
-                Inspect queue
+                Kuyruğu incele
                 <ArrowRight size={15} />
               </Link>
             </section>
           </div>
           <div className="dashboard-grid equal">
             <section className="panel">
-              <h2>Platform proposal activity</h2>
-              <p className="muted">
-                Submissions and revisions over the last 7 days.
-              </p>
+              <h2>Platform teklif etkinliği</h2>
+              <p className="muted">Son 7 gündeki gönderimler ve sürümler.</p>
               <ActivityChart proposals={data.proposals} />
             </section>
             <section className="panel">
               <div className="panel-heading unpadded">
-                <h2>Recent audit events</h2>
-                <RowLink href="/admin/audit">View all</RowLink>
+                <h2>Son denetim olayları</h2>
+                <RowLink href="/admin/audit">Tümünü gör</RowLink>
               </div>
               {audit.slice(0, 5).map((a) => (
                 <div className="activity-row" key={a.id}>
                   <span className="event-dot" />
                   <div>
-                    <strong>{a.action}</strong>
+                    <strong>{label(a.action)}</strong>
                     <small>
                       {accounts.find((u) => u.id === a.actor)?.name || a.actor}{" "}
                       · {datetime(a.created_at)}
@@ -249,46 +251,46 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="NETWORK MANAGEMENT"
-            title="Clinics"
-            description="Onboard, approve, and manage every clinic on the platform."
+            eyebrow="AĞ YÖNETİMİ"
+            title="Klinikler"
+            description="Platformdaki klinikleri ekleyin, onaylayın ve yönetin."
           >
             <button className="primary" onClick={() => setAdding(true)}>
               <Plus size={16} />
-              Add clinic
+              Klinik ekle
             </button>
           </Heading>
           <div className="toolbar">
             <SearchBox
               value={search}
               set={setSearch}
-              placeholder="Search clinics or regions…"
+              placeholder="Klinik veya bölge ara…"
             />
             <select
-              aria-label="Clinic status"
+              aria-label="Klinik durumu"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
               {["all", "pending", "active", "suspended", "rejected"].map(
                 (s) => (
                   <option key={s} value={s}>
-                    {s === "all" ? "All statuses" : s}
+                    {s === "all" ? "Tüm durumlar" : label(s)}
                   </option>
                 ),
               )}
             </select>
-            <span className="result-count">{rows.length} clinics</span>
+            <span className="result-count">{rows.length} klinik</span>
           </div>
           <div className="panel flush">
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Clinic</th>
-                    <th>Location</th>
-                    <th>Account status</th>
-                    <th>Subscription</th>
-                    <th>Cases</th>
+                    <th>Klinik</th>
+                    <th>Konum</th>
+                    <th>Hesap durumu</th>
+                    <th>Abonelik</th>
+                    <th>Vakalar</th>
                     <th />
                   </tr>
                 </thead>
@@ -301,7 +303,7 @@ export default function AdminScreen({
                       </td>
                       <td>
                         {c.district}
-                        <small>{c.region}</small>
+                        <small>{label(c.region)}</small>
                       </td>
                       <td>
                         <Badge>{c.status}</Badge>
@@ -320,7 +322,7 @@ export default function AdminScreen({
                           className="text-link"
                           onClick={() => setClinic(c)}
                         >
-                          Review clinic
+                          Kliniği incele
                           <ArrowUpRight size={14} />
                         </button>
                       </td>
@@ -331,8 +333,8 @@ export default function AdminScreen({
             </div>
             {!rows.length && (
               <Empty
-                title="No matching clinics"
-                description="Change your filters or add a clinic."
+                title="Eşleşen klinik yok"
+                description="Filtreleri değiştirin veya klinik ekleyin."
               />
             )}
           </div>
@@ -343,19 +345,19 @@ export default function AdminScreen({
       if (!c)
         return (
           <Empty
-            title="Case not found"
-            description="This case is not available."
+            title="Vaka bulunamadı"
+            description="Bu vaka kullanılamıyor."
           />
         );
       return (
         <>
           <Link className="back-link" href="/admin/cases">
-            ← All platform cases
+            ← Tüm platform vakaları
           </Link>
           <Heading
             eyebrow={`${c.reference} · PLATFORM OVERSIGHT`}
             title={c.title}
-            description={`Created ${date(c.created_at)} · ${c.region}`}
+            description={`${date(c.created_at)} tarihinde oluşturuldu · ${label(c.region)}`}
           >
             <button
               className="secondary"
@@ -363,14 +365,14 @@ export default function AdminScreen({
                 setCaseAction(c.status === "archived" ? "reopen" : "archive")
               }
             >
-              {c.status === "archived" ? "Reopen case" : "Archive case"}
+              {c.status === "archived" ? "Vakayı yeniden aç" : "Vakayı arşivle"}
             </button>
           </Heading>
           <div className="case-detail-grid">
             <div>
               <ImageViewer c={c} auth={auth} />
               <section className="panel">
-                <h2>Clinic proposals</h2>
+                <h2>Klinik teklifleri</h2>
                 {data.proposals
                   .filter((p) => p.case_id === c.id)
                   .map((p) => (
@@ -379,7 +381,7 @@ export default function AdminScreen({
                       <div>
                         <strong>{p.clinic_name}</strong>
                         <small>
-                          Version {p.version} ·{" "}
+                          Sürüm {p.version} ·{" "}
                           {money(p.total_minor, p.plan.currency)}
                         </small>
                       </div>
@@ -388,28 +390,28 @@ export default function AdminScreen({
                         className="text-link"
                         onClick={() => setProposal(p)}
                       >
-                        Inspect
+                        İncele
                       </button>
                     </div>
                   ))}
                 {!c.proposal_count && (
                   <p className="muted">
-                    No proposals have been submitted for this case.
+                    Bu vaka için henüz teklif gönderilmedi.
                   </p>
                 )}
               </section>
             </div>
             <section className="panel fit">
-              <h2>Consent & routing</h2>
+              <h2>Onay ve yönlendirme</h2>
               <div className="mini-summary">
-                <span>Case status</span>
+                <span>Vaka durumu</span>
                 <Badge>{c.status}</Badge>
               </div>
               <div className="mini-summary">
-                <span>Sharing consent</span>
+                <span>Paylaşım onayı</span>
                 <Badge>{c.consent_recorded ? "recorded" : "missing"}</Badge>
               </div>
-              <h4>Patient-selected clinics</h4>
+              <h4>Hastanın seçtiği klinikler</h4>
               {c.recipients.map((id) => (
                 <div className="recipient" key={id}>
                   <Building2 size={16} />
@@ -417,21 +419,23 @@ export default function AdminScreen({
                     <strong>
                       {clinics.find((x) => x.id === id)?.name || id}
                     </strong>
-                    <small>{clinics.find((x) => x.id === id)?.status}</small>
+                    <small>
+                      {label(clinics.find((x) => x.id === id)?.status || "")}
+                    </small>
                   </div>
                 </div>
               ))}
               <Form
-                label="Redispatch to selected clinic"
+                label="Seçilen kliniğe yeniden gönder"
                 onSave={(f) =>
                   act(`/admin/cases/${c.id}/redispatch`, {
                     clinic_ids: [f.get("clinic_id")],
                   })
                 }
               >
-                <Field label="Existing recipient">
+                <Field label="Mevcut alıcı">
                   <select name="clinic_id" required>
-                    <option value="">Select clinic</option>
+                    <option value="">Klinik seç</option>
                     {c.recipients.map((id) => (
                       <option key={id} value={id}>
                         {clinics.find((x) => x.id === id)?.name || id}
@@ -440,9 +444,9 @@ export default function AdminScreen({
                   </select>
                 </Field>
                 <p className="muted">
-                  Redispatch resets the clinic review to New. Adding a new
-                  recipient requires fresh patient consent through the mobile
-                  API.
+                  Yeniden gönderme, klinik inceleme durumunu Yeni olarak
+                  sıfırlar. Yeni alıcı eklemek için mobil API üzerinden hastanın
+                  yeniden onay vermesi gerekir.
                 </p>
               </Form>
             </section>
@@ -461,28 +465,28 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="CASE OVERSIGHT"
-            title="Platform cases"
-            description="Inspect case routing, consent, clinic responses, and archived records."
+            eyebrow="VAKA DENETİMİ"
+            title="Platform vakaları"
+            description="Vaka yönlendirmesini, onayı, klinik yanıtlarını ve arşiv kayıtlarını inceleyin."
           />
           <div className="toolbar">
             <SearchBox
               value={search}
               set={setSearch}
-              placeholder="Search platform cases…"
+              placeholder="Platform vakalarında ara…"
             />
             <select
-              aria-label="Case status"
+              aria-label="Vaka durumu"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
               {["all", "draft", "shared", "archived"].map((s) => (
                 <option key={s} value={s}>
-                  {s === "all" ? "All statuses" : s}
+                  {s === "all" ? "Tüm durumlar" : label(s)}
                 </option>
               ))}
             </select>
-            <span className="result-count">{rows.length} cases</span>
+            <span className="result-count">{rows.length} vaka</span>
           </div>
           <section className="panel flush">
             <CaseTable cases={rows} base="/admin" />
@@ -501,24 +505,24 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="QUALITY & SOURCE REVIEW"
-            title="Proposal oversight"
-            description="Inspect clinic-authored plans and their separate explanations. Flagged plans are withheld from patient results."
+            eyebrow="KALİTE VE KAYNAK İNCELEMESİ"
+            title="Teklif denetimi"
+            description="Kliniklerin hazırladığı planları ve ayrı açıklamalarını inceleyin. İşaretlenen planlar hasta sonuçlarında gösterilmez."
           />
           <div className="toolbar">
             <SearchBox
               value={search}
               set={setSearch}
-              placeholder="Search clinic or case…"
+              placeholder="Klinik veya vaka ara…"
             />
             <select
-              aria-label="Moderation status"
+              aria-label="Denetim durumu"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
               {["all", "unreviewed", "approved", "flagged"].map((s) => (
                 <option key={s} value={s}>
-                  {s === "all" ? "All review statuses" : s}
+                  {s === "all" ? "Tüm inceleme durumları" : label(s)}
                 </option>
               ))}
             </select>
@@ -528,11 +532,11 @@ export default function AdminScreen({
               <table>
                 <thead>
                   <tr>
-                    <th>Clinic / case</th>
-                    <th>Version</th>
-                    <th>Total</th>
-                    <th>Lifecycle</th>
-                    <th>Review</th>
+                    <th>Klinik / vaka</th>
+                    <th>Sürüm</th>
+                    <th>Toplam</th>
+                    <th>Yaşam döngüsü</th>
+                    <th>İncele</th>
                     <th />
                   </tr>
                 </thead>
@@ -556,7 +560,7 @@ export default function AdminScreen({
                           className="text-link"
                           onClick={() => setProposal(p)}
                         >
-                          Review
+                          İncele
                           <ArrowUpRight size={14} />
                         </button>
                       </td>
@@ -567,8 +571,8 @@ export default function AdminScreen({
             </div>
             {!rows.length && (
               <Empty
-                title="No proposals match"
-                description="Try a different review filter."
+                title="Eşleşen teklif yok"
+                description="Başka bir inceleme filtresi deneyin."
               />
             )}
           </div>
@@ -579,9 +583,9 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="PLATFORM COORDINATION"
-            title="Appointment requests"
-            description="Oversee callback and appointment progress across all clinics."
+            eyebrow="PLATFORM KOORDİNASYONU"
+            title="Randevu talepleri"
+            description="Tüm kliniklerdeki geri arama ve randevu sürecini izleyin."
           />
           <AppointmentsPanel
             appointments={data.appointments}
@@ -594,9 +598,9 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="IDENTITY & ACCESS"
-            title="Accounts"
-            description="Create accounts, control access, and revoke sessions through password resets or deactivation."
+            eyebrow="KİMLİK VE ERİŞİM"
+            title="Hesaplar"
+            description="Hesap oluşturun, erişimi yönetin ve şifre sıfırlama ya da devre dışı bırakmayla oturumları sonlandırın."
           />
           <MembersPanel
             accounts={accounts}
@@ -611,36 +615,36 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="CLINIC SAAS"
-            title="Subscriptions"
-            description="Maintain clinic subscription records, fees, and renewal dates. Payment collection is not connected."
+            eyebrow="KLİNİK HİZMETİ"
+            title="Abonelikler"
+            description="Klinik abonelik kayıtlarını, ücretlerini ve yenileme tarihlerini yönetin. Ödeme tahsilatı bağlı değildir."
           />
           <div className="stats">
             <Stat
-              label="Active subscriptions"
+              label="Aktif abonelikler"
               value={clinics.filter((c) => c.subscription === "active").length}
-              note="Administratively active"
+              note="Yönetimsel olarak aktif"
             />
             <Stat
-              label="Monthly contracted fees"
+              label="Aylık sözleşme ücretleri"
               value={money(
                 clinics
                   .filter((c) => c.subscription === "active")
                   .reduce((s, c) => s + c.monthly_fee_minor, 0),
               )}
-              note="Not collected revenue"
+              note="Tahsil edilmiş gelir değildir"
             />
             <Stat
-              label="Trial clinics"
+              label="Denemedeki klinikler"
               value={clinics.filter((c) => c.subscription === "trial").length}
-              note="Currently evaluating"
+              note="Şu anda denemede"
             />
             <Stat
-              label="Past due"
+              label="Vadesi geçenler"
               value={
                 clinics.filter((c) => c.subscription === "past_due").length
               }
-              note="Follow-up required"
+              note="Takip gerekli"
             />
           </div>
           <div className="panel flush">
@@ -648,10 +652,10 @@ export default function AdminScreen({
               <table>
                 <thead>
                   <tr>
-                    <th>Clinic</th>
-                    <th>Subscription</th>
-                    <th>Monthly fee</th>
-                    <th>Renewal</th>
+                    <th>Klinik</th>
+                    <th>Abonelik</th>
+                    <th>Aylık ücret</th>
+                    <th>Yenileme</th>
                     <th />
                   </tr>
                 </thead>
@@ -667,16 +671,14 @@ export default function AdminScreen({
                       </td>
                       <td>{money(c.monthly_fee_minor)}</td>
                       <td>
-                        {c.renewal_date
-                          ? date(c.renewal_date)
-                          : "Not scheduled"}
+                        {c.renewal_date ? date(c.renewal_date) : "Planlanmadı"}
                       </td>
                       <td>
                         <button
                           className="text-link"
                           onClick={() => setBilling(c)}
                         >
-                          Manage
+                          Yönet
                           <ArrowUpRight size={14} />
                         </button>
                       </td>
@@ -699,70 +701,70 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="INTERPRETER OPERATIONS"
-            title="Explanations & jobs"
-            description="Inspect durable jobs, retry failures, and regenerate against the current glossary version."
+            eyebrow="AÇIKLAMA İŞLEMLERİ"
+            title="Açıklamalar ve işler"
+            description="Kalıcı işleri inceleyin, başarısız olanları yeniden deneyin ve güncel sözlük sürümüyle yeniden oluşturun."
           />
           <div className="stats">
             <Stat
-              label="Stored explanations"
+              label="Kayıtlı açıklamalar"
               value={telemetry.explanations}
-              note="Immutable cached outputs"
+              note="Değiştirilemeyen kayıtlı çıktılar"
             />
             <Stat
-              label="Pending"
+              label="Bekliyor"
               value={jobs.filter((j) => j.status === "pending").length}
               note={
                 settings.explanations_enabled
-                  ? "Worker processing is enabled"
-                  : "Processing paused in settings"
+                  ? "İşleyici etkin"
+                  : "İşleme ayarlardan duraklatıldı"
               }
             />
             <Stat
-              label="Failed"
+              label="Başarısız"
               value={jobs.filter((j) => j.status === "failed").length}
-              note="Stopped after bounded retries"
+              note="Sınırlı deneme sonrasında durduruldu"
             />
             <Stat
-              label="Gateway"
-              value={telemetry.configured ? "OpenAI ready" : "Template only"}
+              label="Ağ geçidi"
+              value={telemetry.configured ? "OpenAI hazır" : "Yalnızca şablon"}
               note={
                 telemetry.configured
                   ? telemetry.model
-                  : "Set server-side provider and key to enable AI"
+                  : "Yapay zekâyı etkinleştirmek için sunucuda sağlayıcı ve anahtar ayarlayın"
               }
             />
           </div>
           <div className="notice">
             <ShieldCheck size={20} />
             <p>
-              Current provider:{" "}
+              Geçerli sağlayıcı:{" "}
               <strong>
                 {telemetry.configured
                   ? `OpenAI ${telemetry.model}`
-                  : "template interpreter"}
+                  : "şablon açıklayıcı"}
               </strong>
-              . The gateway sends only structured clinic plan fields and a
-              template summary; X-rays, patient identifiers, contact details,
-              and clinical notes stay outside its payload. Invalid or
-              unavailable AI output falls back to the template. Cached versions
-              are not regenerated on page views.
+              . Ağ geçidi yalnızca yapılandırılmış klinik planı alanlarını ve
+              şablon özetini gönderir; röntgenler, hasta kimlikleri, iletişim
+              bilgileri ve klinik notlar gönderilmez. Geçersiz veya
+              kullanılamayan yapay zekâ çıktısında şablon kullanılır. Kayıtlı
+              sürümler sayfa görüntülendiğinde yeniden oluşturulmaz.
             </p>
           </div>
           <div className="toolbar">
             <SearchBox
               value={search}
               set={setSearch}
-              placeholder="Search job or proposal ID…"
+              placeholder="İş veya teklif kimliği ara…"
             />
             <select
-              aria-label="Job status"
+              aria-label="İş durumu"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
               {["all", "pending", "completed", "failed"].map((s) => (
                 <option key={s} value={s}>
-                  {s === "all" ? "All jobs" : s}
+                  {s === "all" ? "Tüm işler" : label(s)}
                 </option>
               ))}
             </select>
@@ -772,11 +774,11 @@ export default function AdminScreen({
               <table>
                 <thead>
                   <tr>
-                    <th>Job / proposal</th>
-                    <th>Status</th>
-                    <th>Gateway / output</th>
-                    <th>Attempts</th>
-                    <th>Last update</th>
+                    <th>İş / teklif</th>
+                    <th>Durum</th>
+                    <th>Ağ geçidi / çıktı</th>
+                    <th>Denemeler</th>
+                    <th>Son güncelleme</th>
                     <th />
                   </tr>
                 </thead>
@@ -788,7 +790,7 @@ export default function AdminScreen({
                     return (
                       <tr key={j.key}>
                         <td>
-                          <strong>{p?.clinic_name || "Clinic proposal"}</strong>
+                          <strong>{p?.clinic_name || "Klinik teklifi"}</strong>
                           <small>{p?.case_title || j.proposal_id}</small>
                           <code>{j.key.slice(0, 16)}</code>
                           {j.error && (
@@ -800,12 +802,10 @@ export default function AdminScreen({
                         </td>
                         <td>
                           <strong>
-                            {j.provider === "openai" ? "OpenAI" : "Template"}
+                            {j.provider === "openai" ? "OpenAI" : "Şablon"}
                           </strong>
                           <small>{j.model}</small>
-                          {j.output_mode && (
-                            <Badge>{j.output_mode.replaceAll("_", " ")}</Badge>
-                          )}
+                          {j.output_mode && <Badge>{j.output_mode}</Badge>}
                         </td>
                         <td>{j.attempts}</td>
                         <td>{datetime(j.updated_at)}</td>
@@ -820,8 +820,8 @@ export default function AdminScreen({
                           >
                             <RefreshCw size={14} />
                             {j.status === "failed"
-                              ? "Retry"
-                              : "Recheck version"}
+                              ? "Yeniden dene"
+                              : "Sürümü yeniden kontrol et"}
                           </button>
                         </td>
                       </tr>
@@ -832,8 +832,8 @@ export default function AdminScreen({
             </div>
             {!rows.length && (
               <Empty
-                title="No matching jobs"
-                description="New proposals are queued after publication."
+                title="Eşleşen iş yok"
+                description="Yeni teklifler yayımlandıktan sonra kuyruğa alınır."
               />
             )}
           </div>
@@ -844,16 +844,16 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="SOURCE-BOUND EXPLANATIONS"
-            title="Procedure glossary"
-            description="Maintain template explanations and record dentist review. Changes create a new version for future jobs."
+            eyebrow="KAYNAĞA BAĞLI AÇIKLAMALAR"
+            title="İşlem sözlüğü"
+            description="Şablon açıklamaları yönetin ve diş hekimi incelemesini kaydedin. Değişiklikler sonraki işler için yeni sürüm oluşturur."
           />
           <div className="notice">
             <BookOpen size={21} />
             <p>
-              Clinical wording must be reviewed by a dentist. Updating an entry
-              does not rewrite stored explanations; use the job controls to
-              generate a new version for an existing proposal.
+              Klinik ifadeler diş hekimi tarafından incelenmelidir. Bir girdiyi
+              güncellemek kayıtlı açıklamaları değiştirmez; mevcut teklif için
+              yeni sürüm oluşturmak üzere iş denetimlerini kullanın.
             </p>
           </div>
           <div className="glossary-grid">
@@ -873,11 +873,11 @@ export default function AdminScreen({
                 <div className="spread">
                   <small>
                     {g.reviewer
-                      ? `Review recorded: ${g.reviewer}`
-                      : "Dentist review not recorded"}
+                      ? `İnceleyen hekim: ${g.reviewer}`
+                      : "Diş hekimi incelemesi kaydedilmedi"}
                   </small>
                   <button className="text-link" onClick={() => setGlossary(g)}>
-                    Edit & review
+                    Düzenle ve incele
                     <ArrowUpRight size={14} />
                   </button>
                 </div>
@@ -898,21 +898,21 @@ export default function AdminScreen({
         <>
           <Heading
             eyebrow="ACCOUNTABILITY"
-            title="Audit trail"
-            description="Trace access and changes across clinic and platform operations. Latest 1,000 events."
+            title="Denetim kaydı"
+            description="Klinik ve platform işlemlerindeki erişimleri ve değişiklikleri izleyin. Son 1.000 olay."
           />
           <div className="toolbar">
             <SearchBox
               value={search}
               set={setSearch}
-              placeholder="Search actor, action, or entity…"
+              placeholder="Kullanıcı, işlem veya varlık ara…"
             />
             <select
-              aria-label="Audit category"
+              aria-label="Denetim kategorisi"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
-              <option value="all">All categories</option>
+              <option value="all">Tüm kategoriler</option>
               {[
                 "case",
                 "clinic",
@@ -927,7 +927,9 @@ export default function AdminScreen({
                 "platform",
                 "subscription",
               ].map((x) => (
-                <option key={x}>{x}</option>
+                <option key={x} value={x}>
+                  {label(x)}
+                </option>
               ))}
             </select>
             <button
@@ -945,7 +947,7 @@ export default function AdminScreen({
               }
             >
               <Download size={15} />
-              Export filtered events
+              Filtrelenmiş olayları dışa aktar
             </button>
           </div>
           <div className="panel flush">
@@ -953,10 +955,10 @@ export default function AdminScreen({
               <table>
                 <thead>
                   <tr>
-                    <th>Timestamp</th>
-                    <th>Actor</th>
-                    <th>Action</th>
-                    <th>Entity</th>
+                    <th>Zaman damgası</th>
+                    <th>İşlemi yapan</th>
+                    <th>İşlem</th>
+                    <th>Varlık</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -968,7 +970,7 @@ export default function AdminScreen({
                           a.actor}
                         <small>{a.actor}</small>
                       </td>
-                      <td>{a.action}</td>
+                      <td>{label(a.action)}</td>
                       <td>
                         <code>{a.entity}</code>
                       </td>
@@ -979,8 +981,8 @@ export default function AdminScreen({
             </div>
             {!rows.length && (
               <Empty
-                title="No matching events"
-                description="Clear a filter or try another search."
+                title="Eşleşen olay yok"
+                description="Filtreyi temizleyin veya başka bir arama deneyin."
               />
             )}
           </div>
@@ -991,9 +993,9 @@ export default function AdminScreen({
       return (
         <>
           <Heading
-            eyebrow="PLATFORM CONFIGURATION"
-            title="Operational settings"
-            description="These limits are enforced by the API and interpreter worker."
+            eyebrow="PLATFORM YAPILANDIRMASI"
+            title="İşlem ayarları"
+            description="Bu sınırlar API ve açıklama işleyicisi tarafından uygulanır."
           />
           <div className="settings-grid">
             <section className="panel">
@@ -1010,13 +1012,13 @@ export default function AdminScreen({
                   )
                 }
               >
-                <h2>Processing & case limits</h2>
+                <h2>İşleme ve vaka sınırları</h2>
                 <label className="toggle-field">
                   <div>
-                    <strong>Process explanation jobs</strong>
+                    <strong>Açıklama işlerini işle</strong>
                     <small>
-                      Pause interpretation while allowing clinics to submit
-                      proposals.
+                      Klinikler teklif göndermeye devam ederken açıklama
+                      işlemesini duraklatın.
                     </small>
                   </div>
                   <input
@@ -1026,8 +1028,8 @@ export default function AdminScreen({
                   />
                 </label>
                 <Field
-                  label="Maximum clinic recipients per case"
-                  hint="Applies to new mobile API dispatch requests; existing assignments are retained."
+                  label="Vaka başına en fazla klinik alıcısı"
+                  hint="Yeni mobil API gönderim taleplerine uygulanır; mevcut atamalar korunur."
                 >
                   <input
                     type="number"
@@ -1039,8 +1041,8 @@ export default function AdminScreen({
                   />
                 </Field>
                 <Field
-                  label="Maximum upload size (MB)"
-                  hint="PNG, JPEG, and PDF files are accepted up to this limit."
+                  label="En büyük yükleme boyutu (MB)"
+                  hint="PNG, JPEG ve PDF dosyaları bu sınıra kadar kabul edilir."
                 >
                   <input
                     type="number"
@@ -1057,27 +1059,27 @@ export default function AdminScreen({
               <span className="square-icon">
                 <Settings2 size={22} />
               </span>
-              <h2>Environment boundaries</h2>
+              <h2>Ortam sınırları</h2>
               <dl className="details">
                 <div>
-                  <dt>Environment</dt>
-                  <dd>Local development</dd>
+                  <dt>Ortam</dt>
+                  <dd>Yerel geliştirme</dd>
                 </div>
                 <div>
-                  <dt>Patient interface</dt>
-                  <dd>Mobile API only</dd>
+                  <dt>Hasta arayüzü</dt>
+                  <dd>Yalnızca mobil API</dd>
                 </div>
                 <div>
-                  <dt>Interpreter</dt>
-                  <dd>Versioned template glossary</dd>
+                  <dt>Açıklama sistemi</dt>
+                  <dd>Sürümlü şablon sözlüğü</dd>
                 </div>
                 <div>
-                  <dt>Files</dt>
-                  <dd>Private local storage</dd>
+                  <dt>Dosyalar</dt>
+                  <dd>Özel yerel depolama</dd>
                 </div>
                 <div>
-                  <dt>Notifications / payments</dt>
-                  <dd>External providers not connected</dd>
+                  <dt>Bildirimler / ödemeler</dt>
+                  <dd>Harici sağlayıcılar bağlı değil</dd>
                 </div>
               </dl>
             </section>
@@ -1086,8 +1088,8 @@ export default function AdminScreen({
       );
     return (
       <Empty
-        title="Page not found"
-        description="Choose an admin page from the navigation."
+        title="Sayfa bulunamadı"
+        description="Yönetim menüsünden bir sayfa seçin."
       />
     );
   }
@@ -1095,9 +1097,9 @@ export default function AdminScreen({
     <>
       {render()}
       {adding && (
-        <Modal title="Add clinic" close={() => setAdding(false)} wide>
+        <Modal title="Klinik ekle" close={() => setAdding(false)} wide>
           <Form
-            label="Create clinic for review"
+            label="İncelenmek üzere klinik oluştur"
             onSave={async (f) => {
               await act("/admin/clinics", {
                 ...profileData(f),
@@ -1106,11 +1108,11 @@ export default function AdminScreen({
               setAdding(false);
             }}
           >
-            <Field label="Region">
+            <Field label="Bölge">
               <select name="region">
-                <option>Istanbul</option>
-                <option>Ankara</option>
-                <option>Izmir</option>
+                <option value="Istanbul">İstanbul</option>
+                <option value="Ankara">Ankara</option>
+                <option value="Izmir">İzmir</option>
               </select>
             </Field>
             <ProfileFields />
@@ -1119,33 +1121,33 @@ export default function AdminScreen({
       )}
       {clinic && (
         <Modal
-          title="Clinic verification & access"
+          title="Klinik doğrulaması ve erişim"
           close={() => setClinic(null)}
         >
           <h3>{clinic.name}</h3>
           <p className="muted">{clinic.address}</p>
           <dl className="details">
             <div>
-              <dt>Contact</dt>
+              <dt>İletişim</dt>
               <dd>
                 {clinic.email}
                 <br />
-                {clinic.phone || "No phone supplied"}
+                {clinic.phone || "Telefon belirtilmedi"}
               </dd>
             </div>
             <div>
-              <dt>Hours</dt>
+              <dt>Çalışma saatleri</dt>
               <dd>{clinic.hours}</dd>
             </div>
             <div>
-              <dt>Description</dt>
-              <dd>{clinic.description || "No description supplied"}</dd>
+              <dt>Açıklama</dt>
+              <dd>{clinic.description || "Açıklama eklenmedi"}</dd>
             </div>
           </dl>
           <details className="profile-disclosure">
-            <summary>Edit clinic profile</summary>
+            <summary>Klinik profilini düzenle</summary>
             <Form
-              label="Save clinic profile"
+              label="Klinik profilini kaydet"
               onSave={async (f) => {
                 await act(
                   `/admin/clinics/${clinic.id}/profile`,
@@ -1155,20 +1157,20 @@ export default function AdminScreen({
                 setClinic(null);
               }}
             >
-              <Field label="Region">
+              <Field label="Bölge">
                 <select name="region" defaultValue={clinic.region}>
-                  <option>Istanbul</option>
-                  <option>Ankara</option>
-                  <option>Izmir</option>
+                  <option value="Istanbul">İstanbul</option>
+                  <option value="Ankara">Ankara</option>
+                  <option value="Izmir">İzmir</option>
                 </select>
               </Field>
               <ProfileFields clinic={clinic} />
             </Form>
           </details>
           <details className="profile-disclosure">
-            <summary>Google Maps & social profiles</summary>
+            <summary>Google Haritalar ve sosyal medya profilleri</summary>
             <Form
-              label="Save discovery profile"
+              label="Keşif profilini kaydet"
               onSave={async (f) => {
                 await act(
                   `/admin/clinics/${clinic.id}/discovery`,
@@ -1180,14 +1182,14 @@ export default function AdminScreen({
             >
               <DiscoveryFields clinic={clinic} includeGoogle />
               <p className="muted">
-                Google ratings and photos are fetched on demand in the patient
-                app. Google does not provide social profile links through Places
-                API.
+                Google puanları ve fotoğrafları hasta uygulamasında istek
+                üzerine alınır. Google, Places API üzerinden sosyal medya
+                bağlantılarını sağlamaz.
               </p>
             </Form>
           </details>
           <Form
-            label="Save clinic decision"
+            label="Klinik kararını kaydet"
             onSave={async (f) => {
               await act(
                 `/admin/clinics/${clinic.id}/review`,
@@ -1197,16 +1199,18 @@ export default function AdminScreen({
               setClinic(null);
             }}
           >
-            <Field label="Account status">
+            <Field label="Hesap durumu">
               <select name="status" defaultValue={clinic.status}>
                 {["pending", "active", "suspended", "rejected"].map((s) => (
-                  <option key={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {label(s)}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field
-              label="Verification / decision notes"
-              hint="Required when suspending or rejecting a clinic."
+              label="Doğrulama / karar notları"
+              hint="Kliniği askıya alırken veya reddederken gereklidir."
             >
               <textarea
                 name="notes"
@@ -1216,8 +1220,8 @@ export default function AdminScreen({
               />
             </Field>
             <p className="muted">
-              Suspending or rejecting a clinic revokes its active sessions and
-              blocks case access and new dispatches.
+              Kliniği askıya almak veya reddetmek açık oturumlarını kapatır;
+              vaka erişimini ve yeni gönderimleri engeller.
             </p>
           </Form>
         </Modal>
@@ -1241,14 +1245,16 @@ export default function AdminScreen({
               setBilling(null);
             }}
           >
-            <Field label="Subscription status">
+            <Field label="Abonelik durumu">
               <select name="subscription" defaultValue={billing.subscription}>
                 {["trial", "active", "past_due", "cancelled"].map((s) => (
-                  <option key={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {label(s)}
+                  </option>
                 ))}
               </select>
             </Field>
-            <Field label="Monthly fee (TRY)">
+            <Field label="Aylık ücret (TRY)">
               <input
                 name="fee"
                 type="number"
@@ -1259,7 +1265,7 @@ export default function AdminScreen({
                 required
               />
             </Field>
-            <Field label="Renewal date">
+            <Field label="Yenileme tarihi">
               <input
                 name="renewal"
                 type="date"
@@ -1283,7 +1289,7 @@ export default function AdminScreen({
           close={() => setGlossary(null)}
         >
           <Form
-            label="Save new glossary version"
+            label="Yeni sözlük sürümünü kaydet"
             onSave={async (f) => {
               await act(
                 `/admin/glossary/${glossary.code}`,
@@ -1297,7 +1303,7 @@ export default function AdminScreen({
               setGlossary(null);
             }}
           >
-            <Field label="Plain-language explanation">
+            <Field label="Sade dilli açıklama">
               <textarea
                 name="text"
                 rows={6}
@@ -1313,11 +1319,11 @@ export default function AdminScreen({
                 name="reviewed"
                 defaultChecked={glossary.reviewed}
               />
-              A dentist has reviewed this wording
+              Bu ifade bir diş hekimi tarafından incelendi
             </label>
             <Field
-              label="Dentist reviewer name"
-              hint="Required when recording review."
+              label="İnceleyen diş hekiminin adı"
+              hint="İnceleme kaydı için gereklidir."
             >
               <input
                 name="reviewer"
@@ -1330,16 +1336,20 @@ export default function AdminScreen({
       )}
       {caseAction && c && (
         <Modal
-          title={caseAction === "archive" ? "Archive case" : "Reopen case"}
+          title={
+            caseAction === "archive" ? "Vakayı arşivle" : "Vakayı yeniden aç"
+          }
           close={() => setCaseAction(null)}
         >
           <p className="muted">
             {caseAction === "archive"
-              ? "Archiving blocks new proposals and patient requests while preserving records and existing appointments."
-              : "Reopening restores the case to its previous recipient set."}
+              ? "Arşivleme yeni teklifleri ve hasta taleplerini engeller; kayıtları ve mevcut randevuları korur."
+              : "Yeniden açma, vakanın önceki alıcı listesini geri yükler."}
           </p>
           <Form
-            label={caseAction === "archive" ? "Archive case" : "Reopen case"}
+            label={
+              caseAction === "archive" ? "Vakayı arşivle" : "Vakayı yeniden aç"
+            }
             onSave={async (f) => {
               await act(
                 `/admin/cases/${c.id}`,
@@ -1349,7 +1359,7 @@ export default function AdminScreen({
               setCaseAction(null);
             }}
           >
-            <Field label="Reason for this action">
+            <Field label="İşlemin gerekçesi">
               <textarea
                 name="reason"
                 rows={3}

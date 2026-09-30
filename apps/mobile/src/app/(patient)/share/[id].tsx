@@ -17,7 +17,7 @@ import { useResource } from "../../../lib/use-resource";
 import { useSession } from "../../../lib/session";
 import { useAction } from "../../../lib/use-action";
 import { request } from "../../../lib/api";
-import { Capabilities, Clinic, DentalCase } from "../../../lib/types";
+import { Capabilities, Clinic, DentalCase, label } from "../../../lib/types";
 import { ClinicSocialProfiles } from "../../../components/clinic-discovery";
 import { Coordinates, rankClinics } from "../../../lib/clinic-distance";
 export default function Share() {
@@ -71,7 +71,7 @@ export default function Share() {
     return (
       <Card key={`${section}-${clinic.id}`}>
         <Check
-          label={clinic.name + (existing ? " — already shared" : "")}
+          label={clinic.name + (existing ? " — zaten paylaşıldı" : "")}
           checked={existing || checked}
           disabled={
             existing ||
@@ -88,10 +88,10 @@ export default function Share() {
           }}
         />
         <Text style={styles.muted}>
-          {clinic.district} · {clinic.region} · {clinic.address}
+          {clinic.district} · {label(clinic.region)} · {clinic.address}
         </Text>
         {distance !== null && (
-          <Text style={styles.badge}>About {distance.toFixed(1)} km away</Text>
+          <Text style={styles.badge}>Yaklaşık {distance.toFixed(1)} km uzakta</Text>
         )}
         {!!clinic.description && (
           <Text style={styles.muted}>{clinic.description}</Text>
@@ -99,7 +99,7 @@ export default function Share() {
         {!!clinic.hours && <Text style={styles.muted}>{clinic.hours}</Text>}
         <ClinicSocialProfiles clinic={clinic} />
         <Button
-          title="View clinic details"
+          title="Klinik bilgilerini gör"
           secondary
           onPress={() =>
             router.push({ pathname: "/clinic/[id]", params: { id: clinic.id } })
@@ -125,8 +125,8 @@ export default function Share() {
       }}
     >
       <Heading
-        title="Choose your clinics"
-        subtitle="Only your selected clinics receive the case and X-ray."
+        title="Kliniklerinizi seçin"
+        subtitle="Vakanız ve röntgeniniz yalnızca seçtiğiniz kliniklere iletilir."
       />
       <Notice
         text={action.error || clinics.error || cases.error || cap.error}
@@ -137,42 +137,42 @@ export default function Share() {
       ) : (
         <>
           <Notice
-            text={`${c.recipients.length} already selected · Up to ${cap.data.max_recipients} clinics per case. Existing sharing cannot be undone here.`}
+            text={`${c.recipients.length} klinik seçildi · Vaka başına en fazla ${cap.data.max_recipients} klinik. Mevcut paylaşımı buradan geri alamazsınız.`}
           />
           {c.status === "archived" && (
-            <Notice text="This case is archived. It cannot be shared." />
+            <Notice text="Bu vaka arşivlendi; paylaşılamaz." />
           )}
           <Card>
-            <Text style={styles.heading}>Clinics near you</Text>
+            <Text style={styles.heading}>Yakınınızdaki klinikler</Text>
             <Text style={styles.muted}>
-              Allow location while using the app to find clinics within 30 km.
-              Your coordinates are used on this device and are not sent to
-              DENTRIVO.
+              30 km içindeki klinikleri görmek için uygulamayı kullanırken konum
+              izni verin. Konumunuz yalnızca bu cihazda kullanılır; DENTRIVO sunucusuna
+              gönderilmez.
             </Text>
             <Button
-              title={position ? "Update my location" : "Use my location"}
+              title={position ? "Konumumu güncelle" : "Konumumu kullan"}
               onPress={() => void requestLocation()}
               busy={locationState === "loading"}
               secondary
             />
             {locationState === "denied" && (
-              <Notice text="Location access was not allowed. You can still choose from every participating clinic below." />
+              <Notice text="Konum izni verilmedi. Aşağıdaki tüm kliniklerden yine de seçim yapabilirsiniz." />
             )}
             {locationState === "unavailable" && (
-              <Notice text="We could not get your location. Check device location services or choose from all clinics below." />
+              <Notice text="Konumunuz alınamadı. Cihazın konum hizmetlerini kontrol edin veya aşağıdaki tüm kliniklerden seçim yapın." />
             )}
             {position && (
               <Text style={styles.muted}>
-                Distances are approximate straight-line estimates from clinic
-                coordinates.
+                Mesafeler, klinik konumlarına göre yaklaşık kuş uçuşu
+                uzaklıklardır.
               </Text>
             )}
           </Card>
           {position && (
             <>
-              <Text style={styles.heading}>Near you · {nearby.length}</Text>
+              <Text style={styles.heading}>Yakınınızda · {nearby.length}</Text>
               {nearby.length === 0 && (
-                <Notice text="No participating clinic with a known location is within 30 km. All clinics remain available below." />
+                <Notice text="Konumu bilinen katılımcı kliniklerden hiçbiri 30 km içinde değil. Tüm klinikler aşağıda listeleniyor." />
               )}
               {nearby.map(({ clinic, distanceKm }) =>
                 clinicCard(clinic, distanceKm, "nearby"),
@@ -180,13 +180,13 @@ export default function Share() {
             </>
           )}
           <Text style={styles.heading}>
-            All participating clinics · {allClinics.length}
+            Tüm katılımcı klinikler · {allClinics.length}
           </Text>
           {clinics.loading && !clinics.data && <Loading />}
           {clinics.data && allClinics.length === 0 && (
             <Empty
-              title="No clinics available"
-              detail="There are currently no active clinics accepting cases. Try again later."
+              title="Klinik bulunamadı"
+              detail="Şu anda vaka kabul eden aktif klinik yok. Daha sonra tekrar deneyin."
             />
           )}
           {allClinics.map(({ clinic, distanceKm }) =>
@@ -195,12 +195,12 @@ export default function Share() {
           <Card>
             <Text style={styles.muted}>{cap.data.consent_text}</Text>
             <Check
-              label={`Share my case with the ${selected.length} newly selected clinics`}
+              label={`Vakamı yeni seçtiğim ${selected.length} klinikle paylaş`}
               checked={confirmed}
               onChange={() => setConfirmed(!confirmed)}
             />
             <Button
-              title="Share case"
+              title="Vakayı paylaş"
               busy={action.busy}
               disabled={
                 !confirmed ||

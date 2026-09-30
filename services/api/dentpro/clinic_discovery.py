@@ -42,7 +42,7 @@ class SocialLinksInput(StrictModel):
     @classmethod
     def unique_platforms(cls, links):
         if len({link.platform for link in links}) != len(links):
-            raise ValueError('Provide at most one profile per social platform')
+            raise ValueError('Her sosyal platform için en fazla bir profil ekleyin')
         return links
 
 class DiscoveryInput(SocialLinksInput):
@@ -62,7 +62,7 @@ def save_discovery(db, clinic_id, data):
 
 @router.put('/admin/clinics/{clinic_id}/discovery')
 def update_discovery(clinic_id: str, data: DiscoveryInput, user=Depends(require('admin')), db=Depends(get_db)):
-    if not db.get(Clinic, clinic_id): raise HTTPException(404,'Clinic not found')
+    if not db.get(Clinic, clinic_id): raise HTTPException(404,'Klinik bulunamadı')
     save_discovery(db, clinic_id, data)
     audit(db,user['id'],'clinic.discovery_updated',clinic_id); db.commit()
     return discovery_view(db, clinic_id)
@@ -87,7 +87,7 @@ def consume_lookup(db, account_id):
         row.requests=0; row.started_at=now()
     if row.requests >= 30:
         db.rollback()
-        raise HTTPException(429,'Google profile lookup limit reached. Try again later.',headers={'Retry-After':'900'})
+        raise HTTPException(429,'Google profil sorgulama sınırına ulaşıldı. Daha sonra yeniden deneyin.',headers={'Retry-After':'900'})
     row.requests+=1; db.commit()
 
 def live_profile(db, clinic_id, user):
@@ -105,12 +105,12 @@ def live_profile(db, clinic_id, user):
 @router.get('/patient/clinics/{clinic_id}/google-profile',response_model=GooglePlaceProfile)
 def patient_google_profile(clinic_id: str, response: Response, user=Depends(require('patient')), db=Depends(get_db)):
     profile=db.get(ClinicProfile,clinic_id)
-    if not profile or profile.status!='active':raise HTTPException(404,'Clinic not available')
+    if not profile or profile.status!='active':raise HTTPException(404,'Klinik kullanılamıyor')
     response.headers['Cache-Control']='no-store'
     return live_profile(db,clinic_id,user)
 
 @router.get('/admin/clinics/{clinic_id}/google-profile',response_model=GooglePlaceProfile)
 def admin_google_profile(clinic_id: str, response: Response, user=Depends(require('admin')), db=Depends(get_db)):
-    if not db.get(Clinic,clinic_id):raise HTTPException(404,'Clinic not found')
+    if not db.get(Clinic,clinic_id):raise HTTPException(404,'Klinik bulunamadı')
     response.headers['Cache-Control']='no-store'
     return live_profile(db,clinic_id,user)

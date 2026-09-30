@@ -40,7 +40,7 @@ def actor(credential: HTTPAuthorizationCredentials = Depends(bearer)):
         if secrets.compare_digest(credential.credentials, token):
             with Session() as db:
                 profile=db.get(ClinicProfile,ACTORS[role].get('clinic_id')) if role=='clinic' else None
-                if profile and profile.status!='active': raise HTTPException(403,'Clinic access is not active. Contact the platform administrator.')
+                if profile and profile.status!='active': raise HTTPException(403,'Klinik erişimi aktif değil. Platform yöneticisiyle iletişime geçin.')
             return ACTORS[role]
     with Session() as db:
         session=db.get(LoginSession,token_hash(credential.credentials))
@@ -49,12 +49,12 @@ def actor(credential: HTTPAuthorizationCredentials = Depends(bearer)):
             user=db.get(Account,session.account_id)
             if user and user.active and expiry>datetime.now(timezone.utc):
                 profile=db.get(ClinicProfile,user.clinic_id) if user.clinic_id else None
-                if profile and profile.status!='active': raise HTTPException(403,'Clinic access is not active. Contact the platform administrator.')
+                if profile and profile.status!='active': raise HTTPException(403,'Klinik erişimi aktif değil. Platform yöneticisiyle iletişime geçin.')
                 return account_view(user)
-    raise HTTPException(401,'Your session has expired. Please sign in again.')
+    raise HTTPException(401,'Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.')
 
 def require(*roles):
     def check(user=Depends(actor)):
-        if user['role'] not in roles: raise HTTPException(403,'This action is not available for your role.')
+        if user['role'] not in roles: raise HTTPException(403,'Bu işlem rolünüz için kullanılamıyor.')
         return user
     return check

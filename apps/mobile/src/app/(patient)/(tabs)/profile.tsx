@@ -31,7 +31,7 @@ export default function Profile() {
         phone,
       });
       setUser(updated);
-      setNotice("Profile saved.");
+      setNotice("Profil kaydedildi.");
     });
   const change = () =>
     action.run(async () => {
@@ -44,50 +44,50 @@ export default function Profile() {
   return (
     <Screen>
       <Heading
-        title="Your profile"
-        subtitle="Keep your contact details up to date for clinic responses."
+        title="Profiliniz"
+        subtitle="Kliniklerin size ulaşabilmesi için iletişim bilgilerinizi güncel tutun."
       />
       <Notice text={action.error} error />
       <Notice text={notice} />
       <Card>
-        <Field label="Full name" value={name} onChangeText={setName} />
+        <Field label="Ad soyad" value={name} onChangeText={setName} />
         <Field
-          label="Email"
+          label="E-posta"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
         />
         <Field
-          label="Phone number"
+          label="Telefon numarası"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
         />
         <Button
-          title="Save profile"
+          title="Profili kaydet"
           onPress={() => void save()}
           busy={action.busy}
         />
       </Card>
-      <Section title="Change password" detail="Manage your account security">
+      <Section title="Şifre değiştir" detail="Hesap güvenliğinizi yönetin">
         <Field
-          label="Current password"
+          label="Mevcut şifre"
           value={current}
           onChangeText={setCurrent}
           secureTextEntry
         />
         <Field
-          label="New password (at least 10 characters)"
+          label="Yeni şifre (en az 10 karakter)"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
         />
         <Text style={styles.muted}>
-          Changing your password signs you out on all devices.
+          Şifrenizi değiştirdiğinizde tüm cihazlardaki oturumlar kapatılır.
         </Text>
         <Button
-          title="Update password"
+          title="Şifreyi güncelle"
           secondary
           onPress={() => void change()}
           disabled={!current || password.length < 10}
@@ -95,12 +95,12 @@ export default function Profile() {
         />
       </Section>
       <Button
-        title="Sign out"
+        title="Çıkış yap"
         quiet
         onPress={() => void action.run(signOut)}
         busy={action.busy}
       />
-      <Notice text="Your case and X-ray are shared only with selected clinics. Clinics receive your name and phone when you request contact. Explanations simplify the clinic’s proposal and do not replace a professional consultation." />
+      <Notice text="Vakanız ve röntgeniniz yalnızca seçtiğiniz kliniklerle paylaşılır. Adınız ve telefonunuz, iletişim istediğinizde kliniğe iletilir. Açıklamalar klinik teklifini sadeleştirir; uzman görüşünün yerini almaz." />
     </Screen>
   );
 }

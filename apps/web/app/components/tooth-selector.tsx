@@ -70,35 +70,35 @@ export default function ToothSelector({
   return (
     <section
       className="tooth-selector"
-      aria-label={readOnly ? "Proposed treatment teeth" : "Tooth selection"}
+      aria-label={readOnly ? "Tedavi önerilen dişler" : "Diş seçimi"}
     >
       <div className="tooth-selector-heading">
         <div>
           <h3>
             <Box size={18} />
-            {readOnly ? "3D proposed treatment teeth" : "3D tooth selection"}
+            {readOnly ? "3B tedavi önerilen dişler" : "3B diş seçimi"}
           </h3>
           <p>
             {readOnly
-              ? "Inspect the teeth included in this proposal. The published plan remains unchanged."
-              : `Choose a tooth for Procedure ${procedure}.`}{" "}
-            FDI numbering, from the patient’s perspective.
+              ? "Bu teklifteki dişleri inceleyin. Yayımlanan plan değişmez."
+              : `${procedure}. işlem için bir diş seçin.`}{" "}
+            Hastanın bakış açısından FDI numaralandırması.
           </p>
         </div>
-        <div className="dentition-switch" aria-label="Dentition">
+        <div className="dentition-switch" aria-label="Diş yapısı">
           <button
             type="button"
             aria-pressed={mode === "child"}
             onClick={() => setMode("child")}
           >
-            Child · 20 teeth
+            Çocuk · 20 diş
           </button>
           <button
             type="button"
             aria-pressed={mode === "adult"}
             onClick={() => setMode("adult")}
           >
-            Adult · 32 teeth
+            Yetişkin · 32 diş
           </button>
         </div>
       </div>
@@ -108,15 +108,15 @@ export default function ToothSelector({
           {status !== "ready" && (
             <div className="tooth-scene-message" role="status">
               {status === "loading"
-                ? "Loading 3D teeth…"
-                : "3D view unavailable. Choose a numbered tooth below."}
+                ? "3B dişler yükleniyor…"
+                : "3B görünüm kullanılamıyor. Aşağıdan numaralı bir diş seçin."}
             </div>
           )}
           <div className="tooth-camera-tools">
             <button
               type="button"
               className="icon-btn"
-              aria-label="Zoom in on teeth"
+              aria-label="Dişleri yakınlaştır"
               disabled={status !== "ready"}
               onClick={() => scene.current?.zoom(0.2)}
             >
@@ -125,7 +125,7 @@ export default function ToothSelector({
             <button
               type="button"
               className="icon-btn"
-              aria-label="Zoom out from teeth"
+              aria-label="Dişleri uzaklaştır"
               disabled={status !== "ready"}
               onClick={() => scene.current?.zoom(-0.2)}
             >
@@ -138,42 +138,42 @@ export default function ToothSelector({
               onClick={() => scene.current?.reset()}
             >
               <RotateCcw size={14} />
-              Reset view
+              Görünümü sıfırla
             </button>
           </div>
           <p className="tooth-map-hint">
-            {readOnly ? "Click to inspect" : "Click to select"} · Drag to rotate
-            · Schematic dentition
+            {readOnly ? "İncelemek için tıklayın" : "Seçmek için tıklayın"} ·
+            Döndürmek için sürükleyin · Şematik diş yapısı
           </p>
         </div>
         <div className="tooth-number-panel">
           <div className="tooth-selection-summary" role="status">
             <strong>
-              {selected === "ALL" ? "Whole mouth" : `Tooth ${selected || "—"}`}
+              {selected === "ALL" ? "Tüm ağız" : `Diş ${selected || "—"}`}
             </strong>
             <span>{toothName(selected)}</span>
             <small>
               {readOnly
                 ? assigned.includes(selected) || assigned.includes("ALL")
-                  ? "Included in this proposal"
-                  : "Not included in this proposal"
-                : `Assigned to Procedure ${procedure}`}
+                  ? "Bu teklife dahil"
+                  : "Bu teklife dahil değil"
+                : `${procedure}. işleme atandı`}
             </small>
           </div>
           {otherDentition && !readOnly && (
             <p className="dentition-mismatch">
-              This tooth belongs to the {mode === "child" ? "adult" : "child"}{" "}
-              view. Choose a tooth here to change Procedure {procedure}.
+              Bu diş {mode === "child" ? "yetişkin" : "çocuk"} görünümüne ait.{" "}
+              {procedure}. işlem için dişi ilgili görünümden seçin.
             </p>
           )}
           <div className="tooth-legend">
             <span>
               <i className="selected" />
-              Selected
+              Seçili
             </span>
             <span>
               <i className="assigned" />
-              In this proposal
+              Bu teklifte
             </span>
           </div>
           {quadrants(mode).map((q) => (
@@ -184,7 +184,7 @@ export default function ToothSelector({
                   <button
                     type="button"
                     key={code}
-                    aria-label={`Tooth ${code}: ${toothName(code)}`}
+                    aria-label={`Diş ${code}: ${toothName(code)}`}
                     aria-pressed={selected === code}
                     className={
                       assigned.includes(code) || assigned.includes("ALL")
@@ -207,13 +207,13 @@ export default function ToothSelector({
               aria-pressed={selected === "ALL"}
               onClick={() => onSelect("ALL")}
             >
-              Whole mouth · ALL
+              Tüm ağız · HEPSİ
             </button>
           )}
           <p className="muted">
             {readOnly
-              ? "Switch between child/adult views to inspect all proposed teeth, including mixed dentition."
-              : "Switching child/adult views keeps all procedures, including mixed dentition."}
+              ? "Karma diş yapısı dahil tüm önerilen dişleri incelemek için çocuk/yetişkin görünümleri arasında geçin."
+              : "Çocuk/yetişkin görünümünü değiştirmek karma diş yapısı dahil tüm işlemleri korur."}
           </p>
         </div>
       </div>

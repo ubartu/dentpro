@@ -38,11 +38,11 @@ def run_mail_once():
                         and reset.email==account.email and reset.password_fingerprint==token_hash(account.password_hash)
                         and reset.token_hash==token_hash(reset_token(reset.id,config.secret))):
                         link=config.reset_url+'#token='+reset_token(reset.id,config.secret)
-                        subject='DENTRIVO — reset your password'
-                        body=f'Reset your DENTRIVO password using this link:\n\n{link}\n\nThis link expires at {utc(reset.expires_at).isoformat()} and can be used once.\nIf you did not request this, ignore this email.\nYou can also copy the token after #token= into the DENTRIVO app’s reset screen.'
+                        subject='DENTRIVO — şifrenizi yenileyin'
+                        body=f'DENTRIVO şifrenizi bu bağlantıdan yenileyin:\n\n{link}\n\nBu bağlantının son geçerlilik zamanı: {utc(reset.expires_at).isoformat()}. Bağlantı yalnızca bir kez kullanılabilir.\nBu isteği siz yapmadıysanız e-postayı dikkate almayın.\n#token= sonrasındaki kodu DENTRIVO uygulamasının şifre yenileme ekranına da yapıştırabilirsiniz.'
                 elif job.kind=='password_changed':
-                    subject='DENTRIVO — your password was changed'
-                    body='Your DENTRIVO password was changed. All existing sessions were signed out.\nIf you did not make this change, request a new password reset or contact support.'
+                    subject='DENTRIVO — şifreniz değiştirildi'
+                    body='DENTRIVO şifreniz değiştirildi. Açık oturumlarınız sonlandırıldı.\nBu değişikliği siz yapmadıysanız şifrenizi yeniden sıfırlayın veya destek ekibiyle iletişime geçin.'
                 if body:
                     try:
                         provider_id=send_mail(config,jid,job.email,subject,body)

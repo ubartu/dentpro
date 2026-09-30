@@ -20,9 +20,9 @@ function Navigation() {
     return (
       <Screen>
         <Notice text={session.error} error />
-        <Button title="Reconnect" onPress={() => void session.restore()} />
+        <Button title="Yeniden bağlan" onPress={() => void session.restore()} />
         <Button
-          title="Sign out on this device"
+          title="Bu cihazda çıkış yap"
           secondary
           onPress={() => void session.expire()}
         />
@@ -44,7 +44,7 @@ function Navigation() {
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen
           name="forgot-password"
-          options={{ title: "Password recovery" }}
+          options={{ title: "Şifre yenileme" }}
         />
       </Stack.Protected>
     </Stack>

@@ -66,7 +66,7 @@ export function LogoMark({
     <View
       accessible
       accessibilityRole="image"
-      accessibilityLabel={loading ? "DENTRIVO loading" : "DENTRIVO logo"}
+      accessibilityLabel={loading ? "DENTRIVO yükleniyor" : "DENTRIVO logosu"}
       accessibilityState={{ busy: loading }}
       style={{ width: size, height: size }}
     >

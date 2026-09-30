@@ -36,12 +36,12 @@ export default function Cases() {
   const action = useAction();
   function confirmDelete(c: DentalCase) {
     Alert.alert(
-      "Delete draft?",
-      `“${c.title}” and its uploaded X-ray will be permanently deleted.`,
+      "Taslak silinsin mi?",
+      `“${c.title}” ve yüklenen röntgen kalıcı olarak silinecek.`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Vazgeç", style: "cancel" },
         {
-          text: "Delete draft",
+          text: "Taslağı sil",
           style: "destructive",
           onPress: () =>
             void action.run(async () => {
@@ -64,13 +64,13 @@ export default function Cases() {
   return (
     <Screen refresh={() => void r.refresh()} refreshing={r.loading && !!r.data}>
       <Heading
-        title={`Hello, ${user?.name.split(" ")[0] || "there"}`}
-        subtitle="Let’s make your next step a little clearer."
+        title={`Merhaba, ${user?.name.split(" ")[0] || "hoş geldiniz"}`}
+        subtitle="Bir sonraki adımınızı birlikte netleştirelim."
       />
       <View style={{ flexDirection: narrow ? "column" : "row", gap: 16 }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Create a new case"
+          accessibilityLabel="Yeni vaka oluştur"
           onPress={() => router.push("/new")}
           style={({ pressed }) => [
             local.action,
@@ -89,19 +89,19 @@ export default function Cases() {
             />
           </View>
           <View style={local.actionText}>
-            <Text style={[styles.heading, { color: "white" }]}>New case</Text>
+            <Text style={[styles.heading, { color: "white" }]}>Yeni vaka</Text>
             <Text style={[local.caption, { color: "#E4EEFF" }]}>
-              START WITH AN X-RAY
+              RÖNTGENLE BAŞLAYIN
             </Text>
           </View>
           <View style={[local.pill, { backgroundColor: "white" }]}>
-            <Text style={local.pillText}>Get started</Text>
+            <Text style={local.pillText}>Başlayın</Text>
             <Ionicons name="arrow-forward" size={16} color={colors.blue} />
           </View>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="View your requests"
+          accessibilityLabel="Taleplerinizi görüntüleyin"
           onPress={() => router.push("/appointments")}
           style={({ pressed }) => [
             local.action,
@@ -120,11 +120,11 @@ export default function Cases() {
             />
           </View>
           <View style={local.actionText}>
-            <Text style={styles.heading}>Your requests</Text>
-            <Text style={local.caption}>KEEP IN TOUCH</Text>
+            <Text style={styles.heading}>Talepleriniz</Text>
+            <Text style={local.caption}>İLETİŞİMDE KALIN</Text>
           </View>
           <View style={[local.pill, { backgroundColor: colors.ink }]}>
-            <Text style={[local.pillText, { color: "white" }]}>View all</Text>
+            <Text style={[local.pillText, { color: "white" }]}>Tümünü gör</Text>
             <Ionicons name="arrow-forward" size={16} color="white" />
           </View>
         </Pressable>
@@ -132,7 +132,7 @@ export default function Cases() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
-          active ? `Continue ${active.title}` : "Start your first case"
+          active ? `${active.title} vakasına devam et` : "İlk vakanızı oluşturun"
         }
         onPress={() => (active ? open(active.id) : router.push("/new"))}
         style={local.banner}
@@ -145,13 +145,13 @@ export default function Cases() {
         />
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={[styles.heading, { color: "white", fontSize: 17 }]}>
-            {active ? "Pick up where you left off" : "Your care, at your pace"}
+            {active ? "Kaldığınız yerden devam edin" : "Bakımınız, sizin hızınızda"}
           </Text>
           <Text
             numberOfLines={1}
             style={[styles.muted, { color: "#E1EEFF", fontSize: 12 }]}
           >
-            {active ? active.title : "Upload · Choose clinics · Compare"}
+            {active ? active.title : "Yükleyin · Klinik seçin · Karşılaştırın"}
           </Text>
         </View>
         <View style={local.arrow}>
@@ -159,29 +159,29 @@ export default function Cases() {
         </View>
       </Pressable>
       <View style={[styles.row, { justifyContent: "space-between" }]}>
-        <Text style={styles.heading}>Your cases</Text>
+        <Text style={styles.heading}>Vakalarınız</Text>
         <Text style={styles.muted}>
           {r.data?.length ?? ""}
-          {r.data ? " total" : ""}
+          {r.data ? " toplam" : ""}
         </Text>
       </View>
       <Notice text={r.error} error />
       <Notice text={action.error} error />
-      {r.error && (
-        <Button title="Try again" onPress={() => void r.refresh()} secondary />
+      {!!r.error && (
+        <Button title="Yeniden dene" onPress={() => void r.refresh()} secondary />
       )}
       {r.loading && !r.data && <Loading />}
       {r.data?.length === 0 && (
         <Empty
-          title="A fresh start"
-          detail="Your cases will appear here. Start with an X-ray whenever you’re ready."
+          title="Yeni bir başlangıç"
+          detail="Vakalarınız burada görünecek. Hazır olduğunuzda bir röntgenle başlayın."
         />
       )}
       {r.data?.map((c) => (
         <View key={c.id} style={local.case}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Open ${c.title}`}
+            accessibilityLabel={`${c.title} vakasını aç`}
             onPress={() => open(c.id)}
             style={({ pressed }) => [
               local.caseBody,
@@ -207,7 +207,7 @@ export default function Cases() {
                 {c.title}
               </Text>
               <Text style={styles.muted}>
-                {c.region} · {c.recipients.length} clinics
+                {label(c.region)} · {c.recipients.length} klinik
               </Text>
               <Text
                 style={[styles.badge, { fontSize: 10, paddingVertical: 3 }]}
@@ -220,14 +220,14 @@ export default function Cases() {
           {c.status === "draft" && c.recipients.length === 0 && (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Delete draft ${c.title}`}
+              accessibilityLabel={`${c.title} taslağını sil`}
               accessibilityState={{ disabled: action.busy }}
               disabled={action.busy}
               onPress={() => confirmDelete(c)}
               style={[local.deleteDraft, action.busy && { opacity: 0.5 }]}
             >
               <Ionicons name="trash-outline" size={17} color="#A33232" />
-              <Text style={local.deleteText}>Delete draft</Text>
+              <Text style={local.deleteText}>Taslağı sil</Text>
             </Pressable>
           )}
         </View>

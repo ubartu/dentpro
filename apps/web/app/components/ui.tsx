@@ -19,12 +19,13 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
+import { label } from "../types";
 export function Badge({ children }: { children: ReactNode }) {
   return (
     <span
       className={"badge " + String(children).toLowerCase().replaceAll(" ", "-")}
     >
-      {String(children).replaceAll("_", " ")}
+      {label(String(children))}
     </span>
   );
 }
@@ -42,7 +43,7 @@ export function Heading({
   return (
     <div className="page-heading">
       <div>
-        <div className="eyebrow">{eyebrow || "YOUR WORKSPACE"}</div>
+        <div className="eyebrow">{eyebrow || "ÇALIŞMA ALANINIZ"}</div>
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
@@ -102,7 +103,7 @@ export function Empty({
 export function SearchBox({
   value,
   set,
-  placeholder = "Search…",
+  placeholder = "Ara…",
 }: {
   value: string;
   set: (s: string) => void;
@@ -184,7 +185,7 @@ export function Modal({
           <button
             className="icon-btn"
             onClick={close}
-            aria-label="Close dialog"
+            aria-label="Pencereyi kapat"
           >
             <X size={20} />
           </button>
@@ -197,7 +198,7 @@ export function Modal({
 export function Form({
   children,
   onSave,
-  label = "Save changes",
+  label = "Değişiklikleri kaydet",
   secondary,
 }: {
   children?: ReactNode;
@@ -276,7 +277,7 @@ export function Confirm({
     <Modal title={title} close={close}>
       <p className="muted">{description}</p>
       <Form
-        label="Confirm"
+        label="Onayla"
         onSave={async () => {
           await onConfirm();
           close();

@@ -16,14 +16,14 @@ export class ApiError extends Error {
 export const errorMessage = (error: unknown) =>
   error instanceof Error
     ? error.message
-    : "Something went wrong. Please try again.";
+    : "Bir hata oluştu. Lütfen yeniden deneyin.";
 function detail(body: { detail?: unknown }) {
   if (typeof body.detail === "string") return body.detail;
   if (Array.isArray(body.detail))
     return body.detail
       .map((v) => `${v.loc?.slice(1).join(" ")}: ${v.msg}`)
       .join("\n");
-  return "The request could not be completed. Please refresh and try again.";
+  return "İstek tamamlanamadı. Sayfayı yenileyip tekrar deneyin.";
 }
 export async function request<T>(
   path: string,
@@ -52,7 +52,7 @@ export async function request<T>(
     if (error instanceof ApiError) throw error;
     throw new ApiError(
       0,
-      "Cannot reach DENTRIVO. Check your connection and try again. Your request may have reached the server; refresh before submitting again.",
+      "DENTRIVO'ya ulaşılamıyor. Bağlantınızı kontrol edip tekrar deneyin. İsteğiniz sunucuya ulaşmış olabilir; yeniden göndermeden önce sayfayı yenileyin.",
     );
   } finally {
     clearTimeout(timeout);
@@ -76,7 +76,7 @@ export function upload(
       reject(
         new ApiError(
           0,
-          "Upload interrupted. Refresh the case to check whether it arrived, then retry if needed.",
+          "Yükleme kesildi. Dosyanın ulaşıp ulaşmadığını görmek için vakayı yenileyin; gerekirse yeniden deneyin.",
         ),
       );
     xhr.onload = () => {

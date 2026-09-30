@@ -20,7 +20,7 @@ export function createToothScene(
   canvas.setAttribute("role", "img");
   canvas.setAttribute(
     "aria-label",
-    `${mode === "adult" ? "Adult" : "Child"} 3D teeth. Click a tooth to assign it, drag to rotate. Numbered buttons below provide keyboard selection.`,
+    `${mode === "adult" ? "Yetişkin" : "Çocuk"} 3B dişleri. Atamak için dişe tıklayın, döndürmek için sürükleyin. Aşağıdaki numaralı düğmeler klavyeyle seçime olanak verir.`,
   );
   host.appendChild(canvas);
   const scene = new THREE.Scene();
@@ -183,8 +183,8 @@ export function createToothScene(
       );
     }
   }
-  label("PATIENT RIGHT", -2.7, 0.1, 0, 2.3);
-  label("PATIENT LEFT", 2.7, 0.1, 0, 2.3);
+  label("HASTANIN SAĞI", -2.7, 0.1, 0, 2.3);
+  label("HASTANIN SOLU", 2.7, 0.1, 0, 2.3);
   function render() {
     renderer.render(scene, camera);
   }
@@ -238,7 +238,9 @@ export function createToothScene(
       dragged = true;
     const code = pick(e);
     canvas.style.cursor = down ? "grabbing" : code ? "pointer" : "grab";
-    canvas.title = code ? `FDI ${code} · ${toothName(code)}` : "Drag to rotate";
+    canvas.title = code
+      ? `FDI ${code} · ${toothName(code)}`
+      : "Döndürmek için sürükleyin";
   }
   function pointerUp(e: PointerEvent) {
     if (down?.id === e.pointerId && !dragged && e.button === 0) {

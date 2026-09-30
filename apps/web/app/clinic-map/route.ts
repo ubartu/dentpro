@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 function page(content: string, status = 200) {
   return new Response(
-    `<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="strict-origin-when-cross-origin"><title>Clinic map</title><style>html,body{margin:0;width:100%;height:100%;background:#fff;font:15px system-ui;color:#203454}iframe{border:0;width:100%;height:100%;min-width:200px;min-height:200px}.message{padding:24px;line-height:1.5}</style></head><body>${content}</body></html>`,
+    `<!doctype html><html lang="tr"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="strict-origin-when-cross-origin"><title>Klinik haritası</title><style>html,body{margin:0;width:100%;height:100%;background:#fff;font:15px system-ui;color:#203454}iframe{border:0;width:100%;height:100%;min-width:200px;min-height:200px}.message{padding:24px;line-height:1.5}</style></head><body>${content}</body></html>`,
     {
       status,
       headers: {
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const placeId = new URL(request.url).searchParams.get("place_id") || "";
   if (!/^[A-Za-z0-9_-]{10,255}$/.test(placeId))
     return page(
-      '<p class="message">No valid Google place is linked to this clinic.</p>',
+      '<p class="message">Bu kliniğe geçerli bir Google kaydı bağlı değil.</p>',
       400,
     );
   let key: string | undefined;
@@ -34,25 +34,25 @@ export async function GET(request: Request) {
       : process.env.GOOGLE_MAPS_EMBED_KEY?.trim();
   } catch {
     return page(
-      '<p class="message">The clinic map is temporarily unavailable.</p>',
+      '<p class="message">Klinik haritası geçici olarak kullanılamıyor.</p>',
       503,
     );
   }
   if (!key)
     return page(
-      '<p class="message">Google Maps Embed is not configured yet. Use the full Google profile link in the app.</p>',
+      '<p class="message">Google Haritalar Embed henüz ayarlanmadı. Uygulamadaki Google profili bağlantısını kullanın.</p>',
       503,
     );
   // The restricted browser key is intentionally visible in the iframe URL.
   // No patient data, credentials or Places server key enter this public page.
   const src =
     "https://www.google.com/maps/embed/v1/place?" +
-    new URLSearchParams({ key, q: `place_id:${placeId}`, language: "en" });
+    new URLSearchParams({ key, q: `place_id:${placeId}`, language: "tr" });
   const escaped = src
     .replaceAll("&", "&amp;")
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;");
   return page(
-    `<iframe title="Clinic location on Google Maps" src="${escaped}" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`,
+    `<iframe title="Kliniğin Google Haritalar konumu" src="${escaped}" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`,
   );
 }

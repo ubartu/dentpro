@@ -44,7 +44,7 @@ class AppointmentUpdate(StrictModel):
     @field_validator('scheduled_at')
     @classmethod
     def aware(cls,v):
-        if v and v.tzinfo is None: raise ValueError('Include a timezone')
+        if v and v.tzinfo is None: raise ValueError('Saat dilimini belirtin')
         return v
 class ProfileInput(StrictModel):
     name: str = Field(min_length=2,max_length=100)
@@ -60,7 +60,7 @@ class ProfileInput(StrictModel):
     @model_validator(mode='after')
     def paired_coordinates(self):
         if (self.latitude is None) != (self.longitude is None):
-            raise ValueError('Provide both latitude and longitude, or leave both empty')
+            raise ValueError('Enlem ve boylamı birlikte girin veya ikisini de boş bırakın')
         return self
 class ClinicCreate(ProfileInput):
     region: Literal['Istanbul','Ankara','Izmir']
@@ -93,9 +93,9 @@ def sign_in(data:LoginInput,db,allowed_roles:tuple[str,...]):
     user=db.scalar(select(Account).where(Account.email==data.email.lower()))
     if not user or user.role not in allowed_roles or not password_matches(data.password,user.password_hash) or not user.active:
         if cloud_mode():record_failure(db,data.email,throttle)
-        raise HTTPException(401,'Email or password is incorrect.')
+        raise HTTPException(401,'E-posta veya şifre hatalı.')
     profile=db.get(ClinicProfile,user.clinic_id) if user.clinic_id else None
-    if profile and profile.status!='active':raise HTTPException(403,'This clinic is awaiting approval or has been suspended.')
+    if profile and profile.status!='active':raise HTTPException(403,'Bu klinik onay bekliyor veya askıya alındı.')
     if not user.password_hash.startswith('$argon2id$'):
         user.password_hash=password_hash(data.password)
     if cloud_mode():clear_attempts(db,throttle)
@@ -127,7 +127,7 @@ def proposal_view(db,p):
     from .main import proposal_view as base_view
     data=base_view(db,p);s=state(db,p);c=db.get(Case,p.case_id)
     job=db.get(ExplanationJob,p.explanation_key)
-    return data|{'case_title':c.title if c else 'Archived case','status':s.status if s else 'submitted','revision_of':s.revision_of if s else None,'moderation':s.moderation if s else 'unreviewed','review_notes':s.review_notes if s else '', 'explanation_status':job.status if job else data['explanation_status']}
+    return data|{'case_title':c.title if c else 'Arşivlenen vaka','status':s.status if s else 'submitted','revision_of':s.revision_of if s else None,'moderation':s.moderation if s else 'unreviewed','review_notes':s.review_notes if s else '', 'explanation_status':job.status if job else data['explanation_status']}
 
 def explanation_job_view(db,job):
     request=db.get(AIExplanationRequest,job.key)
@@ -152,7 +152,7 @@ def case_view(db,c,user):
 
 def appointment_view(db,a):
     p=db.get(Proposal,a.proposal_id);c=db.get(Case,p.case_id) if p else None;cl=db.get(Clinic,a.clinic_id);d=db.get(AppointmentDetail,a.id)
-    return {'id':a.id,'proposal_id':a.proposal_id,'case_id':p.case_id if p else None,'case_title':c.title if c else 'Case unavailable','clinic_id':a.clinic_id,'clinic_name':cl.name,'kind':a.kind,'status':a.status,'scheduled_at':d.scheduled_at if d else None,'notes':d.notes if d else '', 'created_at':a.created_at, 'patient_name': (db.get(Account,a.user_id).name if db.get(Account,a.user_id) else ''), 'patient_phone': (db.get(PatientProfile,a.user_id).phone if db.get(PatientProfile,a.user_id) else '')}
+    return {'id':a.id,'proposal_id':a.proposal_id,'case_id':p.case_id if p else None,'case_title':c.title if c else 'Vaka kullanılamıyor','clinic_id':a.clinic_id,'clinic_name':cl.name,'kind':a.kind,'status':a.status,'scheduled_at':d.scheduled_at if d else None,'notes':d.notes if d else '', 'created_at':a.created_at, 'patient_name': (db.get(Account,a.user_id).name if db.get(Account,a.user_id) else ''), 'patient_phone': (db.get(PatientProfile,a.user_id).phone if db.get(PatientProfile,a.user_id) else '')}
 
 def scoped_case(db,id,user):
     from .main import access_case
@@ -160,7 +160,7 @@ def scoped_case(db,id,user):
 
 def scoped_proposal(db,id,user):
     p=db.get(Proposal,id)
-    if not p or (user['role']=='clinic' and p.clinic_id!=user['clinic_id']):raise HTTPException(404,'Proposal not found')
+    if not p or (user['role']=='clinic' and p.clinic_id!=user['clinic_id']):raise HTTPException(404,'Teklif bulunamadı')
     scoped_case(db,p.case_id,user)
     return p
 
@@ -176,7 +176,7 @@ def enqueue(db,p,force=False):
     glossary=glossary_snapshot(db)
     gateway=gateway_config()
     model_tag='template-v1' if gateway.provider=='template' else f'{gateway.provider}:{gateway.model}:prompt-{gateway.prompt_version}'
-    key=digest({'plan':canonical_source(p.plan),'glossary':glossary,'locale':'en','policy':'1','model':model_tag})
+    key=digest({'plan':canonical_source(p.plan),'glossary':glossary,'locale':'tr','policy':'1','model':model_tag})
     p.explanation_key=key
     job=db.get(ExplanationJob,key)
     if not job:
@@ -199,17 +199,17 @@ def clinic_case(case_id:str,user=Depends(require('clinic')),db=Depends(get_db)):
 @router.patch('/clinic/cases/{case_id}/review')
 def update_review(case_id:str,data:ReviewInput,user=Depends(require('clinic')),db=Depends(get_db)):
     c=scoped_case(db,case_id,user)
-    if c.status=='archived':raise HTTPException(409,'Archived cases cannot be changed')
+    if c.status=='archived':raise HTTPException(409,'Arşivlenen vakalar değiştirilemez')
     r=get_review(db,case_id,user['clinic_id']);r.status=data.status;r.notes=data.notes;r.updated_at=now()
     audit(db,user['id'],'case.review_updated',case_id);db.commit();return case_view(db,c,user)
 
 @router.put('/clinic/cases/{case_id}/draft')
 def save_draft(case_id:str,data:DraftInput,user=Depends(require('clinic')),db=Depends(get_db)):
     c=scoped_case(db,case_id,user)
-    if c.status=='archived':raise HTTPException(409,'Archived cases cannot receive proposals')
+    if c.status=='archived':raise HTTPException(409,'Arşivlenen vakalara teklif verilemez')
     if data.revision_of:
         prior=scoped_proposal(db,data.revision_of,user)
-        if prior.case_id!=case_id:raise HTTPException(422,'Revision must belong to this case')
+        if prior.case_id!=case_id:raise HTTPException(422,'Yeni sürüm bu vakaya ait olmalı')
     d=db.scalar(select(Draft).where(Draft.case_id==case_id,Draft.clinic_id==user['clinic_id']))
     if not d:d=Draft(case_id=case_id,clinic_id=user['clinic_id'],plan={});db.add(d)
     d.plan=data.plan.model_dump(mode='json');d.revision_of=data.revision_of;d.updated_at=now()
@@ -225,45 +225,45 @@ def delete_draft(case_id:str,user=Depends(require('clinic')),db=Depends(get_db))
 @router.post('/clinic/cases/{case_id}/publish',status_code=201)
 def publish(case_id:str,data:PublishInput,idempotency_key:str=Header(min_length=8,max_length=100),user=Depends(require('clinic')),db=Depends(get_db)):
     c=scoped_case(db,case_id,user)
-    if c.status=='archived':raise HTTPException(409,'Archived cases cannot receive proposals')
+    if c.status=='archived':raise HTTPException(409,'Arşivlenen vakalara teklif verilemez')
     cid=user['clinic_id'];plan=data.plan.model_dump(mode='json');request_hash=digest({'case_id':case_id,'plan':plan,'revision_of':data.revision_of})
     prior_request=db.scalar(select(Proposal).where(Proposal.clinic_id==cid,Proposal.idempotency_key==idempotency_key))
     if prior_request:
-        if prior_request.request_hash!=request_hash:raise HTTPException(409,'Submission key already used for different content')
+        if prior_request.request_hash!=request_hash:raise HTTPException(409,'Gönderim anahtarı farklı içerik için kullanıldı')
         return proposal_view(db,prior_request)
     prior=scoped_proposal(db,data.revision_of,user) if data.revision_of else None
     if prior:
-        if prior.case_id!=case_id:raise HTTPException(422,'Revision must belong to the same case')
+        if prior.case_id!=case_id:raise HTTPException(422,'Yeni sürüm aynı vakaya ait olmalı')
         meta=state(db,prior)
-        if meta and meta.status!='submitted':raise HTTPException(409,'Only the current submitted version can be revised')
+        if meta and meta.status!='submitted':raise HTTPException(409,'Yalnızca geçerli gönderilmiş sürüm düzenlenebilir')
         if not meta:meta=ProposalState(proposal_id=prior.id);db.add(meta)
         meta.status='superseded'
     elif any(not state(db,p) or state(db,p).status=='submitted' for p in db.scalars(select(Proposal).where(Proposal.case_id==case_id,Proposal.clinic_id==cid)).all()):
-        raise HTTPException(409,'This case already has a submitted proposal. Use Revise to publish a new version.')
+        raise HTTPException(409,'Bu vakaya gönderilmiş bir teklif var. Yeni sürüm yayımlamak için Düzenle seçeneğini kullanın.')
     p=Proposal(id=str(uuid4()),case_id=case_id,clinic_id=cid,idempotency_key=idempotency_key,request_hash=request_hash,version=(prior.version+1 if prior else 1),plan=plan,total_minor=sum(i.price_minor for i in data.plan.items),explanation_key='pending')
     db.add(p);db.add(ProposalState(proposal_id=p.id,status='submitted',revision_of=prior.id if prior else None));enqueue(db,p)
     db.execute(delete(Draft).where(Draft.case_id==case_id,Draft.clinic_id==cid))
     r=get_review(db,case_id,cid);r.status='reviewing';r.updated_at=now()
     audit(db,user['id'],'proposal.revised' if prior else 'proposal.submitted',p.id)
     try:db.commit()
-    except IntegrityError:db.rollback();raise HTTPException(409,'A competing submission was saved. Refresh before retrying.')
+    except IntegrityError:db.rollback();raise HTTPException(409,'Başka bir gönderim kaydedildi. Yeniden denemeden önce sayfayı yenileyin.')
     return proposal_view(db,p)
 
 @router.post('/clinic/proposals/{proposal_id}/withdraw')
 def withdraw(proposal_id:str,user=Depends(require('clinic')),db=Depends(get_db)):
     p=scoped_proposal(db,proposal_id,user);m=state(db,p)
     if not m:m=ProposalState(proposal_id=p.id);db.add(m)
-    if m.status not in ('submitted','withdrawn'):raise HTTPException(409,'Historical versions cannot be withdrawn')
+    if m.status not in ('submitted','withdrawn'):raise HTTPException(409,'Eski sürümler geri çekilemez')
     m.status='withdrawn';audit(db,user['id'],'proposal.withdrawn',p.id);db.commit();return proposal_view(db,p)
 
 @router.patch('/operations/appointments/{appointment_id}')
 def update_appointment(appointment_id:str,data:AppointmentUpdate,user=Depends(require('clinic','admin')),db=Depends(get_db)):
     a=db.get(Appointment,appointment_id)
-    if not a or (user['role']=='clinic' and a.clinic_id!=user['clinic_id']):raise HTTPException(404,'Request not found')
+    if not a or (user['role']=='clinic' and a.clinic_id!=user['clinic_id']):raise HTTPException(404,'Talep bulunamadı')
     transitions={'requested':{'requested','contacted','confirmed','cancelled'},'contacted':{'contacted','confirmed','cancelled'},'confirmed':{'confirmed','completed','cancelled'},'completed':{'completed'},'cancelled':{'cancelled'}}
-    if data.status not in transitions.get(a.status,set()):raise HTTPException(409,'This status transition is not allowed')
-    if data.status=='confirmed' and not data.scheduled_at:raise HTTPException(422,'Choose a date and time to confirm an appointment')
-    if data.status=='confirmed' and data.scheduled_at<now() and a.status!='confirmed':raise HTTPException(422,'Choose a future appointment time')
+    if data.status not in transitions.get(a.status,set()):raise HTTPException(409,'Bu durum değişikliğine izin verilmiyor')
+    if data.status=='confirmed' and not data.scheduled_at:raise HTTPException(422,'Randevuyu onaylamak için tarih ve saat seçin')
+    if data.status=='confirmed' and data.scheduled_at<now() and a.status!='confirmed':raise HTTPException(422,'Gelecekteki bir randevu saatini seçin')
     d=db.get(AppointmentDetail,a.id)
     if not d:d=AppointmentDetail(appointment_id=a.id);db.add(d)
     a.status=data.status;d.scheduled_at=data.scheduled_at.isoformat() if data.scheduled_at else None;d.notes=data.notes;d.updated_at=now()
@@ -280,21 +280,21 @@ def update_profile(data:ProfileInput,user=Depends(require('clinic')),db=Depends(
 def create_account(data:AccountInput,user=Depends(require('clinic','admin')),db=Depends(get_db)):
     cid=data.clinic_id
     if user['role']=='clinic':
-        if data.role!='clinic' or (cid and cid!=user['clinic_id']):raise HTTPException(403,'You can only create accounts for your clinic')
+        if data.role!='clinic' or (cid and cid!=user['clinic_id']):raise HTTPException(403,'Yalnızca kendi kliniğiniz için hesap oluşturabilirsiniz')
         cid=user['clinic_id']
-    if data.role=='clinic' and (not cid or not db.get(Clinic,cid)):raise HTTPException(422,'Select a clinic for this account')
-    if data.role=='admin' and cid:raise HTTPException(422,'Administrator accounts do not belong to a clinic')
+    if data.role=='clinic' and (not cid or not db.get(Clinic,cid)):raise HTTPException(422,'Bu hesap için klinik seçin')
+    if data.role=='admin' and cid:raise HTTPException(422,'Yönetici hesapları bir kliniğe bağlı olamaz')
     a=Account(id=str(uuid4()),name=data.name,email=data.email.lower(),role=data.role,clinic_id=cid,password_hash=password_hash(data.password))
     db.add(a);audit(db,user['id'],'account.created',a.id)
     try:db.commit()
-    except IntegrityError:db.rollback();raise HTTPException(409,'An account with this email already exists')
+    except IntegrityError:db.rollback();raise HTTPException(409,'Bu e-postayla kayıtlı bir hesap var')
     return account_view(a)
 
 @router.patch('/operations/accounts/{account_id}')
 def update_account(account_id:str,data:AccountUpdate,user=Depends(require('clinic','admin')),db=Depends(get_db)):
     a=db.get(Account,account_id)
-    if not a or (user['role']=='clinic' and (a.clinic_id!=user['clinic_id'] or a.role!='clinic')):raise HTTPException(404,'Account not found')
-    if a.id==user['id'] and not data.active:raise HTTPException(409,'You cannot disable your own account')
+    if not a or (user['role']=='clinic' and (a.clinic_id!=user['clinic_id'] or a.role!='clinic')):raise HTTPException(404,'Hesap bulunamadı')
+    if a.id==user['id'] and not data.active:raise HTTPException(409,'Kendi hesabınızı devre dışı bırakamazsınız')
     a.active=data.active
     if data.password:a.password_hash=password_hash(data.password)
     if not data.active or data.password:db.execute(delete(LoginSession).where(LoginSession.account_id==a.id))
@@ -326,8 +326,8 @@ def create_clinic(data:ClinicCreate,user=Depends(require('admin')),db=Depends(ge
 @router.patch('/admin/clinics/{clinic_id}/review')
 def review_clinic(clinic_id:str,data:ClinicReviewInput,user=Depends(require('admin')),db=Depends(get_db)):
     c=db.get(Clinic,clinic_id);p=db.get(ClinicProfile,clinic_id)
-    if not c or not p:raise HTTPException(404,'Clinic not found')
-    if data.status in ('rejected','suspended') and len(data.review_notes.strip())<3:raise HTTPException(422,'Provide a reason for this decision')
+    if not c or not p:raise HTTPException(404,'Klinik bulunamadı')
+    if data.status in ('rejected','suspended') and len(data.review_notes.strip())<3:raise HTTPException(422,'Bu kararın nedenini belirtin')
     p.status=data.status;p.review_notes=data.review_notes
     if data.status!='active':
         ids=db.scalars(select(Account.id).where(Account.clinic_id==clinic_id)).all()
@@ -337,10 +337,10 @@ def review_clinic(clinic_id:str,data:ClinicReviewInput,user=Depends(require('adm
 @router.put('/admin/clinics/{clinic_id}/subscription')
 def subscription(clinic_id:str,data:SubscriptionInput,user=Depends(require('admin')),db=Depends(get_db)):
     p=db.get(ClinicProfile,clinic_id)
-    if not p:raise HTTPException(404,'Clinic not found')
+    if not p:raise HTTPException(404,'Klinik bulunamadı')
     if data.renewal_date:
         try:datetime.strptime(data.renewal_date,'%Y-%m-%d')
-        except ValueError:raise HTTPException(422,'Enter a valid renewal date')
+        except ValueError:raise HTTPException(422,'Geçerli bir yenileme tarihi girin')
     for k,v in data.model_dump().items():setattr(p,k,v)
     audit(db,user['id'],'subscription.updated',clinic_id);db.commit();return {'ok':True}
 
@@ -353,19 +353,19 @@ def admin_case(case_id:str,data:CaseAdminInput,user=Depends(require('admin')),db
 def redispatch(case_id:str,data:DispatchAdminInput,user=Depends(require('admin')),db=Depends(get_db)):
     c=scoped_case(db,case_id,user)
     # Consent was for explicitly selected recipients. Admins can retry only that set.
-    if c.status=='archived':raise HTTPException(409,'Reopen the case before redispatching')
-    if not set(data.clinic_ids)<=set(c.recipients):raise HTTPException(422,'New clinic recipients require patient consent through the mobile API')
-    if not db.scalar(select(Consent.id).where(Consent.case_id==c.id)):raise HTTPException(409,'Case has no recorded consent')
+    if c.status=='archived':raise HTTPException(409,'Tekrar göndermeden önce vakayı yeniden açın')
+    if not set(data.clinic_ids)<=set(c.recipients):raise HTTPException(422,'Yeni alıcı klinikler için mobil uygulamada hasta onayı gereklidir')
+    if not db.scalar(select(Consent.id).where(Consent.case_id==c.id)):raise HTTPException(409,'Vaka için kayıtlı onay yok')
     for cid in data.clinic_ids:
         profile=db.get(ClinicProfile,cid)
-        if not profile or profile.status!='active':raise HTTPException(422,'Only active clinics can receive cases')
+        if not profile or profile.status!='active':raise HTTPException(422,'Yalnızca aktif klinikler vaka alabilir')
         r=get_review(db,case_id,cid);r.status='new';r.updated_at=now()
     audit(db,user['id'],'case.redispatched',case_id);db.commit();return {'ok':True}
 
 @router.patch('/admin/proposals/{proposal_id}/review')
 def moderate(proposal_id:str,data:ModerationInput,user=Depends(require('admin')),db=Depends(get_db)):
     p=scoped_proposal(db,proposal_id,user);s=state(db,p)
-    if data.moderation=='flagged' and len(data.review_notes)<3:raise HTTPException(422,'Explain why this proposal is flagged')
+    if data.moderation=='flagged' and len(data.review_notes)<3:raise HTTPException(422,'Bu teklifin işaretlenme nedenini açıklayın')
     if not s:s=ProposalState(proposal_id=p.id);db.add(s)
     s.moderation=data.moderation;s.review_notes=data.review_notes
     audit(db,user['id'],'proposal.reviewed',p.id);db.commit();return proposal_view(db,p)
@@ -378,8 +378,8 @@ def retry_explanation(proposal_id:str,user=Depends(require('admin')),db=Depends(
 @router.put('/admin/glossary/{code}')
 def glossary_update(code:str,data:GlossaryInput,user=Depends(require('admin')),db=Depends(get_db)):
     g=db.get(GlossaryEntry,code)
-    if not g:raise HTTPException(404,'Procedure not found')
-    if data.reviewed and len(data.reviewer)<3:raise HTTPException(422,'Record the dentist reviewer’s name')
+    if not g:raise HTTPException(404,'İşlem bulunamadı')
+    if data.reviewed and len(data.reviewer)<3:raise HTTPException(422,'İnceleyen diş hekiminin adını kaydedin')
     g.explanation=data.explanation;g.reviewed=data.reviewed;g.reviewer=data.reviewer;g.version+=1
     audit(db,user['id'],'glossary.updated',code);db.commit();return {'ok':True,'version':g.version}
 
@@ -391,7 +391,7 @@ def settings_update(data:SettingsInput,user=Depends(require('admin')),db=Depends
 @router.put('/admin/clinics/{clinic_id}/profile')
 def admin_profile(clinic_id:str,data:ClinicCreate,user=Depends(require('admin')),db=Depends(get_db)):
     c=db.get(Clinic,clinic_id);p=db.get(ClinicProfile,clinic_id)
-    if not c or not p:raise HTTPException(404,'Clinic not found')
+    if not c or not p:raise HTTPException(404,'Klinik bulunamadı')
     for key in ('name','region','district','address'):setattr(c,key,getattr(data,key))
     for key in ('email','phone','website','description','hours'):setattr(p,key,getattr(data,key))
     loc=db.get(ClinicLocation,clinic_id)

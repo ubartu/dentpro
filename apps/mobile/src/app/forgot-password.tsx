@@ -23,7 +23,7 @@ export default function ForgotPassword() {
   async function submit() {
     if (busy) return;
     if (reset && password !== confirm) {
-      setError("Passwords do not match.");
+      setError("Şifreler eşleşmiyor.");
       return;
     }
     setBusy(true);
@@ -50,11 +50,11 @@ export default function ForgotPassword() {
   return (
     <Screen>
       <Heading
-        title={reset ? "Reset your password" : "Forgot your password?"}
+        title={reset ? "Şifrenizi yenileyin" : "Şifrenizi mi unuttunuz?"}
         subtitle={
           reset
-            ? "Paste the token from your reset email. Choose a new password."
-            : "We will email a reset link if your account is eligible."
+            ? "E-postadaki yenileme kodunu girip yeni şifrenizi belirleyin."
+            : "Hesabınız uygunsa size şifre yenileme bağlantısı göndereceğiz."
         }
       />
       {message ? (
@@ -62,7 +62,7 @@ export default function ForgotPassword() {
       ) : reset ? (
         <>
           <Field
-            label="Reset token"
+            label="Yenileme kodu"
             value={token}
             onChangeText={setToken}
             autoCapitalize="none"
@@ -70,7 +70,7 @@ export default function ForgotPassword() {
             autoComplete="off"
           />
           <Field
-            label="New password (at least 10 characters)"
+            label="Yeni şifre (en az 10 karakter)"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -78,7 +78,7 @@ export default function ForgotPassword() {
             autoComplete="new-password"
           />
           <Field
-            label="Confirm new password"
+            label="Yeni şifreyi doğrulayın"
             value={confirm}
             onChangeText={setConfirm}
             secureTextEntry
@@ -88,7 +88,7 @@ export default function ForgotPassword() {
         </>
       ) : (
         <Field
-          label="Account email"
+          label="Hesap e-postası"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -99,7 +99,7 @@ export default function ForgotPassword() {
       <Notice text={error} error />
       {!message && (
         <Button
-          title={reset ? "Update password" : "Send reset email"}
+          title={reset ? "Şifreyi güncelle" : "Yenileme e-postası gönder"}
           busy={busy}
           disabled={
             reset
@@ -112,7 +112,7 @@ export default function ForgotPassword() {
         />
       )}
       <Button
-        title={reset ? "Request a new reset email" : "Have a reset token?"}
+        title={reset ? "Yeni bağlantı iste" : "Yenileme kodunuz var mı?"}
         secondary
         disabled={busy}
         onPress={() => {
@@ -125,14 +125,15 @@ export default function ForgotPassword() {
         }}
       />
       <Button
-        title="Back to sign in"
+        title="Giriş ekranına dön"
         quiet
         disabled={busy}
         onPress={() => router.replace("/sign-in")}
       />
       <Text style={styles.muted}>
-        The email link can also reset your password in your browser. Then return
-        to this app to sign in. Existing sessions are signed out after a reset.
+        E-postadaki bağlantıyla şifrenizi tarayıcıda da yenileyebilirsiniz.
+        Ardından uygulamaya dönüp giriş yapın. Şifre yenilenince açık oturumlar
+        kapatılır.
       </Text>
     </Screen>
   );

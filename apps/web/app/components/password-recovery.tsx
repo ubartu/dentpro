@@ -33,11 +33,11 @@ export default function PasswordRecovery({
             height={728}
           />
         </div>
-        <h1>{reset ? "Reset your password" : "Forgot your password?"}</h1>
+        <h1>{reset ? "Şifrenizi yenileyin" : "Şifrenizi mi unuttunuz?"}</h1>
         <p>
           {reset
-            ? "Choose a new password. You will need to sign in again on all devices."
-            : "Enter your account email. We will send a reset link if your account is eligible."}
+            ? "Yeni bir şifre belirleyin. Tüm cihazlarda yeniden giriş yapmanız gerekecek."
+            : "Hesap e-postanızı girin. Hesabınız uygunsa yenileme bağlantısı göndereceğiz."}
         </p>
         {message ? (
           <div role="status" className="notice">
@@ -45,10 +45,10 @@ export default function PasswordRecovery({
           </div>
         ) : (
           <Form
-            label={reset ? "Update password" : "Send reset email"}
+            label={reset ? "Şifreyi güncelle" : "Yenileme e-postası gönder"}
             onSave={async (f) => {
               if (reset && f.get("password") !== f.get("confirm"))
-                throw Error("Passwords do not match.");
+                throw Error("Şifreler eşleşmiyor.");
               const result = await fetch(
                 API +
                   (reset ? "/auth/password/reset" : "/auth/password/forgot"),
@@ -67,7 +67,7 @@ export default function PasswordRecovery({
                 throw Error(
                   typeof data.detail === "string"
                     ? data.detail
-                    : "Check the entered details and try again.",
+                    : "Girdiğiniz bilgileri kontrol edip yeniden deneyin.",
                 );
               setToken("");
               setMessage(data.message);
@@ -77,11 +77,11 @@ export default function PasswordRecovery({
               <>
                 {!/^[A-Za-z0-9_-]{43}$/.test(token) && (
                   <p role="alert">
-                    Open the link from your email, or enter its reset token
-                    below.
+                    E-postanızdaki bağlantıyı açın veya yenileme kodunu aşağıya
+                    girin.
                   </p>
                 )}
-                <Field label="Reset token">
+                <Field label="Yenileme kodu">
                   <input
                     value={token}
                     onChange={(e) => setToken(e.target.value.trim())}
@@ -92,7 +92,7 @@ export default function PasswordRecovery({
                     spellCheck={false}
                   />
                 </Field>
-                <Field label="New password (at least 10 characters)">
+                <Field label="Yeni şifre (en az 10 karakter)">
                   <input
                     type="password"
                     name="password"
@@ -102,7 +102,7 @@ export default function PasswordRecovery({
                     autoComplete="new-password"
                   />
                 </Field>
-                <Field label="Confirm new password">
+                <Field label="Yeni şifreyi doğrulayın">
                   <input
                     type="password"
                     name="confirm"
@@ -114,7 +114,7 @@ export default function PasswordRecovery({
                 </Field>
               </>
             ) : (
-              <Field label="Account email">
+              <Field label="Hesap e-postası">
                 <input
                   name="email"
                   type="email"
@@ -127,11 +127,11 @@ export default function PasswordRecovery({
           </Form>
         )}
         <p>
-          <Link href="/forgot-password">Request a new reset link</Link>
+          <Link href="/forgot-password">Yeni yenileme bağlantısı iste</Link>
         </p>
-        <Link href="/login">Back to staff sign-in</Link>
+        <Link href="/login">Personel girişine dön</Link>
         <p className="muted">
-          Patient account? Return to the DENTRIVO app to sign in.
+          Hasta hesabınız mı var? Giriş yapmak için DENTRIVO uygulamasına dönün.
         </p>
       </section>
     </main>

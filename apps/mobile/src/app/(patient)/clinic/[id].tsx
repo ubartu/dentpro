@@ -14,7 +14,7 @@ import {
 } from "../../../components/ui";
 import { ClinicSocialProfiles } from "../../../components/clinic-discovery";
 import { useResource } from "../../../lib/use-resource";
-import { Clinic } from "../../../lib/types";
+import { Clinic, label } from "../../../lib/types";
 import { clinicGoogleProfile, clinicMapPage } from "../../../lib/clinic-map";
 
 export default function ClinicDetail() {
@@ -35,21 +35,21 @@ export default function ClinicDetail() {
     try {
       await Linking.openURL(clinicGoogleProfile(clinic));
     } catch {
-      setLinkError("Could not open Google Maps. Please try again.");
+      setLinkError("Google Haritalar açılamadı. Lütfen tekrar deneyin.");
     }
   }
   return (
     <Screen>
       <Notice text={r.error} error />
-      {r.error && (
-        <Button title="Try again" secondary onPress={() => void r.refresh()} />
+      {!!r.error && (
+        <Button title="Yeniden dene" secondary onPress={() => void r.refresh()} />
       )}
       {!clinic && r.loading && <Loading />}
       {clinic && (
         <>
           <Heading
             title={clinic.name}
-            subtitle={`${clinic.district} · ${clinic.region}`}
+            subtitle={`${clinic.district} · ${label(clinic.region)}`}
           />
           <Card>
             <Text style={styles.text}>{clinic.address}</Text>
@@ -61,13 +61,13 @@ export default function ClinicDetail() {
             <ClinicSocialProfiles clinic={clinic} />
           </Card>
           <View style={{ gap: 12 }}>
-            <Text style={styles.heading}>Clinic location</Text>
+            <Text style={styles.heading}>Klinik konumu</Text>
             {mapUrl && !mapFailed ? (
               <View style={local.map}>
                 <WebView
                   key={`${mapUrl}-${retry}`}
                   testID="clinic-embedded-map"
-                  accessibilityLabel="Interactive clinic location on Google Maps"
+                  accessibilityLabel="Google Haritalar'da etkileşimli klinik konumu"
                   source={{ uri: mapUrl }}
                   style={{ flex: 1 }}
                   startInLoadingState
@@ -116,14 +116,14 @@ export default function ClinicDetail() {
               <Notice
                 text={
                   clinic.google_place_id
-                    ? "The embedded map is unavailable. You can still open the clinic’s full Google profile."
-                    : "This clinic has no verified Google listing linked yet. You can search for it on Google Maps."
+                    ? "Gömülü harita kullanılamıyor. Kliniğin Google profilini yine de açabilirsiniz."
+                    : "Bu kliniğe bağlı doğrulanmış bir Google kaydı henüz yok. Google Haritalar'da arayabilirsiniz."
                 }
               />
             )}
-            {mapUrl && mapFailed && (
+            {!!mapUrl && mapFailed && (
               <Button
-                title="Retry map"
+                title="Haritayı yeniden dene"
                 secondary
                 onPress={() => {
                   setMapFailed(false);
@@ -132,14 +132,14 @@ export default function ClinicDetail() {
               />
             )}
             <Text style={styles.muted}>
-              The map loads from Google. Open the full Google profile to view
-              available ratings, reviews and photos.
+              Harita Google üzerinden yüklenir. Puanları, yorumları ve fotoğrafları
+              görmek için Google profilini açın.
             </Text>
             <Button
               title={
                 clinic.google_place_id
-                  ? "View full Google profile ↗"
-                  : "Search on Google Maps ↗"
+                  ? "Google profilini aç ↗"
+                  : "Google Haritalar'da ara ↗"
               }
               secondary
               onPress={() => void openProfile()}
