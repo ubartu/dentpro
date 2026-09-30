@@ -24,7 +24,7 @@ Site `http://127.0.0.1:3001` adresinde açılır. Üretim derlemesi için `npm r
 
 ## Yayın öncesi
 
-- İletişim e-posta adresi veya başvuru akışı bağlanmalı. Şu an CTA'lar `#iletisim` bölümüne gider ve bölüm bu durumunu açıkça belirtir.
+- İletişim adresi `bartuutar3@gmail.com` olarak tanımlıdır. İletişim bölümündeki bağlantılar ile demo ve yatırımcı CTA'ları konu başlıklı e-posta taslağı açar.
 - Gerçek ekip, pilot ve yatırımcı verileri doğrulanmadan eklenmemeli.
 - Örnek teklif ekranı konsept arayüz olarak etiketlenmiştir.
 - Canlıya alma, alan adı, TLS ve barındırma ayarı bu ilk tasarım sürümünün dışında tutulmuştur.
