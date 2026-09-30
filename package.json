@@ -3,11 +3,16 @@
   "private": true,
   "workspaces": [
     "apps/web",
+    "apps/site",
     "apps/mobile",
     "packages/contracts"
   ],
   "scripts": {
     "dev": "npm run dev --workspace apps/web",
+    "site:dev": "npm run dev --workspace @dentpro/site",
+    "site:build": "npm run build --workspace @dentpro/site",
+    "site:typecheck": "npm run typecheck --workspace @dentpro/site",
+    "site:security-check": "npm run security-check --workspace @dentpro/site",
     "build": "npm run build --workspace apps/web",
     "typecheck": "npm run typecheck --workspace apps/web",
     "test:e2e": "node tests/e2e/panels.cjs",

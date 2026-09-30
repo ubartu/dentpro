@@ -1,10 +1,14 @@
 name: Verify
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
@@ -22,6 +26,14 @@ jobs:
       - run: npm run test:maps-embed
         working-directory: ${{ github.workspace }}
       - run: npm run build
+        working-directory: ${{ github.workspace }}
+      - run: npm run site:typecheck
+        working-directory: ${{ github.workspace }}
+      - run: npm run site:build
+        working-directory: ${{ github.workspace }}
+      - run: npm run site:security-check
+        working-directory: ${{ github.workspace }}
+      - run: npm audit --omit=dev --workspace @dentpro/site --audit-level=low
         working-directory: ${{ github.workspace }}
       - run: npm run mobile:typecheck
         working-directory: ${{ github.workspace }}
