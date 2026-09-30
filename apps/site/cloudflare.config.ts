@@ -4,8 +4,14 @@ export default defineConfig({
   worker: defineWorker({
     name: "dentrivo-site",
     entrypoint: "vinext/server/fetch-handler",
-    compatibilityDate: "2026-10-01",
+    // Match the existing Worker settings in Cloudflare to avoid overwriting
+    // dashboard-managed configuration during deployment.
+    compatibilityDate: "2026-09-30",
     compatibilityFlags: ["nodejs_compat"],
+    previewUrls: false,
+    observability: {
+      logs: { enabled: true },
+    },
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
