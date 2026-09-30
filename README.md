@@ -1,6 +1,6 @@
-# DENTpro — Clinic & Administration
+# DENTRIVO — Clinic & Administration
 
-Two separate, account-protected web panels for DENTpro v1.5. The patient web interface has been removed. Patient case creation, consent, image upload, clinic dispatch, comparison, and appointment requests remain API workflows for the native patient client in `apps/mobile`.
+Two separate, account-protected web panels for DENTRIVO. The patient web interface has been removed. Patient case creation, consent, image upload, clinic dispatch, comparison, and appointment requests remain API workflows for the native patient client in `apps/mobile`.
 
 ## Start
 
@@ -26,6 +26,10 @@ The login page can fill these local credentials. Choose the correct portal, then
 
 This local environment uses synthetic data. A separate, security-gated `APP_ENV=cloud` Docker stack is available for **cloud staging with synthetic data**; see [cloud deployment and remaining security requirements](docs/cloud-deployment.md). It does not establish clinical production readiness. Live payments, messaging, production identity onboarding and clinical validation are not connected. Do not use real patient data.
 
+### Password recovery
+
+Password recovery is available in the staff web login and patient app, with single-use email links, session revocation and a transactional mail outbox. Real delivery needs a configured Resend account; local testing can use private `.eml` files. See [mail service, setup and cloud migration](docs/mail-recovery.md).
+
 ### Optional AI proposal-summary gateway
 
 The worker normally creates deterministic glossary/template explanations. To exercise the provider gateway with synthetic plans, set `DENTPRO_AI_PROVIDER=openai`, `DENTPRO_AI_MODEL=gpt-5.4-nano`, and `OPENAI_API_KEY` in the **API/worker process environment**, then restart `scripts/dev.py`. The key is never entered in the web or mobile app. `GET /admin/ai/gateway` reports non-secret readiness, and the admin interpreter page shows each job's provider, model and output mode. Missing credentials leave the template provider active; provider errors or invalid responses use a labelled template fallback.
@@ -34,7 +38,7 @@ The external request contains only canonical structured clinic-plan fields and t
 
 ## Patient mobile app
 
-Clinic selection supports verified social links and optional on-demand Google ratings/photos. See [Google Places setup and provider boundaries](docs/google-places-integration.md). The integration is off by default and needs a server-side restricted Places API key and verified clinic Place IDs.
+Clinic selection opens a clinic details screen with social links, a Google Maps Embed area and an external full Google profile link. See [Maps Embed setup](docs/maps-embed-integration.md). The embedded map needs a separate restricted browser key and verified clinic Place IDs. The optional [paid Places gateway](docs/google-places-integration.md) remains separate; clinic selection does not call it.
 
 The React Native / Expo app for iOS and Android is in `apps/mobile`. Run `npm run mobile` from the repository root after starting the API. See the [mobile README](apps/mobile/README.md) for device networking, screens, test commands and native build profiles. Patient accounts are created in the app and are separate from staff accounts.
 
@@ -53,6 +57,8 @@ The React Native / Expo app for iOS and Android is in `apps/mobile`. Run `npm ru
 | Subscription        | View current subscription state, administrative fee and renewal date                                                                                                      |
 
 The clinic proposal editor includes a rotatable 3D tooth selector with adult (32 teeth) and child (20 teeth) views. Choose the active procedure, then click a tooth or its numbered button to fill the FDI field. Blue marks the active selection; teal marks teeth used elsewhere in the proposal. Whole-mouth selection uses `ALL`. Switching views preserves mixed-dentition plans, drafts and revisions. Numbered buttons and the FDI input remain available if WebGL is unavailable. The model is a procedural schematic, not a patient scan.
+
+Published proposal details retain the 3D tooth view in both clinic and admin panels. Clicking teeth there only changes the inspected tooth. Treatment plans support **TRY / USD / EUR**, **Urgent / Soon / Routine** priority per procedure and **Order by urgency** (stable within each priority). Prices retain their entered amounts when currency changes; no exchange-rate conversion is performed. Root canal options include **1 canal**, **2 canals** and **multiple canals**, while existing generic root canal records remain valid. Currency, priority and procedure order survive draft reloads and revisions, and appear in patient proposal/comparison screens. Mixed-currency comparisons show each original currency with an explicit notice; proposal CSV exports include a currency column.
 
 ## Admin panel
 

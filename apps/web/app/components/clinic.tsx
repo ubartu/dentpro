@@ -495,7 +495,8 @@ export default function ClinicScreen({
                     <FileText size={19} />
                     <div>
                       <strong>
-                        Version {p.version} · {money(p.total_minor)}
+                        Version {p.version} ·{" "}
+                        {money(p.total_minor, p.plan.currency)}
                       </strong>
                       <small>
                         {date(p.created_at)} · {p.plan.items.length} procedures
@@ -589,7 +590,7 @@ export default function ClinicScreen({
               <div className="notice">
                 <ShieldCheck size={20} />
                 <p>
-                  The clinic creates the treatment plan. DENTpro’s interpreter
+                  The clinic creates the treatment plan. DENTRIVO’s interpreter
                   explains it separately and does not assess the X-ray.
                 </p>
               </div>
@@ -755,7 +756,8 @@ export default function ClinicScreen({
                     case: p.case_title,
                     version: p.version,
                     status: p.status,
-                    total_try: p.total_minor / 100,
+                    total: p.total_minor / 100,
+                    currency: p.plan.currency,
                     visits: p.plan.sessions,
                     created: p.created_at,
                   })),
@@ -788,7 +790,7 @@ export default function ClinicScreen({
                           Version {p.version} · {date(p.created_at)}
                         </small>
                       </td>
-                      <td>{money(p.total_minor)}</td>
+                      <td>{money(p.total_minor, p.plan.currency)}</td>
                       <td>{p.plan.sessions}</td>
                       <td>
                         <Badge>{p.status}</Badge>
@@ -929,7 +931,7 @@ export default function ClinicScreen({
           />
           <div className="settings-grid">
             <section className="panel subscription-card">
-              <span className="eyebrow">DENTpro CLINIC</span>
+              <span className="eyebrow">DENTRIVO CLINIC</span>
               <h2>Clinic workspace</h2>
               <Badge>{clinic.subscription}</Badge>
               <div className="subscription-price">

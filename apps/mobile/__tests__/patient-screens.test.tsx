@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import SignIn from "../src/app/sign-in";
+import Cases from "../src/app/(patient)/(tabs)/index";
 import NewCase from "../src/app/(patient)/new";
 import Share from "../src/app/(patient)/share/[id]";
 import ProposalDetail from "../src/app/(patient)/proposal/[id]";
@@ -118,7 +119,7 @@ it("shows loading during sign-in and restores entered details after a failure", 
   fireEvent.changeText(screen.getByLabelText("Email"), "patient@example.org");
   fireEvent.changeText(screen.getByLabelText("Password"), "Patient123!");
   fireEvent.press(screen.getByText("Sign in"));
-  expect(screen.getByLabelText("DENTpro loading")).toBeTruthy();
+  expect(screen.getByLabelText("DENTRIVO loading")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
   await act(async () => {
     rejectLogin(new ApiError(401, "Invalid credentials"));
@@ -129,7 +130,7 @@ it("shows loading during sign-in and restores entered details after a failure", 
   );
   expect(screen.getByLabelText("Password")).toHaveDisplayValue("Patient123!");
   expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled();
-  expect(screen.queryByLabelText("DENTpro loading")).toBeNull();
+  expect(screen.queryByLabelText("DENTRIVO loading")).toBeNull();
   expect(api).toHaveBeenCalledTimes(1);
 });
 it("requires consent and reuses the same case payload/key after an uncertain failure", async () => {
@@ -165,11 +166,30 @@ it("requires consent and reuses the same case payload/key after an uncertain fai
 it("keeps every clinic available without location and highlights nearby clinics after permission", async () => {
   const values: Record<string, unknown> = {
     "/patient/clinics": [
-      { id: "near", name: "Near clinic", region: "Istanbul", district: "Kadikoy", address: "Sample address", latitude: 40.991, longitude: 29.0277 },
-      { id: "far", name: "Far clinic", region: "Ankara", district: "Cankaya", address: "Sample address", latitude: 39.9208, longitude: 32.8541 },
+      {
+        id: "near",
+        name: "Near clinic",
+        region: "Istanbul",
+        district: "Kadikoy",
+        address: "Sample address",
+        latitude: 40.991,
+        longitude: 29.0277,
+      },
+      {
+        id: "far",
+        name: "Far clinic",
+        region: "Ankara",
+        district: "Cankaya",
+        address: "Sample address",
+        latitude: 39.9208,
+        longitude: 32.8541,
+      },
     ],
     "/cases": [{ id: "p1", recipients: [], status: "draft" }],
-    "/patient/capabilities": { max_recipients: 10, consent_text: "Sharing terms" },
+    "/patient/capabilities": {
+      max_recipients: 10,
+      consent_text: "Sharing terms",
+    },
   };
   resource.mockImplementation(((path: string) => ({
     data: values[path] ?? null,
@@ -181,7 +201,9 @@ it("keeps every clinic available without location and highlights nearby clinics 
   mockLocationPermission
     .mockResolvedValueOnce({ granted: false })
     .mockResolvedValueOnce({ granted: true });
-  mockCurrentPosition.mockResolvedValue({ coords: { latitude: 40.991, longitude: 29.0277 } });
+  mockCurrentPosition.mockResolvedValue({
+    coords: { latitude: 40.991, longitude: 29.0277 },
+  });
   render(<Share />);
   expect(screen.getByText("All participating clinics · 2")).toBeTruthy();
   expect(screen.getByText("Far clinic")).toBeTruthy();
@@ -200,11 +222,69 @@ it("keeps the original proposal readable when its explanation failed", () => {
   expect(screen.getByText(/explanation is currently unavailable/)).toBeTruthy();
   expect(screen.queryByText(/being prepared/)).toBeNull();
 });
+
+it("shows the proposal currency, canal count and clinic-assigned urgency", () => {
+  data({
+    ...proposal,
+    plan: {
+      ...proposal.plan,
+      currency: "EUR",
+      items: [
+        {
+          ...proposal.plan.items[0],
+          procedure_code: "ROOT_CANAL_DOUBLE",
+          urgency: "urgent",
+        },
+      ],
+    },
+  });
+  render(<ProposalDetail />);
+  expect(screen.getByText("Root canal — 2 canals")).toBeTruthy();
+  expect(screen.getByText(/Priority: Urgent/)).toBeTruthy();
+  expect(screen.getAllByText(/€6,500.50/).length).toBeGreaterThan(0);
+});
+
+it("compares mixed currencies using their original units and clinic priorities", () => {
+  const first = { ...proposal, plan: { ...proposal.plan, currency: "USD" } };
+  const second = {
+    ...proposal,
+    id: "p2",
+    clinic_name: "Second Clinic",
+    plan: {
+      ...proposal.plan,
+      currency: "EUR",
+      items: [
+        {
+          ...proposal.plan.items[0],
+          procedure_code: "ROOT_CANAL_MULTI",
+          urgency: "soon",
+        },
+      ],
+    },
+  };
+  data({
+    proposals: [first, second],
+    currency: null,
+    notice: "No exchange-rate conversion has been applied.",
+  });
+  render(<Compare />);
+  expect(
+    screen.getByText("No exchange-rate conversion has been applied."),
+  ).toBeTruthy();
+  expect(screen.getByText("USD")).toBeTruthy();
+  expect(screen.getByText("EUR")).toBeTruthy();
+  expect(screen.getAllByText(/\$6,500.50/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/€6,500.50/).length).toBeGreaterThan(0);
+  expect(
+    screen.getByText(/Root canal — multiple canals\s+Priority: Soon/),
+  ).toBeTruthy();
+});
 it("identifies AI wording and its clinical review status on a proposal", () => {
   data({
     ...proposal,
     explanation: {
-      plain_summary: "The clinic proposes root canal treatment over two visits.",
+      plain_summary:
+        "The clinic proposes root canal treatment over two visits.",
       procedures: [],
       missing_information: [],
       questions_to_ask_clinic: [],
@@ -216,8 +296,12 @@ it("identifies AI wording and its clinical review status on a proposal", () => {
   });
   render(<ProposalDetail />);
   expect(screen.getByText("AI-ASSISTED SUMMARY")).toBeTruthy();
-  expect(screen.getByText(/wording has not been clinically reviewed/)).toBeTruthy();
-  expect(screen.getByText(/The clinic proposes root canal treatment/)).toBeTruthy();
+  expect(
+    screen.getByText(/wording has not been clinically reviewed/),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(/The clinic proposes root canal treatment/),
+  ).toBeTruthy();
 });
 it("labels a failed AI gateway as a template explanation", () => {
   data({
@@ -291,4 +375,68 @@ it("compares material, visits and scope without inventing a winner", () => {
   expect(screen.getAllByText("Total visits")).toHaveLength(2);
   expect(screen.getAllByText(/Material not specified/)).toHaveLength(2);
   expect(screen.queryByText(/Best clinic/)).toBeNull();
+});
+
+it("confirms draft deletion, then removes the card and refreshes", async () => {
+  data([
+    {
+      id: "draft1",
+      title: "Unshared draft",
+      status: "draft",
+      recipients: [],
+      region: "All regions",
+    },
+    {
+      id: "shared1",
+      title: "Shared case",
+      status: "shared",
+      recipients: ["clinic-1"],
+      region: "Istanbul",
+    },
+  ]);
+  api.mockResolvedValue({});
+  const alert = jest.spyOn(Alert, "alert");
+  render(<Cases />);
+  expect(screen.queryByLabelText("Delete draft Shared case")).toBeNull();
+  fireEvent.press(screen.getByLabelText("Delete draft Unshared draft"));
+  expect(api).not.toHaveBeenCalled();
+  expect(alert.mock.calls[0][2]?.find((b) => b.text === "Cancel")).toBeTruthy();
+  await act(async () => {
+    alert.mock.calls[0][2]?.find((b) => b.text === "Delete draft")?.onPress?.();
+  });
+  expect(api).toHaveBeenCalledWith("/cases/draft1", "token", "DELETE");
+  expect(mockRefresh).toHaveBeenCalledTimes(1);
+  const update = jest.mocked(useResource).mock.results.at(-1)?.value.setData
+    .mock.calls[0][0];
+  expect(update([{ id: "draft1" }, { id: "shared1" }])).toEqual([
+    { id: "shared1" },
+  ]);
+  alert.mockRestore();
+});
+
+it("retains the draft and shows a server conflict on failed deletion", async () => {
+  data([
+    {
+      id: "draft1",
+      title: "Stale draft",
+      status: "draft",
+      recipients: [],
+      region: "All regions",
+    },
+  ]);
+  api.mockRejectedValue(
+    new ApiError(409, "Only unshared draft cases can be deleted."),
+  );
+  const alert = jest.spyOn(Alert, "alert");
+  render(<Cases />);
+  fireEvent.press(screen.getByLabelText("Delete draft Stale draft"));
+  await act(async () => {
+    alert.mock.calls[0][2]?.find((b) => b.text === "Delete draft")?.onPress?.();
+  });
+  expect(
+    await screen.findByText("Only unshared draft cases can be deleted."),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Open Stale draft")).toBeTruthy();
+  expect(mockRefresh).not.toHaveBeenCalled();
+  alert.mockRestore();
 });

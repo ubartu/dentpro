@@ -7,6 +7,7 @@ from .db import Session, Proposal, Explanation, audit, now
 from .interpreter import explain
 from .ai_gateway import GatewayConfig, explain_with_openai
 from .operations_models import ExplanationJob, AIExplanationRequest, PlatformSetting
+from .mail_worker import run_mail_once
 
 def run_once():
     count=0
@@ -52,6 +53,8 @@ def run_once():
 
 if __name__=='__main__':
     while True:
-        try:run_once()
+        try:
+            run_mail_once()
+            run_once()
         except Exception:logging.exception('Worker cycle failed; will retry')
         time.sleep(2)

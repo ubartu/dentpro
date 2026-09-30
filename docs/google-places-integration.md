@@ -1,13 +1,13 @@
 # Clinic discovery: Google Places API (New)
 
-The patient clinic selector has an on-demand Google rating/photo section and separately labelled clinic-supplied social profiles. It does not automatically match businesses by name, rank clinical quality, or invent data for demo clinics. No live provider call has been made during implementation.
+The optional server gateway supports on-demand Google ratings/photos and separately labelled clinic-supplied social profiles. The patient selector now opens [clinic details with Maps Embed](maps-embed-integration.md) instead of invoking this paid gateway. The gateway and its reusable display component remain available for a future explicit integration. It does not automatically match businesses by name, rank clinical quality, or invent data for demo clinics. No live provider call has been made during implementation.
 
 ## Configure
 
 1. Create a Google Cloud project, enable **Places API (New)** and billing. Restrict the key to that API and your server's egress IPs; set provider quotas and billing alerts. Ratings/website fields and photo requests can incur charges. Never put the key in `EXPO_PUBLIC_` or `NEXT_PUBLIC_` variables.
 2. In the local API process environment set `DENTPRO_GOOGLE_PLACES_ENABLED=true` and either `GOOGLE_PLACES_API_KEY` or `GOOGLE_PLACES_API_KEY_FILE`. Restart the API. The app makes no direct key-bearing Google request.
 3. In Admin → Clinics → clinic details → **Google Maps & social profiles**, save the verified Google Place ID. Confirm the listing belongs to the same physical clinic. Only the Place ID and clinic-owned social links are stored. Clinic staff can edit their own social profiles in Clinic → Profile; they cannot replace the Google mapping.
-4. In the patient selector, use **Show Google rating & photo** on a linked clinic. Missing credentials, absent ratings/photos or provider failures do not block sharing. Pull-to-refresh clears the displayed Google result. Social links appear independently of Google configuration.
+4. The gateway can be called through the authenticated patient discovery endpoint, but the current clinic selector does not invoke it. Social links and the external Google profile link work independently of paid Places configuration. See the Maps Embed guide for the current app flow.
 
 Google Places documents `rating`, `userRatingCount`, `photos`, `websiteUri` and `googleMapsUri`; it does **not document a social-network profile field**. The integration does not scrape websites or assume a Google website is an Instagram account. Social profiles therefore come from validated HTTPS URLs supplied by clinic staff/admin.
 

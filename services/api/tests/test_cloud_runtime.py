@@ -60,11 +60,45 @@ def test_fresh_cloud_schema_has_settings_but_no_demo_accounts_or_cases(tmp_path)
     code = (
         'from dentpro.cloud_schema import initialize_cloud_schema, SCHEMA_KEY; '
         'from dentpro.db import Session, Case; '
-        'from dentpro.operations_models import Account, PlatformSetting; '
+        'from dentpro.operations_models import Account, PlatformSetting, GlossaryEntry; '
         'initialize_cloud_schema(); initialize_cloud_schema(); '
         'db=Session(); '
-        'assert db.get(PlatformSetting,SCHEMA_KEY).value["version"]==2; '
-        'assert db.query(Account).count()==0; assert db.query(Case).count()==0'
+        'assert db.get(PlatformSetting,SCHEMA_KEY).value["version"]==3; '
+        'assert db.query(Account).count()==0; assert db.query(Case).count()==0; '
+        'g=db.get(GlossaryEntry,"ROOT_CANAL"); g.reviewed=True; g.reviewer="QA reviewer"; '
+        'db.delete(db.get(GlossaryEntry,"ROOT_CANAL_MULTI")); db.commit(); db.close(); '
+        'initialize_cloud_schema(); db=Session(); '
+        'assert db.get(GlossaryEntry,"ROOT_CANAL").reviewed; '
+        'assert not db.get(GlossaryEntry,"ROOT_CANAL_MULTI").reviewed'
     )
     process = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True, timeout=20)
     assert process.returncode == 0, process.stderr
+
+def test_mail_cloud_migration_adds_only_recovery_tables(tmp_path):
+    env=os.environ|{'APP_ENV':'development','DATABASE_URL':f'sqlite:///{tmp_path / "migration.db"}'}
+    env.pop('DATABASE_URL_FILE',None)
+    code='''
+from dentpro.cloud_schema import initialize_cloud_schema,SCHEMA_KEY
+from dentpro.db import Session,engine
+from dentpro.operations_models import PlatformSetting,GlossaryEntry
+from dentpro.mail_models import PasswordReset,RecoveryThrottle,MailJob
+from dentpro.migrate_cloud_mail import migrate
+initialize_cloud_schema()
+with Session() as db:
+    db.get(PlatformSetting,SCHEMA_KEY).value={'version':2}
+    db.get(GlossaryEntry,'CROWN').explanation='Preserved clinical wording'
+    db.commit()
+for model in (PasswordReset,RecoveryThrottle,MailJob): model.__table__.drop(engine)
+try: initialize_cloud_schema()
+except RuntimeError: pass
+else: raise AssertionError('Unmigrated schema must fail closed')
+migrate();initialize_cloud_schema()
+with Session() as db:
+    assert db.get(PlatformSetting,SCHEMA_KEY).value['version']==3
+    assert db.get(GlossaryEntry,'CROWN').explanation=='Preserved clinical wording'
+try: migrate()
+except RuntimeError: pass
+else: raise AssertionError('Wrong version must not migrate')
+'''
+    process=subprocess.run([sys.executable,'-c',code],env=env,capture_output=True,text=True,timeout=20)
+    assert process.returncode==0,process.stderr

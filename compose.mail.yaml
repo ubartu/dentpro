@@ -1,0 +1,34 @@
+# Optional transactional recovery overlay. Secrets reach API and worker only.
+services:
+  api:
+    # Trust only Caddy's fixed private address so limits use the real client IP.
+    command: [python, -m, uvicorn, "dentpro.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "${DENTPRO_PROXY_IP:-172.28.40.10}"]
+    environment:
+      DENTPRO_MAIL_PROVIDER: resend
+      DENTPRO_MAIL_FROM: ${DENTPRO_MAIL_FROM:?set verified sender address}
+      DENTPRO_RESET_URL: https://${DENTPRO_WEB_DOMAIN:?set web domain}/reset-password
+      DENTPRO_RESET_SECRET_FILE: /run/secrets/reset_secret
+      RESEND_API_KEY_FILE: /run/secrets/resend_key
+    secrets: [reset_secret, resend_key]
+  worker:
+    environment:
+      DENTPRO_MAIL_PROVIDER: resend
+      DENTPRO_MAIL_FROM: ${DENTPRO_MAIL_FROM:?set verified sender address}
+      DENTPRO_RESET_URL: https://${DENTPRO_WEB_DOMAIN:?set web domain}/reset-password
+      DENTPRO_RESET_SECRET_FILE: /run/secrets/reset_secret
+      RESEND_API_KEY_FILE: /run/secrets/resend_key
+    secrets: [reset_secret, resend_key]
+  edge:
+    networks:
+      default:
+        ipv4_address: ${DENTPRO_PROXY_IP:-172.28.40.10}
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${DENTPRO_PRIVATE_SUBNET:-172.28.40.0/24}
+secrets:
+  reset_secret:
+    file: ./secrets/password_reset_secret
+  resend_key:
+    file: ./secrets/resend_api_key

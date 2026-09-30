@@ -2,11 +2,11 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import quote
-from uuid import uuid4
+from uuid import UUID, uuid4
 from fastapi import FastAPI, Depends, HTTPException, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
-from sqlalchemy import select, text
+from sqlalchemy import select, text, delete
 from sqlalchemy.exc import IntegrityError
 from .db import Base, engine, get_db, Case, Clinic, Proposal, Explanation, Appointment, Consent, Audit, XrayAsset, audit
 from .auth import actor, require, TOKENS, ACTORS
@@ -28,7 +28,7 @@ async def lifespan(app):
         seed_operations()
     yield
 
-app = FastAPI(title='DENTpro API', version='0.1.0', lifespan=lifespan,
+app = FastAPI(title='DENTRIVO API', version='0.1.0', lifespan=lifespan,
               docs_url=None if cloud_mode() else '/docs', redoc_url=None if cloud_mode() else '/redoc',
               openapi_url=None if cloud_mode() else '/openapi.json')
 app.add_middleware(CORSMiddleware, allow_origins=cors_origins(), allow_methods=['GET','POST','PUT','PATCH','DELETE'], allow_headers=['Authorization','Content-Type','Idempotency-Key'])
@@ -36,6 +36,8 @@ app.add_middleware(CORSMiddleware, allow_origins=cors_origins(), allow_methods=[
 @app.middleware('http')
 async def security_headers(request, call_next):
     response = await call_next(request)
+    if request.url.path.startswith('/auth/password/'):
+        response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Referrer-Policy'] = 'no-referrer'
     response.headers['X-Frame-Options'] = 'DENY'
@@ -63,8 +65,8 @@ def catalog(user=Depends(actor)):
 def clinics(user=Depends(actor), db=Depends(get_db)):
     return db.scalars(select(Clinic).order_by(Clinic.name)).all()
 
-def access_case(db, case_id, user):
-    c = db.get(Case, case_id)
+def access_case(db, case_id, user, lock=False):
+    c = db.scalar(select(Case).where(Case.id==case_id).with_for_update()) if lock else db.get(Case, case_id)
     if not c: raise HTTPException(404, 'Case not found')
     allowed = user['role'] == 'admin' or (user['role'] == 'patient' and c.user_id == user['id']) or (user['role'] == 'clinic' and user['clinic_id'] in c.recipients)
     if not allowed: raise HTTPException(404, 'Case not found')
@@ -93,7 +95,9 @@ def create_case(data: CaseInput,user=Depends(require('patient')),db=Depends(get_
         prior = db.scalar(select(PatientCaseRequest).where(PatientCaseRequest.user_id==user['id'],PatientCaseRequest.request_key==idempotency_key))
         if prior:
             if prior.request_hash != request_hash: raise HTTPException(409, 'This submission was already used for a different case')
-            return case_view(db.get(Case,prior.case_id))
+            existing=db.get(Case,prior.case_id)
+            if not existing: raise HTTPException(410,'This draft was deleted. Start a new case.')
+            return case_view(existing)
     c = Case(id=str(uuid4()),user_id=user['id'],title=data.title,region=data.region)
     from .patient import CONSENT_VERSION
     if data.consent_version and data.consent_version != CONSENT_VERSION: raise HTTPException(409, 'Consent terms changed. Refresh and review the current terms.')
@@ -108,9 +112,28 @@ def create_case(data: CaseInput,user=Depends(require('patient')),db=Depends(get_
         return case_view(db.get(Case,prior.case_id))
     return case_view(c)
 
+@app.delete('/cases/{case_id}', status_code=204)
+def delete_draft(case_id:str,user=Depends(require('patient')),db=Depends(get_db)):
+    c=access_case(db,case_id,user,lock=True)
+    if c.status!='draft' or c.recipients or db.scalar(select(Proposal.id).where(Proposal.case_id==case_id).limit(1)):
+        raise HTTPException(409,'Only unshared draft cases can be deleted.')
+    asset_path=None
+    if not cloud_mode() and c.asset and not c.asset.get('synthetic'):
+        # Upload keys are server-generated UUIDs, never user-supplied paths.
+        asset_path=Path('.data/assets')/str(UUID(c.asset['key']))
+    result=db.execute(delete(Case).where(Case.id==case_id,Case.user_id==user['id'],Case.status=='draft'))
+    if result.rowcount!=1:
+        db.rollback(); raise HTTPException(409,'The case changed. Refresh your cases.')
+    db.execute(delete(Consent).where(Consent.case_id==case_id))
+    db.execute(delete(XrayAsset).where(XrayAsset.case_id==case_id))
+    # Keep audit events and the request mapping as a tombstone against stale retries.
+    audit(db,user['id'],'case.draft_deleted',case_id); db.commit()
+    if asset_path: asset_path.unlink(missing_ok=True)
+    return Response(status_code=204)
+
 @app.post('/cases/{case_id}/xray',status_code=201, response_model=CaseOutput)
 async def upload(case_id:str,file:UploadFile=File(...),user=Depends(require('patient')),db=Depends(get_db)):
-    c=access_case(db,case_id,user)
+    c=access_case(db,case_id,user,lock=True)
     if c.status != 'draft': raise HTTPException(409,'Images cannot change after sharing. Create a new case.')
     setting=db.get(PlatformSetting,'operations')
     limit=(setting.value.get('upload_limit_mb',10) if setting else 10)*1024*1024
@@ -144,7 +167,7 @@ def download(case_id:str,user=Depends(actor),db=Depends(get_db)):
 
 @app.post('/cases/{case_id}/dispatch', response_model=CaseOutput)
 def dispatch(case_id:str,data:DispatchInput,user=Depends(require('patient')),db=Depends(get_db)):
-    c=access_case(db,case_id,user)
+    c=access_case(db,case_id,user,lock=True)
     if c.status=='archived':raise HTTPException(409,'Case is archived')
     if not c.asset: raise HTTPException(409,'Upload an image before sharing this case')
     setting=db.get(PlatformSetting,'operations')
@@ -184,7 +207,11 @@ def compare(case_id:str,user=Depends(require('patient')),db=Depends(get_db)):
     access_case(db,case_id,user)
     rows=db.scalars(select(Proposal).where(Proposal.case_id==case_id).order_by(Proposal.created_at)).all()
     # Source order only; no score, winner, clinical equivalence or sponsored ranking.
-    return {'case_id':case_id,'currency':'TRY','proposals':[proposal_view(db,p) for p in rows if is_visible(db,p)], 'notice':'Different procedures may represent different scopes of care. Prices are preliminary; comparison is not a clinical recommendation.'}
+    proposals=[proposal_view(db,p) for p in rows if is_visible(db,p)]
+    currencies={p['plan']['currency'] for p in proposals}
+    notice='Different procedures may represent different scopes of care. Prices are preliminary; comparison is not a clinical recommendation.'
+    if len(currencies)>1: notice+=' These proposals use different currencies. No exchange-rate conversion has been applied; totals are not directly comparable.'
+    return {'case_id':case_id,'currency':next(iter(currencies)) if len(currencies)==1 else None,'proposals':proposals, 'notice':notice}
 
 @app.post('/appointments',status_code=201, response_model=AppointmentOutput)
 def book(data:AppointmentInput,user=Depends(require('patient')),db=Depends(get_db)):
@@ -225,3 +252,6 @@ app.include_router(patient_router)
 
 from .clinic_discovery import router as discovery_router
 app.include_router(discovery_router)
+
+from .password_recovery import router as recovery_router
+app.include_router(recovery_router)

@@ -3,10 +3,11 @@
 from sqlalchemy import inspect, select
 from .db import Base, engine, Session, Case
 from .operations_models import Account, PlatformSetting
+from . import mail_models
 from .operations_seed import seed_base_settings
 
 SCHEMA_KEY = 'cloud_schema_version'
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def initialize_cloud_schema() -> None:
@@ -27,3 +28,6 @@ def initialize_cloud_schema() -> None:
             raise RuntimeError('Cloud database schema version is missing or unsupported')
         if db.scalar(select(Account.id).where(Account.id.in_(['admin-account', 'clinic-account']))) or db.get(Case, 'case-demo'):
             raise RuntimeError('Demo accounts or cases are present in the cloud database')
+        # Add missing catalog wording as unreviewed drafts; preserve existing reviews.
+        seed_base_settings(db)
+        db.commit()

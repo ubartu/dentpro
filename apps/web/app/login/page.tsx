@@ -2,12 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  ArrowRight,
-  ShieldCheck,
-  Building2,
-  Check,
-} from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ShieldCheck, Building2, Check } from "lucide-react";
 import { API, Auth, Role } from "../types";
 import { Field, Form } from "../components/ui";
 export default function Login() {
@@ -19,14 +15,18 @@ export default function Login() {
     <div className="login-page">
       <section className="login-story">
         <div className="wordmark">
-          <Image src="/dentpro-brand-square.png" alt="" width={45} height={45} />
-          DENT<span>pro</span>
+          <Image
+            src="/dentrivo-wordmark.png"
+            alt="DENTRIVO"
+            width={2160}
+            height={728}
+          />
         </div>
         <div>
           <Image
             className="login-hero-logo"
-            src="/dentpro-brand-square.png"
-            alt="DENTpro smiling tooth logo"
+            src="/dentrivo-icon.png"
+            alt="DENTRIVO logo"
             width={170}
             height={170}
             loading="eager"
@@ -56,7 +56,7 @@ export default function Login() {
             </span>
           </div>
         </div>
-        <small>DENTpro · Clinic & platform operations</small>
+        <small>DENTRIVO · Clinic & platform operations</small>
       </section>
       <section className="login-form">
         <div className="portal-tabs">
@@ -126,6 +126,9 @@ export default function Login() {
             />
           </Field>
         </Form>
+        <p>
+          <Link href="/forgot-password">Forgot your password?</Link>
+        </p>
         <div className="demo-login">
           <strong>Local evaluation access</strong>
           <p>

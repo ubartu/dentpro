@@ -35,6 +35,7 @@ export type Item = {
   material: string | null;
   price_minor: number;
   sessions: number;
+  urgency?: "urgent" | "soon" | "routine";
 };
 export type Plan = {
   items: Item[];
@@ -42,7 +43,7 @@ export type Plan = {
   requires_exam: boolean;
   first_available_slot: string | null;
   notes: string;
-  currency: string;
+  currency: "TRY" | "USD" | "EUR";
 };
 export type DentalCase = {
   id: string;
@@ -168,16 +169,20 @@ export type Action = (
 ) => Promise<unknown>;
 export const names: Record<string, string> = {
   ROOT_CANAL: "Root canal",
+  ROOT_CANAL_SINGLE: "Root canal — 1 canal",
+  ROOT_CANAL_DOUBLE: "Root canal — 2 canals",
+  ROOT_CANAL_MULTI: "Root canal — multiple canals",
   EXTRACTION: "Extraction",
   IMPLANT: "Dental implant",
   CROWN: "Dental crown",
   FILLING: "Filling",
   CLEANING: "Cleaning",
 };
-export const money = (v: number) =>
+export const urgencies = { urgent: "Urgent", soon: "Soon", routine: "Routine" };
+export const money = (v: number, currency = "TRY") =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "TRY",
+    currency,
     maximumFractionDigits: 2,
   }).format(v / 100);
 export const date = (v: string | null | undefined) =>

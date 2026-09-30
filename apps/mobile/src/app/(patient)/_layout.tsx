@@ -15,6 +15,7 @@ export default function PatientLayout() {
       <Stack.Screen name="new" options={{ title: "New case" }} />
       <Stack.Screen name="case/[id]" options={{ title: "Your case" }} />
       <Stack.Screen name="share/[id]" options={{ title: "Choose clinics" }} />
+      <Stack.Screen name="clinic/[id]" options={{ title: "Clinic details" }} />
       <Stack.Screen
         name="proposal/[id]"
         options={{ title: "Clinic proposal" }}

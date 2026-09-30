@@ -52,7 +52,7 @@ export async function request<T>(
     if (error instanceof ApiError) throw error;
     throw new ApiError(
       0,
-      "Cannot reach DENTpro. Check your connection and try again. Your request may have reached the server; refresh before submitting again.",
+      "Cannot reach DENTRIVO. Check your connection and try again. Your request may have reached the server; refresh before submitting again.",
     );
   } finally {
     clearTimeout(timeout);

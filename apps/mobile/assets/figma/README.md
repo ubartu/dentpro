@@ -15,6 +15,6 @@ Local PNG exports from the second file:
 
 These are the original exports, not redrawn artwork. The native UI uses blend compositing and opacity over blue cards. Their resolution reflects the available exports. File access does not establish redistribution rights; the upstream Community terms govern the reference artwork.
 
-The current DENTpro tooth logo was supplied separately from these Figma references. Its original is stored at `assets/dentpro-logo-original.jpeg`; square adaptations are stored at `assets/dentpro-brand-square.png` and `assets/dentpro-brand-adaptive.png`. `src/components/logo-mark.tsx` renders the square logo and rotates it only during loading, pausing in the background and respecting the device's reduced-motion preference. The older `brand-mark.svg` and related PNGs remain as unused historical assets.
+The current DENTRIVO logo was supplied separately from these Figma references. Its original is stored at `assets/dentrivo-source.png`; app-ready adaptations are `assets/dentrivo-icon.png`, `assets/dentrivo-adaptive.png`, and `assets/dentrivo-wordmark.png`. `src/components/logo-mark.tsx` renders the square mark and rotates it only during loading, pausing in the background and respecting the device's reduced-motion preference. Earlier DENTpro logo assets remain as unused historical assets.
 
-The source templates' unrelated meditation content and unconnected social authentication/password recovery controls are not included. All visible patient actions connect to DENTpro's existing workflows.
+The source templates' unrelated meditation content and unconnected social authentication/password recovery controls are not included. All visible patient actions connect to DENTRIVO's existing workflows.

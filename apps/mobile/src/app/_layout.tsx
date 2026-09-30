@@ -42,6 +42,10 @@ function Navigation() {
       </Stack.Protected>
       <Stack.Protected guard={!session.token}>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="forgot-password"
+          options={{ title: "Password recovery" }}
+        />
       </Stack.Protected>
     </Stack>
   );

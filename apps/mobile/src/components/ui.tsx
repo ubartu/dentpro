@@ -4,6 +4,7 @@ import { LogoMark } from "./logo-mark";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -289,19 +290,12 @@ export function Field({
 }
 export function Brand() {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <LogoMark size={38} />
-      <Text
-        style={{
-          fontFamily: fonts.bold,
-          fontSize: 21,
-          color: colors.ink,
-          letterSpacing: -0.8,
-        }}
-      >
-        DENT<Text style={{ color: colors.blue }}>pro</Text>
-      </Text>
-    </View>
+    <Image
+      source={require("../../assets/dentrivo-wordmark.png")}
+      accessibilityLabel="DENTRIVO"
+      resizeMode="contain"
+      style={{ width: 190, height: 64 }}
+    />
   );
 }
 export function Section({

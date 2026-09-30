@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
+import { router } from "expo-router";
 import {
   Button,
   Brand,
@@ -58,7 +59,7 @@ export default function SignIn() {
           title={
             register
               ? "Create your account"
-              : "Sign in to your\nDENTpro account"
+              : "Sign in to your\nDENTRIVO account"
           }
           subtitle={
             register
@@ -137,6 +138,13 @@ export default function SignIn() {
               setError("");
             }}
           />
+          {!register && (
+            <Button
+              title="Forgot your password?"
+              quiet
+              onPress={() => router.push("/forgot-password")}
+            />
+          )}
         </View>
       )}
       <View style={{ flex: 1, minHeight: 10 }} />
@@ -153,7 +161,7 @@ export default function SignIn() {
           { textAlign: "center", fontSize: 11, lineHeight: 17 },
         ]}
       >
-        DENTpro explains proposals written by clinics. It does not diagnose
+        DENTRIVO explains proposals written by clinics. It does not diagnose
         conditions or prescribe treatment.
       </Text>
     </Screen>

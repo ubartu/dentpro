@@ -10,7 +10,7 @@ DISCLAIMER = 'This explanation simplifies the clinic’s proposal. It is not an 
 def canonical_source(plan):
     # Free-text notes/material names are excluded from the interpreter boundary.
     return {
-        'items': [{k: item[k] for k in ('tooth','procedure_code','price_minor','sessions')} | {'material_specified': bool(item.get('material'))} for item in plan['items']],
+        'items': [{k: item[k] for k in ('tooth','procedure_code','price_minor','sessions')} | {'material_specified': bool(item.get('material')), 'urgency': item.get('urgency','routine')} for item in plan['items']],
         'sessions': plan['sessions'], 'requires_exam': plan['requires_exam'],
         'currency': plan['currency'], 'first_available_slot': plan.get('first_available_slot'),
     }

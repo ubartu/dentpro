@@ -325,6 +325,39 @@ const suffix = Date.now();
     await page.getByLabel("Tooth · FDI notation").nth(1).inputValue(),
     "36",
   );
+  await page
+    .getByLabel("Proposal currency", { exact: true })
+    .selectOption("USD");
+  assert.equal(
+    await page.getByLabel("Price (USD)", { exact: true }).first().inputValue(),
+    "6700",
+  );
+  await page
+    .getByLabel("Procedure", { exact: true })
+    .first()
+    .selectOption("ROOT_CANAL_DOUBLE");
+  await page
+    .getByLabel("Treatment urgency", { exact: true })
+    .nth(0)
+    .selectOption("soon");
+  await page
+    .getByLabel("Treatment urgency", { exact: true })
+    .nth(1)
+    .selectOption("urgent");
+  await page
+    .getByRole("button", { name: "Order by urgency", exact: true })
+    .click();
+  assert.equal(
+    await page.getByLabel("Tooth · FDI notation").nth(0).inputValue(),
+    "36",
+  );
+  assert.equal(
+    await page
+      .getByLabel("Treatment urgency", { exact: true })
+      .nth(0)
+      .inputValue(),
+    "urgent",
+  );
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "Draft saved" }).waitFor();
   await page.getByRole("button", { name: "Close dialog" }).click();
@@ -337,16 +370,16 @@ const suffix = Date.now();
     .getByRole("button", { name: "Continue draft", exact: true })
     .click();
   assert.equal(
-    await page.getByLabel("Price (TRY)", { exact: true }).first().inputValue(),
-    "6700",
+    await page.getByLabel("Price (USD)", { exact: true }).first().inputValue(),
+    "2100",
   );
   assert.equal(
     await page.getByLabel("Tooth · FDI notation").nth(0).inputValue(),
-    "55",
+    "36",
   );
   assert.equal(
     await page.getByLabel("Tooth · FDI notation").nth(1).inputValue(),
-    "36",
+    "55",
   );
   await page
     .getByRole("button", { name: "Publish proposal", exact: true })
@@ -355,7 +388,50 @@ const suffix = Date.now();
   await checkCaseFilter("unanswered", false);
   await nav("Proposals & drafts");
   await page.getByPlaceholder("Search proposals…").fill(title);
+  await page.getByRole("button", { name: "View", exact: true }).click();
+  const treatmentView = page.getByRole("region", {
+    name: "Proposed treatment teeth",
+  });
+  await treatmentView
+    .locator('.tooth-canvas[data-render-state="ready"]')
+    .waitFor();
+  assert.equal(
+    await treatmentView
+      .getByRole("button", { name: /^Tooth 36:/ })
+      .getAttribute("class"),
+    "assigned",
+  );
+  await treatmentView
+    .getByRole("button", { name: "Child · 20 teeth", exact: true })
+    .click();
+  assert.equal(
+    await treatmentView
+      .getByRole("button", { name: /^Tooth 55:/ })
+      .getAttribute("class"),
+    "assigned",
+  );
+  await treatmentView.getByRole("button", { name: /^Tooth 54:/ }).click();
+  await treatmentView
+    .getByText("Not included in this proposal", { exact: true })
+    .waitFor();
+  await page.screenshot({
+    path: "tmp/panel-qa/active-proposal-teeth.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  await page.getByRole("button", { name: "Close dialog" }).click();
   await page.getByRole("button", { name: "Revise", exact: true }).click();
+  assert.equal(
+    await page.getByLabel("Proposal currency", { exact: true }).inputValue(),
+    "USD",
+  );
+  assert.equal(
+    await page
+      .getByLabel("Treatment urgency", { exact: true })
+      .nth(0)
+      .inputValue(),
+    "urgent",
+  );
   await page.getByLabel("Total planned visits", { exact: true }).fill("3");
   await page
     .getByRole("button", { name: "Publish revision", exact: true })
@@ -369,8 +445,14 @@ const suffix = Date.now();
   assert.equal(plans[0].version, 2);
   assert.deepEqual(
     plans[0].plan.items.map((item) => item.tooth),
-    ["55", "36"],
+    ["36", "55"],
   );
+  assert.equal(plans[0].plan.currency, "USD");
+  assert.deepEqual(
+    plans[0].plan.items.map((item) => item.urgency),
+    ["urgent", "soon"],
+  );
+  assert.equal(plans[0].plan.items[1].procedure_code, "ROOT_CANAL_DOUBLE");
   await call("/appointments", { proposal_id: plans[0].id }, patient);
   await nav("Appointments");
   await page.getByPlaceholder("Search requests…").fill(title);
@@ -505,9 +587,15 @@ const suffix = Date.now();
   await page.getByRole("button", { name: "Save clinic decision" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page.getByRole("button", { name: "Review clinic" }).click();
-  await page.getByText("Google Maps & social profiles", { exact: true }).click();
-  await page.getByLabel("Google Place ID", { exact: true }).fill(`ChIJSyntheticQA${suffix}`);
-  await page.getByLabel("Instagram profile", { exact: true }).fill("https://www.instagram.com/dentpro_synthetic_qa/");
+  await page
+    .getByText("Google Maps & social profiles", { exact: true })
+    .click();
+  await page
+    .getByLabel("Google Place ID", { exact: true })
+    .fill(`ChIJSyntheticQA${suffix}`);
+  await page
+    .getByLabel("Instagram profile", { exact: true })
+    .fill("https://www.instagram.com/dentpro_synthetic_qa/");
   await page.getByRole("button", { name: "Save discovery profile" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await nav("Proposal oversight");
@@ -578,7 +666,12 @@ const suffix = Date.now();
   assert.equal(testClinic.status, "active");
   assert.equal(testClinic.monthly_fee_minor, 190000);
   assert.equal(testClinic.google_place_id, `ChIJSyntheticQA${suffix}`);
-  assert.deepEqual(testClinic.social_links, [{platform: "instagram", url: "https://www.instagram.com/dentpro_synthetic_qa/"}]);
+  assert.deepEqual(testClinic.social_links, [
+    {
+      platform: "instagram",
+      url: "https://www.instagram.com/dentpro_synthetic_qa/",
+    },
+  ]);
   assert.equal(
     adminData.accounts.find((a) => a.email === `qa-${suffix}@example.org`)
       .active,

@@ -62,6 +62,7 @@ class PatientClinic(StrictModel):
     latitude: float | None
     longitude: float | None
     google_linked: bool
+    google_place_id: str | None = None
     social_links: list[SocialLink]
 
 CONSENT_VERSION = 'patient-sharing-1'
@@ -132,20 +133,32 @@ def capabilities(user=Depends(require('patient')), db=Depends(get_db)):
 
 @router.get('/clinics', response_model=list[PatientClinic])
 def clinics(user=Depends(require('patient')), db=Depends(get_db)):
-    rows = db.execute(
-        select(Clinic, ClinicProfile, ClinicLocation)
+    return clinic_directory(db)
+
+def clinic_directory(db, clinic_id=None):
+    query = select(Clinic, ClinicProfile, ClinicLocation)
+    query = (query
         .join(ClinicProfile, Clinic.id == ClinicProfile.clinic_id)
         .outerjoin(ClinicLocation, Clinic.id == ClinicLocation.clinic_id)
         .where(ClinicProfile.status == 'active')
         .order_by(Clinic.name)
-    ).all()
+    )
+    if clinic_id is not None: query = query.where(Clinic.id == clinic_id)
+    rows = db.execute(query).all()
     return [
         {k: getattr(c,k) for k in ('id','name','region','district','address')}
         | {k: getattr(p,k) for k in ('phone','description','hours')}
         | {'latitude': loc.latitude if loc else None, 'longitude': loc.longitude if loc else None}
-        | {'google_linked': bool(discovery_view(db,c.id)['google_place_id']), 'social_links': discovery_view(db,c.id)['social_links']}
+        | {'google_linked': bool(discovery['google_place_id']), **discovery}
         for c,p,loc in rows
+        for discovery in [discovery_view(db,c.id)]
     ]
+
+@router.get('/clinics/{clinic_id}', response_model=PatientClinic)
+def clinic_detail(clinic_id:str,user=Depends(require('patient')),db=Depends(get_db)):
+    result=next(iter(clinic_directory(db,clinic_id)),None)
+    if not result: raise HTTPException(404,'Clinic not available')
+    return result
 
 @router.get('/appointments', response_model=list[PatientAppointment])
 def appointments(user=Depends(require('patient')), db=Depends(get_db)):

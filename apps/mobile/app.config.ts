@@ -1,13 +1,13 @@
 import type { ExpoConfig } from "expo/config";
 const release = process.env.EAS_BUILD_PROFILE === "production";
 const config: ExpoConfig = {
-  name: "DENTpro",
+  name: "DENTRIVO",
   slug: "dentpro-patient",
   version: "1.0.0",
   scheme: "dentpro",
   orientation: "portrait",
   userInterfaceStyle: "light",
-  icon: "./assets/dentpro-brand-square.png",
+  icon: "./assets/dentrivo-icon.png",
   platforms: ["ios", "android"],
   ios: {
     supportsTablet: true,
@@ -22,7 +22,7 @@ const config: ExpoConfig = {
   android: {
     package: "com.dentpro.patient",
     adaptiveIcon: {
-      foregroundImage: "./assets/dentpro-brand-adaptive.png",
+      foregroundImage: "./assets/dentrivo-adaptive.png",
       backgroundColor: "#FFFFFF",
     },
     permissions: [],
@@ -43,7 +43,7 @@ const config: ExpoConfig = {
       "expo-location",
       {
         locationWhenInUsePermission:
-          "Allow DENTpro to use your location to show nearby participating clinics.",
+          "Allow DENTRIVO to use your location to show nearby participating clinics.",
       },
     ],
     "expo-font",
@@ -51,7 +51,7 @@ const config: ExpoConfig = {
       "expo-splash-screen",
       {
         backgroundColor: "#FFFFFF",
-        image: "./assets/dentpro-brand-square.png",
+        image: "./assets/dentrivo-icon.png",
         imageWidth: 160,
       },
     ],

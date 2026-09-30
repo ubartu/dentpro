@@ -188,8 +188,12 @@ export default function Portal({
     <div className={"portal " + role}>
       <aside className={"sidebar " + (mobile ? "open" : "")}>
         <Link href={"/" + role} className="wordmark">
-          <Image src="/dentpro-brand-square.png" alt="" width={38} height={38} />
-          DENT<span>pro</span>
+          <Image
+            src="/dentrivo-wordmark.png"
+            alt="DENTRIVO home"
+            width={2160}
+            height={728}
+          />
         </Link>
         <div className="workspace-chip">
           {role === "clinic" ? (
@@ -346,7 +350,7 @@ export default function Portal({
           )}
           <footer>
             <span>
-              DENTpro ·{" "}
+              DENTRIVO ·{" "}
               {role === "clinic" ? "Clinic workspace" : "Platform operations"}
             </span>
             <span>Synthetic evaluation data · Private local environment</span>

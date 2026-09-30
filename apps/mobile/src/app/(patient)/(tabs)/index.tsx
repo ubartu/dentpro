@@ -4,6 +4,7 @@ import {
   Pressable,
   StyleSheet,
   useWindowDimensions,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,8 @@ import {
 } from "../../../components/ui";
 import { useResource } from "../../../lib/use-resource";
 import { useSession } from "../../../lib/session";
+import { useAction } from "../../../lib/use-action";
+import { request } from "../../../lib/api";
 import { DentalCase, label } from "../../../lib/types";
 const art = {
   care: require("../../../../assets/figma/care-illustration.png"),
@@ -28,8 +31,31 @@ const art = {
   banner: require("../../../../assets/figma/banner-pattern.png"),
 };
 export default function Cases() {
-  const { user } = useSession();
+  const { user, token } = useSession();
   const r = useResource<DentalCase[]>("/cases");
+  const action = useAction();
+  function confirmDelete(c: DentalCase) {
+    Alert.alert(
+      "Delete draft?",
+      `“${c.title}” and its uploaded X-ray will be permanently deleted.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete draft",
+          style: "destructive",
+          onPress: () =>
+            void action.run(async () => {
+              await request(`/cases/${c.id}`, token!, "DELETE");
+              r.setData(
+                (current) => current?.filter((item) => item.id !== c.id) || [],
+              );
+              await r.refresh();
+            }),
+        },
+      ],
+      { cancelable: true },
+    );
+  }
   const { width, fontScale } = useWindowDimensions();
   const narrow = width < 350 || fontScale > 1.3;
   const open = (id: string) =>
@@ -140,6 +166,7 @@ export default function Cases() {
         </Text>
       </View>
       <Notice text={r.error} error />
+      <Notice text={action.error} error />
       {r.error && (
         <Button title="Try again" onPress={() => void r.refresh()} secondary />
       )}
@@ -151,40 +178,59 @@ export default function Cases() {
         />
       )}
       {r.data?.map((c) => (
-        <Pressable
-          key={c.id}
-          accessibilityRole="button"
-          accessibilityLabel={`Open ${c.title}`}
-          onPress={() => open(c.id)}
-          style={({ pressed }) => [
-            local.case,
-            pressed && { backgroundColor: colors.pale },
-          ]}
-        >
-          <View style={local.caseIcon}>
-            <Ionicons
-              name={
-                c.status === "draft"
-                  ? "document-outline"
-                  : "folder-open-outline"
-              }
-              size={25}
-              color={colors.blue}
-            />
-          </View>
-          <View style={{ flex: 1, gap: 5 }}>
-            <Text numberOfLines={2} style={[styles.heading, { fontSize: 15 }]}>
-              {c.title}
-            </Text>
-            <Text style={styles.muted}>
-              {c.region} · {c.recipients.length} clinics
-            </Text>
-            <Text style={[styles.badge, { fontSize: 10, paddingVertical: 3 }]}>
-              {label(c.status)}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
-        </Pressable>
+        <View key={c.id} style={local.case}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${c.title}`}
+            onPress={() => open(c.id)}
+            style={({ pressed }) => [
+              local.caseBody,
+              pressed && { backgroundColor: colors.pale },
+            ]}
+          >
+            <View style={local.caseIcon}>
+              <Ionicons
+                name={
+                  c.status === "draft"
+                    ? "document-outline"
+                    : "folder-open-outline"
+                }
+                size={25}
+                color={colors.blue}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 5 }}>
+              <Text
+                numberOfLines={2}
+                style={[styles.heading, { fontSize: 15 }]}
+              >
+                {c.title}
+              </Text>
+              <Text style={styles.muted}>
+                {c.region} · {c.recipients.length} clinics
+              </Text>
+              <Text
+                style={[styles.badge, { fontSize: 10, paddingVertical: 3 }]}
+              >
+                {label(c.status)}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+          </Pressable>
+          {c.status === "draft" && c.recipients.length === 0 && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Delete draft ${c.title}`}
+              accessibilityState={{ disabled: action.busy }}
+              disabled={action.busy}
+              onPress={() => confirmDelete(c)}
+              style={[local.deleteDraft, action.busy && { opacity: 0.5 }]}
+            >
+              <Ionicons name="trash-outline" size={17} color="#A33232" />
+              <Text style={local.deleteText}>Delete draft</Text>
+            </Pressable>
+          )}
+        </View>
       ))}
     </Screen>
   );
@@ -238,14 +284,28 @@ const local = StyleSheet.create({
     justifyContent: "center",
   },
   case: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  caseBody: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     gap: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
   },
+  deleteDraft: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  deleteText: { fontFamily: fonts.medium, fontSize: 12, color: "#A33232" },
   caseIcon: {
     width: 48,
     height: 56,

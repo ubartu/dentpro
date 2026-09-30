@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "DENTpro API",
+    "title": "DENTRIVO API",
     "version": "0.1.0"
   },
   "paths": {
@@ -180,6 +180,43 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}": {
+      "delete": {
+        "summary": "Delete Draft",
+        "operationId": "delete_draft_cases__case_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -1999,6 +2036,53 @@
         ]
       }
     },
+    "/patient/clinics/{clinic_id}": {
+      "get": {
+        "tags": [
+          "patient"
+        ],
+        "summary": "Clinic Detail",
+        "operationId": "clinic_detail_patient_clinics__clinic_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "clinic_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clinic Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientClinic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/patient/appointments": {
       "get": {
         "tags": [
@@ -2289,6 +2373,112 @@
             }
           }
         }
+      }
+    },
+    "/auth/password/forgot": {
+      "post": {
+        "tags": [
+          "password recovery"
+        ],
+        "summary": "Forgot",
+        "operationId": "forgot_auth_password_forgot_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password/reset": {
+      "post": {
+        "tags": [
+          "password recovery"
+        ],
+        "summary": "Reset Password",
+        "operationId": "reset_password_auth_password_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/mail/status": {
+      "get": {
+        "tags": [
+          "password recovery"
+        ],
+        "summary": "Mail Status",
+        "operationId": "mail_status_admin_mail_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     }
   },
@@ -2869,8 +3059,19 @@
             "title": "Case Id"
           },
           "currency": {
-            "type": "string",
-            "const": "TRY",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "TRY",
+                  "USD",
+                  "EUR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Currency"
           },
           "proposals": {
@@ -3043,6 +3244,22 @@
           "glossary_status"
         ],
         "title": "ExplanationOutput"
+      },
+      "ForgotInput": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 150,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+            "title": "Email"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "ForgotInput"
       },
       "GatewayStatus": {
         "properties": {
@@ -3219,6 +3436,9 @@
             "type": "string",
             "enum": [
               "ROOT_CANAL",
+              "ROOT_CANAL_SINGLE",
+              "ROOT_CANAL_DOUBLE",
+              "ROOT_CANAL_MULTI",
               "EXTRACTION",
               "IMPLANT",
               "CROWN",
@@ -3226,6 +3446,16 @@
               "CLEANING"
             ],
             "title": "Procedure Code"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "urgent",
+              "soon",
+              "routine"
+            ],
+            "title": "Urgency",
+            "default": "routine"
           },
           "material": {
             "anyOf": [
@@ -3513,6 +3743,17 @@
           "google_linked": {
             "type": "boolean",
             "title": "Google Linked"
+          },
+          "google_place_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Google Place Id"
           },
           "social_links": {
             "items": {
@@ -3802,7 +4043,11 @@
           },
           "currency": {
             "type": "string",
-            "const": "TRY",
+            "enum": [
+              "TRY",
+              "USD",
+              "EUR"
+            ],
             "title": "Currency",
             "default": "TRY"
           }
@@ -3938,6 +4183,20 @@
         ],
         "title": "PublishInput"
       },
+      "RecoveryResult": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "RecoveryResult"
+      },
       "Registration": {
         "properties": {
           "name": {
@@ -3975,6 +4234,28 @@
           "password"
         ],
         "title": "Registration"
+      },
+      "ResetInput": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "title": "Token"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 10,
+            "title": "New Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "new_password"
+        ],
+        "title": "ResetInput"
       },
       "ReviewInput": {
         "properties": {

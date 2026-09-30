@@ -1,4 +1,4 @@
-# DENTpro patient app
+# DENTRIVO patient app
 
 React Native / Expo SDK 57 application for iOS and Android. The existing Next.js clinic/admin panels remain separate. All patient screens use the shared FastAPI service and persisted records; there is no patient web route.
 
@@ -108,7 +108,7 @@ Apple signing/TestFlight/App Store and Google Play distribution require the resp
 
 ## Patient UI design
 
-The patient interface uses blue tones, bundled Inter fonts and the supplied Figma login and meditation-app layout references. Home, Requests and Profile remain the three primary tabs; longer X-ray and explanation details expand on demand. Loading during startup, session restoration and sign-in/registration rotates the supplied tooth logo with reduced-motion support. Its source image is stored at `assets/dentpro-logo-original.jpeg`, the app-ready square asset at `assets/dentpro-brand-square.png`, and a version with more safe margin for Android adaptive icons at `assets/dentpro-brand-adaptive.png`. See [design sources](assets/figma/README.md) for the other reference nodes and asset provenance.
+The patient interface uses blue tones, bundled Inter fonts and the supplied Figma login and meditation-app layout references. Home, Requests and Profile remain the three primary tabs; longer X-ray and explanation details expand on demand. Loading during startup, session restoration and sign-in/registration rotates the DENTRIVO mark with reduced-motion support. The supplied original is stored at `assets/dentrivo-source.png`; the square app icon, transparent Android adaptive foreground, and horizontal in-app wordmark are `assets/dentrivo-icon.png`, `assets/dentrivo-adaptive.png`, and `assets/dentrivo-wordmark.png`. See [design sources](assets/figma/README.md) for the other reference nodes and asset provenance.
 
 ## Remaining production integrations
 

@@ -9,8 +9,8 @@ export type GooglePlaceProfile = Schemas["GooglePlaceProfile"];
 export type Appointment = Schemas["PatientAppointment"];
 export type Capabilities = Schemas["Capabilities"];
 export type Comparison = Schemas["ComparisonOutput"];
-export const money = (minor: number) =>
-  new Intl.NumberFormat("en-GB", { style: "currency", currency: "TRY" }).format(
+export const money = (minor: number, currency = "TRY") =>
+  new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(
     minor / 100,
   );
 export const date = (value?: string | null) =>
@@ -27,7 +27,17 @@ export const date = (value?: string | null) =>
         minute: "2-digit",
       })
     : "Not specified";
+export const urgencyLabel = (value?: string) =>
+  ({ urgent: "Urgent", soon: "Soon", routine: "Routine" })[
+    value as "urgent" | "soon" | "routine"
+  ] || "Routine";
+const treatmentLabels: Record<string, string> = {
+  ROOT_CANAL_SINGLE: "Root canal — 1 canal",
+  ROOT_CANAL_DOUBLE: "Root canal — 2 canals",
+  ROOT_CANAL_MULTI: "Root canal — multiple canals",
+};
 export const label = (value: string) =>
+  treatmentLabels[value] ||
   value
     .replaceAll("_", " ")
     .toLowerCase()

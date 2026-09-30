@@ -1,7 +1,7 @@
 """Add discovery-owned tables to a backed-up cloud schema v1; no Google data migration."""
 from .db import engine, Session
 from .operations_models import PlatformSetting, ClinicDiscoveryProfile, PlacesLookupWindow
-from .cloud_schema import SCHEMA_KEY, SCHEMA_VERSION
+from .cloud_schema import SCHEMA_KEY
 from .runtime import cloud_mode
 
 def main():
@@ -12,7 +12,7 @@ def main():
             raise RuntimeError('Expected cloud schema version 1; no changes applied')
         for table in (ClinicDiscoveryProfile.__table__,PlacesLookupWindow.__table__):
             table.create(engine,checkfirst=True)
-        marker.value={'version':SCHEMA_VERSION};db.commit()
+        marker.value={'version':2};db.commit()
     print('Cloud schema updated to version 2.')
 
 if __name__=='__main__':main()

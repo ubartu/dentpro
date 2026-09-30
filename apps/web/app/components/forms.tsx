@@ -27,6 +27,7 @@ import {
   date,
   datetime,
   names,
+  urgencies,
   csv,
 } from "../types";
 import {
@@ -64,6 +65,9 @@ export function ProposalEditor({
     ],
   );
   const [error, setError] = useState("");
+  const [currency, setCurrency] = useState<Plan["currency"]>(
+    initial?.currency || "TRY",
+  );
   const [activeProcedure, setActiveProcedure] = useState(0);
   const toothSelectorRef = useRef<HTMLDivElement>(null);
   const [saved, setSaved] = useState("");
@@ -98,7 +102,7 @@ export function ProposalEditor({
         ? new Date(String(f.get("slot"))).toISOString()
         : null,
       notes: String(f.get("notes")),
-      currency: "TRY",
+      currency,
     };
     setBusy(true);
     setError("");
@@ -153,6 +157,37 @@ export function ProposalEditor({
           <h3>1. Treatment plan</h3>
           <p>Your professional assessment is the source of this proposal.</p>
         </div>
+        <Field
+          label="Proposal currency"
+          hint="Changing the currency does not convert prices. Review all amounts before publishing."
+        >
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as Plan["currency"])}
+          >
+            <option value="TRY">TRY · Turkish lira</option>
+            <option value="USD">USD · US dollar</option>
+            <option value="EUR">EUR · Euro</option>
+          </select>
+        </Field>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => {
+            const rank = { urgent: 0, soon: 1, routine: 2 };
+            const focused = items[activeProcedure];
+            const ordered = [...items].sort(
+              (a, b) =>
+                rank[a.urgency || "routine"] - rank[b.urgency || "routine"],
+            );
+            setItems(ordered);
+            setActiveProcedure(ordered.indexOf(focused));
+            setKey(crypto.randomUUID());
+            setSaved("");
+          }}
+        >
+          Order by urgency
+        </button>
         <Field label="Choose procedure for tooth selection">
           <select
             value={activeProcedure}
@@ -246,7 +281,7 @@ export function ProposalEditor({
                   onChange={(e) => update(i, { tooth: e.target.value })}
                 />
               </Field>
-              <Field label="Price (TRY)">
+              <Field label={`Price (${currency})`}>
                 <input
                   required
                   type="number"
@@ -282,6 +317,23 @@ export function ProposalEditor({
                     update(i, { sessions: Number(e.target.value) })
                   }
                 />
+              </Field>
+              <Field
+                label="Treatment urgency"
+                hint="Priority set by the treating clinician."
+              >
+                <select
+                  value={item.urgency || "routine"}
+                  onChange={(e) =>
+                    update(i, { urgency: e.target.value as Item["urgency"] })
+                  }
+                >
+                  {Object.entries(urgencies).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
               </Field>
             </div>
           </div>
@@ -354,7 +406,12 @@ export function ProposalEditor({
             <span>Preliminary total</span>
             <small>Final pricing is subject to clinical examination.</small>
           </div>
-          <strong>{money(items.reduce((s, i) => s + i.price_minor, 0))}</strong>
+          <strong>
+            {money(
+              items.reduce((s, i) => s + i.price_minor, 0),
+              currency,
+            )}
+          </strong>
         </div>
         <div className="notice">
           <Sparkles size={18} />
@@ -416,6 +473,7 @@ export function ProposalDetail({
   act: Action;
   onRevise?: (p: Proposal) => void;
 }) {
+  const [inspectedTooth, setInspectedTooth] = useState(p.plan.items[0].tooth);
   return (
     <Modal title={`Proposal · version ${p.version}`} close={close} wide>
       <div className="proposal-detail-header">
@@ -427,6 +485,13 @@ export function ProposalDetail({
         </div>
         <Badge>{p.status}</Badge>
       </div>
+      <ToothSelector
+        readOnly
+        selected={inspectedTooth}
+        assigned={p.plan.items.map((item) => item.tooth)}
+        onSelect={setInspectedTooth}
+        procedure={1}
+      />
       <div className="table-wrap">
         <table>
           <thead>
@@ -435,6 +500,7 @@ export function ProposalDetail({
               <th>Tooth</th>
               <th>Material</th>
               <th>Sessions</th>
+              <th>Urgency</th>
               <th>Price</th>
             </tr>
           </thead>
@@ -445,7 +511,10 @@ export function ProposalDetail({
                 <td>{x.tooth}</td>
                 <td>{x.material || "Not specified"}</td>
                 <td>{x.sessions}</td>
-                <td>{money(x.price_minor)}</td>
+                <td>
+                  <Badge>{urgencies[x.urgency || "routine"]}</Badge>
+                </td>
+                <td>{money(x.price_minor, p.plan.currency)}</td>
               </tr>
             ))}
           </tbody>
@@ -458,7 +527,7 @@ export function ProposalDetail({
             ? "Examination required"
             : "No examination requirement marked"}
         </span>
-        <strong>{money(p.total_minor)}</strong>
+        <strong>{money(p.total_minor, p.plan.currency)}</strong>
       </div>
       <dl className="details">
         <div>

@@ -55,11 +55,13 @@ export function Stat({
   value,
   note,
   href,
+  attention = false,
 }: {
   label: string;
   value: string | number;
   note: string;
   href?: string;
+  attention?: boolean;
 }) {
   const inner = (
     <>
@@ -72,7 +74,7 @@ export function Stat({
     </>
   );
   return href ? (
-    <Link href={href} className="stat">
+    <Link href={href} className={"stat" + (attention ? " stat-attention" : "")}>
       {inner}
     </Link>
   ) : (

@@ -12,7 +12,13 @@ import {
   styles,
 } from "../../../components/ui";
 import { useResource } from "../../../lib/use-resource";
-import { Comparison, date, label, money } from "../../../lib/types";
+import {
+  Comparison,
+  date,
+  label,
+  money,
+  urgencyLabel,
+} from "../../../lib/types";
 export default function Compare() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const r = useResource<Comparison>(`/cases/${id}/compare`, "POST");
@@ -20,8 +26,9 @@ export default function Compare() {
   const fields = [
     {
       name: "Preliminary total",
-      values: rows.map((p) => money(p.total_minor)),
+      values: rows.map((p) => money(p.total_minor, p.plan.currency)),
     },
+    { name: "Currency", values: rows.map((p) => p.plan.currency) },
     { name: "Total visits", values: rows.map((p) => String(p.plan.sessions)) },
     {
       name: "Examination required",
@@ -39,7 +46,7 @@ export default function Compare() {
         p.plan.items
           .map(
             (i) =>
-              `Tooth ${i.tooth} · ${label(i.procedure_code)}\n${i.material || "Material not specified"} · ${i.sessions} sessions\n${money(i.price_minor)}`,
+              `Tooth ${i.tooth} · ${label(i.procedure_code)}\nPriority: ${urgencyLabel(i.urgency)} · Set by the clinic\n${i.material || "Material not specified"} · ${i.sessions} sessions\n${money(i.price_minor, p.plan.currency)}`,
           )
           .join("\n\n"),
       ),

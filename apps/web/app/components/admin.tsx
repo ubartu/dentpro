@@ -379,7 +379,8 @@ export default function AdminScreen({
                       <div>
                         <strong>{p.clinic_name}</strong>
                         <small>
-                          Version {p.version} · {money(p.total_minor)}
+                          Version {p.version} ·{" "}
+                          {money(p.total_minor, p.plan.currency)}
                         </small>
                       </div>
                       <Badge>{p.status}</Badge>
@@ -543,7 +544,7 @@ export default function AdminScreen({
                         <small>{p.case_title}</small>
                       </td>
                       <td>v{p.version}</td>
-                      <td>{money(p.total_minor)}</td>
+                      <td>{money(p.total_minor, p.plan.currency)}</td>
                       <td>
                         <Badge>{p.status}</Badge>
                       </td>

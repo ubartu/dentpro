@@ -90,6 +90,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Draft */
+        delete: operations["delete_draft_cases__case_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cases/{case_id}/xray": {
         parameters: {
             query?: never;
@@ -760,6 +777,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/patient/clinics/{clinic_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Clinic Detail */
+        get: operations["clinic_detail_patient_clinics__clinic_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/patient/appointments": {
         parameters: {
             query?: never;
@@ -871,6 +905,57 @@ export interface paths {
         };
         /** Admin Google Profile */
         get: operations["admin_google_profile_admin_clinics__clinic_id__google_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forgot */
+        post: operations["forgot_auth_password_forgot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Password */
+        post: operations["reset_password_auth_password_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/mail/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mail Status */
+        get: operations["mail_status_admin_mail_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1115,11 +1200,8 @@ export interface components {
         ComparisonOutput: {
             /** Case Id */
             case_id: string;
-            /**
-             * Currency
-             * @constant
-             */
-            currency: "TRY";
+            /** Currency */
+            currency: ("TRY" | "USD" | "EUR") | null;
             /** Proposals */
             proposals: components["schemas"]["ProposalOutput"][];
             /** Notice */
@@ -1170,6 +1252,11 @@ export interface components {
              * @enum {string}
              */
             glossary_status: "draft_requires_dentist_review" | "dentist_review_recorded";
+        };
+        /** ForgotInput */
+        ForgotInput: {
+            /** Email */
+            email: string;
         };
         /** GatewayStatus */
         GatewayStatus: {
@@ -1234,7 +1321,13 @@ export interface components {
              * Procedure Code
              * @enum {string}
              */
-            procedure_code: "ROOT_CANAL" | "EXTRACTION" | "IMPLANT" | "CROWN" | "FILLING" | "CLEANING";
+            procedure_code: "ROOT_CANAL" | "ROOT_CANAL_SINGLE" | "ROOT_CANAL_DOUBLE" | "ROOT_CANAL_MULTI" | "EXTRACTION" | "IMPLANT" | "CROWN" | "FILLING" | "CLEANING";
+            /**
+             * Urgency
+             * @default routine
+             * @enum {string}
+             */
+            urgency: "urgent" | "soon" | "routine";
             /** Material */
             material?: string | null;
             /** Price Minor */
@@ -1342,6 +1435,8 @@ export interface components {
             longitude: number | null;
             /** Google Linked */
             google_linked: boolean;
+            /** Google Place Id */
+            google_place_id?: string | null;
             /** Social Links */
             social_links: components["schemas"]["SocialLink"][];
         };
@@ -1441,9 +1536,9 @@ export interface components {
             /**
              * Currency
              * @default TRY
-             * @constant
+             * @enum {string}
              */
-            currency: "TRY";
+            currency: "TRY" | "USD" | "EUR";
         };
         /** ProposalOutput */
         ProposalOutput: {
@@ -1487,6 +1582,11 @@ export interface components {
             /** Revision Of */
             revision_of?: string | null;
         };
+        /** RecoveryResult */
+        RecoveryResult: {
+            /** Message */
+            message: string;
+        };
         /** Registration */
         Registration: {
             /** Name */
@@ -1497,6 +1597,13 @@ export interface components {
             phone: string;
             /** Password */
             password: string;
+        };
+        /** ResetInput */
+        ResetInput: {
+            /** Token */
+            token: string;
+            /** New Password */
+            new_password: string;
         };
         /** ReviewInput */
         ReviewInput: {
@@ -1706,6 +1813,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CaseOutput"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_draft_cases__case_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -3025,6 +3161,37 @@ export interface operations {
             };
         };
     };
+    clinic_detail_patient_clinics__clinic_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientClinic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     appointments_patient_appointments_get: {
         parameters: {
             query?: never;
@@ -3222,6 +3389,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forgot_auth_password_forgot_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_password_auth_password_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mail_status_admin_mail_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

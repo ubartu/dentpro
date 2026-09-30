@@ -1,0 +1,10 @@
+# Optional Maps Embed browser-key overlay. This is separate from paid Places API.
+services:
+  web:
+    environment:
+      GOOGLE_MAPS_EMBED_KEY_FILE: /run/secrets/maps_embed_key
+    secrets:
+      - maps_embed_key
+secrets:
+  maps_embed_key:
+    file: ./secrets/google_maps_embed_key

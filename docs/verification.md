@@ -1,5 +1,35 @@
 # Verification — 24 September 2026
 
+## Password recovery and transactional mail — 29 September 2026
+
+- Implemented on `codex/feature-password-reset` from a separate committed `codex/project-baseline`; main remains unchanged. Both patient mobile and staff web login link to recovery forms. Email links open the shared web reset page; the app also accepts a copied reset token.
+- Added uniform forgot responses, shared email/IP/token limits, 30-minute single-use tokens with only hashes persisted, account/email/password/secret-rotation checks, transactional session revocation and password-change notification. A leased outbox calls a fixed Resend endpoint with stable idempotency keys, bounded retries and sanitized errors. File delivery is available only in development; arbitrary public email sending is absent.
+- **48 API tests and 30 mobile tests passed**, with mobile typecheck/lint and optimized web build. Tests cover all three account roles, expiry/replacement, password/email/deactivation/secret changes, concurrent token consumption and worker claims, failed-mail retries, credential boundaries and cloud v2-to-v3 migration. Database concurrency/migration checks used isolated SQLite; managed PostgreSQL concurrency remains unverified.
+- **Browser recovery regression passed** against an isolated synthetic database and local mail files: login link, generic confirmation, worker email, browser fragment removal, password confirmation, successful reset, old-session rejection, new sign-in, desktop/mobile layout and no browser errors. It caught and fixed a React Strict Mode double-effect issue that cleared the token after removing its fragment. Screenshots are in ignored `tmp/recovery-qa/`.
+- Android/iOS Hermes exports passed. `compose.mail.yaml` passed `docker compose config --quiet`. No real email was sent; verified provider domain/API key, inbox delivery/bounces, cloud containers, physical devices and native iOS rendering remain external checks. [Setup and migration guide](mail-recovery.md).
+
+## Published tooth view, currencies and treatment priority — 28 September 2026
+
+- Published clinic/admin proposal details retain the existing 3D child/adult schematic. Inspection changes only local focus, keeping the immutable plan and highlighted proposed teeth. The editor supports TRY/USD/EUR and clinician-set Urgent/Soon/Routine priority with stable ordering. Added single-canal, two-canal and multiple-canal root treatment codes, retaining generic ROOT_CANAL compatibility.
+- Currency, priority and item order persist through drafts and revisions. Patient list/detail/comparison prices use each proposal's currency, with canal-count and priority labels. Mixed-currency comparisons use a null shared-currency field and an explicit no-conversion notice. Proposal CSV has separate amount/currency columns.
+- **34 API tests and 28 mobile tests passed**, with mobile typecheck/lint and the optimized web build. Regression checks cover currency validation, legacy routine/TRY defaults, draft persistence, revision visibility, new treatment explanations, source-cache separation by priority/currency and mixed-currency comparison. Existing cloud startup adds missing catalog wording as unreviewed drafts and preserves prior reviews; this was checked with isolated SQLite, not managed PostgreSQL.
+- The expanded **staff browser regression passed**, exercising USD selection without conversion, priority sorting, draft reload, revision preservation and published adult/child tooth highlights. Inspection of an unassigned tooth left the published tooth assignments unchanged. A desktop screenshot was visually checked at `tmp/panel-qa/active-proposal-teeth.png`; all existing clinic/admin workflows and responsive checks passed without browser errors.
+- Plan data remains JSON; no database schema migration or exchange-rate provider was added. Physical-device and native iOS rendering remain unverified.
+- Android and iOS Hermes exports passed after these changes, using example HTTPS endpoints solely for bundle validation.
+
+## Clinic details and Maps Embed — 27 September 2026
+
+- Added an authenticated active-clinic details endpoint, a patient clinic details screen, a restricted hosted Maps Embed wrapper and a separate browser-key cloud overlay. The selector opens clinic details instead of calling paid Places. No Google rating/photo cache was added.
+- **32 API tests and 26 mobile tests passed**; mobile typecheck/lint and the optimized web build passed. `npm run test:maps-embed` checks invalid Place IDs, missing configuration/secret files, fixed iframe URLs, referrer policy, minimum dimensions, no-store headers and exclusion of patient/session data. Mobile tests verify map failure/retry, external profile linking, unlinked-clinic fallback and denied unexpected navigation.
+- **Android and iOS Hermes exports passed** with the WebView dependency. The updated Android Expo Go bundle launched and reached sign-in. Native details-screen interaction could not be completed because the host's Computer Use service failed to start; physical-device and iOS rendering remain unverified.
+- A live local HTTP check confirmed the wrapper returns 503 without a key, with the expected CSP/referrer/no-store headers, including the route-specific override of the portal's global referrer policy. The optional cloud overlay passed `docker compose config --quiet`. These checks used no live Google key/provider call; actual iframe content, key restrictions and cloud container startup require external configuration.
+- Synthetic QA clinic records are suspended after local verification. Setup: [Maps Embed integration](maps-embed-integration.md).
+
+## Patient draft deletion — 26 September 2026
+
+- Added a confirmation action on unshared draft cards and a patient-owned DELETE endpoint. Shared cases and other patients' drafts are rejected. Attached local files/database X-ray bytes and consent records are removed; audit events and idempotency tombstones remain.
+- **32 API tests and 23 mobile tests passed**, including ownership/role checks, shared-case rejection, image cleanup, stale creation retries, confirmation and failed deletion. Mobile typecheck and lint passed. The updated Android bundle launched in Expo Go and loaded the case list without JavaScript errors. PostgreSQL concurrency and physical-device behavior remain unverified.
+
 ## Google Places clinic discovery — 26 September 2026
 
 - Added a server-only Places API (New) adapter with a narrow field mask, bounded requests, per-account shared lookup limits, role/tenant checks and disabled/unavailable responses. Only the verified Place ID and clinic-supplied social links persist; Google ratings, photo names and photo URLs do not. The mobile selector uses explicit on-demand loading and includes Google/provider/photo-author attribution.

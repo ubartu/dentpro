@@ -24,22 +24,10 @@ function ExternalLink({ title, url }: { title: string; url: string }) {
   );
 }
 
-export function ClinicDiscovery({
-  clinic,
-  profile,
-  loading,
-  error,
-  load,
-}: {
-  clinic: Clinic;
-  profile?: GooglePlaceProfile;
-  loading: boolean;
-  error?: string;
-  load: () => void;
-}) {
-  const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
+export function ClinicSocialProfiles({ clinic }: { clinic: Clinic }) {
   return (
     <>
+      {" "}
       {(clinic.social_links || []).length > 0 && (
         <View style={local.socials}>
           <Text style={styles.muted}>Profiles supplied by the clinic</Text>
@@ -58,6 +46,27 @@ export function ClinicDiscovery({
           </View>
         </View>
       )}
+    </>
+  );
+}
+
+export function ClinicDiscovery({
+  clinic,
+  profile,
+  loading,
+  error,
+  load,
+}: {
+  clinic: Clinic;
+  profile?: GooglePlaceProfile;
+  loading: boolean;
+  error?: string;
+  load: () => void;
+}) {
+  const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
+  return (
+    <>
+      <ClinicSocialProfiles clinic={clinic} />
       {clinic.google_linked && (
         <View style={local.google}>
           {!profile && (

@@ -112,7 +112,11 @@ def test_clinic_discovery_mapping_social_validation_and_scoping(client,monkeypat
     directory=client.get('/patient/clinics',headers=patient).json()
     row=next(c for c in directory if c['id']=='clinic-1')
     assert row['google_linked'] and row['social_links']==links['social_links']
-    assert 'google_place_id' not in row
+    assert row['google_place_id']==body['google_place_id']
+    detail=client.get('/patient/clinics/clinic-1',headers=patient)
+    assert detail.status_code==200 and detail.json()==row
+    assert client.get('/patient/clinics/clinic-1',headers=clinic).status_code==403
+    assert client.get('/patient/clinics/clinic-4',headers=patient).status_code==404
     monkeypatch.setenv('DENTPRO_GOOGLE_PLACES_ENABLED','false')
     response=client.get('/patient/clinics/clinic-1/google-profile',headers=patient)
     assert response.json()['status']=='disabled' and response.headers['cache-control']=='no-store'
@@ -288,6 +292,50 @@ def signin(client,email='clinic@dentpro.local',password='Clinic123!'):
     return {'Authorization':'Bearer '+response.json()['token']}
 
 def admin_signin(client):return signin(client,'admin@dentpro.local','Admin123!')
+
+def test_treatment_currency_urgency_catalog_and_revision(client):
+    patient=auth(client,'patient');clinic=signin(client);admin=admin_signin(client)
+    cid=client.post('/cases',headers=patient,json={'title':'Currency and priority QA','consent':True}).json()['id']
+    client.post(f'/cases/{cid}/xray',headers=patient,files={'file':('synthetic.png',b'\x89PNG\r\n\x1a\nTEST')})
+    client.post(f'/cases/{cid}/dispatch',headers=patient,json={'clinic_ids':['clinic-1','clinic-2']})
+    codes=['ROOT_CANAL_SINGLE','ROOT_CANAL_DOUBLE','ROOT_CANAL_MULTI']
+    items=[{'tooth':tooth,'procedure_code':code,'price_minor':10001,'sessions':1,'urgency':urgency} for tooth,code,urgency in zip(['55','36','16'],codes,['urgent','soon','routine'])]
+    source=plan(currency='USD',items=items)
+    payload={'plan':source}
+    assert set(codes)<=set(x['code'] for x in client.get('/catalog',headers=clinic).json())
+    assert client.put(f'/clinic/cases/{cid}/draft',headers=clinic,json=payload).status_code==200
+    assert client.get(f'/clinic/cases/{cid}',headers=clinic).json()['draft']['plan']['items'][0]['urgency']=='urgent'
+    r=client.post(f'/clinic/cases/{cid}/publish',headers=clinic|{'Idempotency-Key':'currency-priority-qa'},json=payload)
+    assert r.status_code==201,r.text
+    p=r.json();assert p['total_minor']==30003 and p['plan']['currency']=='USD'
+    assert [x['tooth'] for x in p['plan']['items']]==['55','36','16']
+    assert client.post(f'/cases/{cid}/compare',headers=patient).json()['currency']=='USD'
+    assert cache_key(source)!=cache_key(source|{'currency':'EUR'})
+    assert cache_key(source)!=cache_key(source|{'items':[items[0]|{'urgency':'routine'},*items[1:]]})
+    run_once()
+    explained=client.get('/proposals/'+p['id'],headers=patient).json()
+    assert explained['explanation_status']=='ready'
+    assert 'one canal' in explained['explanation']['procedures'][0]['simple_explanation']
+    assert 'two canals' in explained['explanation']['procedures'][1]['simple_explanation']
+    assert 'multiple canals' in explained['explanation']['procedures'][2]['simple_explanation']
+    assert client.post('/operations/accounts',headers=admin,json={'name':'Currency QA staff','email':'currency.qa@example.org','role':'clinic','clinic_id':'clinic-2','password':'CurrencyQA123!'}).status_code==201
+    second=signin(client,'currency.qa@example.org','CurrencyQA123!')
+    assert client.post(f'/clinic/cases/{cid}/publish',headers=second|{'Idempotency-Key':'currency-qa-second'},json={'plan':source|{'currency':'EUR'}}).status_code==201
+    comparison=client.post(f'/cases/{cid}/compare',headers=patient).json()
+    assert comparison['currency'] is None and 'No exchange-rate conversion' in comparison['notice']
+    assert {p['plan']['currency'] for p in comparison['proposals']}=={'USD','EUR'}
+    revision=client.post(f'/clinic/cases/{cid}/publish',headers=clinic|{'Idempotency-Key':'currency-qa-revision'},json={'plan':source|{'currency':'TRY'},'revision_of':p['id']})
+    assert revision.status_code==201 and revision.json()['plan']['items'][0]['urgency']=='urgent'
+    assert client.get('/proposals/'+p['id'],headers=patient).status_code==404
+
+def test_treatment_defaults_and_invalid_currency_priority():
+    from pydantic import ValidationError
+    from dentpro.contracts import ProposalInput
+    legacy=ProposalInput.model_validate(plan())
+    assert legacy.currency=='TRY' and legacy.items[0].urgency=='routine'
+    for currency in ['TRY','USD','EUR']: assert ProposalInput.model_validate(plan(currency=currency)).currency==currency
+    with pytest.raises(ValidationError): ProposalInput.model_validate(plan(currency='GBP'))
+    with pytest.raises(ValidationError): ProposalInput.model_validate(plan(items=[plan()['items'][0]|{'urgency':'immediate_diagnosis'}]))
 
 def test_distinct_portal_accounts_and_scope(client):
     clinic=signin(client);admin=admin_signin(client)
@@ -506,3 +554,45 @@ def test_mobile_eligibility_and_password_revocation(client):
     assert client.post('/patient/login',json={'email':user['email'],'password':'Patient123!'}).status_code==401
     login=client.post('/patient/login',json={'email':user['email'],'password':'Changed123!'})
     assert login.status_code==200 and login.json()['user']['name']=='Updated Patient'
+
+def test_patient_can_delete_only_own_unshared_draft(client):
+    from dentpro.db import Consent
+    patient=auth(client,'patient')
+    body={'title':'Synthetic removable draft','region':'Istanbul','consent':True}
+    headers=patient|{'Idempotency-Key':'draft-delete-synthetic'}
+    cid=client.post('/cases',headers=headers,json=body).json()['id']
+    assert client.delete(f'/cases/{cid}').status_code in (401,403)
+    assert client.delete(f'/cases/{cid}',headers=auth(client,'admin')).status_code==403
+    assert client.delete(f'/cases/{cid}',headers=auth(client,'clinic')).status_code==403
+    app.dependency_overrides[actor]=lambda:{'id':'another-patient','role':'patient'}
+    try: assert client.delete(f'/cases/{cid}').status_code==404
+    finally: app.dependency_overrides.clear()
+    assert client.post(f'/cases/{cid}/xray',headers=patient,files={'file':('synthetic.png',b'\x89PNG\r\n\x1a\nTEST')}).status_code==201
+    with Session() as db: asset_path=Path('.data/assets')/db.get(Case,cid).asset['key']
+    assert asset_path.exists()
+    assert client.delete(f'/cases/{cid}',headers=patient).status_code==204
+    assert not asset_path.exists()
+    assert cid not in [c['id'] for c in client.get('/cases',headers=patient).json()]
+    assert client.get(f'/cases/{cid}/xray',headers=patient).status_code==404
+    assert client.delete(f'/cases/{cid}',headers=patient).status_code==404
+    assert client.post('/cases',headers=headers,json=body).status_code==410
+    with Session() as db:
+        assert not db.get(Case,cid)
+        assert not db.scalar(select(Consent.id).where(Consent.case_id==cid))
+        assert db.scalar(select(Audit.id).where(Audit.entity==cid,Audit.action=='case.draft_deleted'))
+    shared=client.post('/cases',headers=patient,json=body).json()['id']
+    client.post(f'/cases/{shared}/xray',headers=patient,files={'file':('synthetic.png',b'\x89PNG\r\n\x1a\nTEST')})
+    client.post(f'/cases/{shared}/dispatch',headers=patient,json={'clinic_ids':['clinic-1']})
+    assert client.delete(f'/cases/{shared}',headers=patient).status_code==409
+    assert shared in [c['id'] for c in client.get('/cases',headers=patient).json()]
+
+def test_draft_deletion_removes_database_xray(client,monkeypatch):
+    import dentpro.main as main
+    patient=auth(client,'patient')
+    cid=client.post('/cases',headers=patient,json={'title':'Synthetic cloud draft','consent':True}).json()['id']
+    with Session() as db:
+        db.get(Case,cid).asset={'key':'synthetic-cloud-key','name':'synthetic.png','type':'image/png'}
+        db.add(XrayAsset(case_id=cid,data=b'synthetic bytes'));db.commit()
+    monkeypatch.setattr(main,'cloud_mode',lambda:True)
+    assert client.delete(f'/cases/{cid}',headers=patient).status_code==204
+    with Session() as db: assert not db.get(XrayAsset,cid)

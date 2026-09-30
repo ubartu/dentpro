@@ -15,7 +15,7 @@ import { useResource } from "../../../lib/use-resource";
 import { useSession } from "../../../lib/session";
 import { useAction } from "../../../lib/use-action";
 import { request } from "../../../lib/api";
-import { Proposal, date, label, money } from "../../../lib/types";
+import { Proposal, date, label, money, urgencyLabel } from "../../../lib/types";
 export default function ProposalDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useSession();
@@ -58,7 +58,9 @@ export default function ProposalDetail() {
           />
           <Card>
             <Text style={styles.badge}>CLINIC’S PROPOSAL</Text>
-            <Text style={styles.title}>{money(p.total_minor)}</Text>
+            <Text style={styles.title}>
+              {money(p.total_minor, p.plan.currency)}
+            </Text>
             <Text style={styles.muted}>
               Preliminary total · {p.plan.sessions} visits
             </Text>
@@ -74,9 +76,12 @@ export default function ProposalDetail() {
               >
                 <Text style={styles.heading}>{label(item.procedure_code)}</Text>
                 <Text style={styles.text}>
-                  Tooth {item.tooth} · {money(item.price_minor)}
+                  Tooth {item.tooth} ·{" "}
+                  {money(item.price_minor, p.plan.currency)}
                 </Text>
                 <Text style={styles.muted}>
+                  Priority: {urgencyLabel(item.urgency)} · Set by the clinic
+                  {"\n"}
                   Material: {item.material || "Not specified"}
                   {"\n"}Sessions: {item.sessions}
                 </Text>

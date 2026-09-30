@@ -8,7 +8,7 @@ import {
   useAnimatedValue,
 } from "react-native";
 
-const logo = require("../../assets/dentpro-brand-square.png");
+const logo = require("../../assets/dentrivo-icon.png");
 
 export function LogoMark({
   loading = false,
@@ -66,7 +66,7 @@ export function LogoMark({
     <View
       accessible
       accessibilityRole="image"
-      accessibilityLabel={loading ? "DENTpro loading" : "DENTpro logo"}
+      accessibilityLabel={loading ? "DENTRIVO loading" : "DENTRIVO logo"}
       accessibilityState={{ busy: loading }}
       style={{ width: size, height: size }}
     >

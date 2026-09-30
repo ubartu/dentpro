@@ -167,7 +167,9 @@ export default function CaseDetail() {
             <Card key={p.id}>
               <Text style={styles.badge}>VERSION {p.version}</Text>
               <Text style={styles.heading}>{p.clinic_name}</Text>
-              <Text style={styles.title}>{money(p.total_minor)}</Text>
+              <Text style={styles.title}>
+                {money(p.total_minor, p.plan.currency)}
+              </Text>
               <Text style={styles.muted}>
                 {p.plan.sessions} visits ·{" "}
                 {p.plan.requires_exam

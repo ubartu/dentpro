@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "DENTpro — Clinic & Administration",
-  description: "Clinic workflows and platform administration for DENTpro.",
+  title: "DENTRIVO — Clinic & Administration",
+  description: "Clinic workflows and platform administration for DENTRIVO.",
 };
 export default function RootLayout({
   children,

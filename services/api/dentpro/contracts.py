@@ -4,6 +4,9 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 PROCEDURES = {
     'ROOT_CANAL': ('Root canal', 'The clinic proposes treatment inside the tooth’s root canals.'),
+    'ROOT_CANAL_SINGLE': ('Root canal — 1 canal', 'The clinic proposes root canal treatment involving one canal in the listed tooth.'),
+    'ROOT_CANAL_DOUBLE': ('Root canal — 2 canals', 'The clinic proposes root canal treatment involving two canals in the listed tooth.'),
+    'ROOT_CANAL_MULTI': ('Root canal — multiple canals', 'The clinic proposes root canal treatment involving multiple canals in the listed tooth.'),
     'EXTRACTION': ('Tooth extraction', 'The clinic proposes removing the listed tooth.'),
     'IMPLANT': ('Dental implant', 'The clinic proposes placing a dental implant. Ask the clinic which components are included.'),
     'CROWN': ('Dental crown', 'The clinic proposes a covering placed over the listed tooth.'),
@@ -21,7 +24,8 @@ class DispatchInput(StrictModel):
     clinic_ids: list[str] = Field(min_length=1, max_length=10)
 class ItemInput(StrictModel):
     tooth: str = Field(pattern=r'^([1-4][1-8]|[5-8][1-5]|ALL)$')
-    procedure_code: Literal['ROOT_CANAL','EXTRACTION','IMPLANT','CROWN','FILLING','CLEANING']
+    procedure_code: Literal['ROOT_CANAL','ROOT_CANAL_SINGLE','ROOT_CANAL_DOUBLE','ROOT_CANAL_MULTI','EXTRACTION','IMPLANT','CROWN','FILLING','CLEANING']
+    urgency: Literal['urgent','soon','routine'] = 'routine'
     material: str | None = Field(default=None, max_length=80)
     price_minor: int = Field(ge=0, le=100000000, strict=True)
     sessions: int = Field(ge=1, le=30, strict=True)
@@ -31,7 +35,7 @@ class ProposalInput(StrictModel):
     requires_exam: bool = True
     first_available_slot: datetime | None = None
     notes: str = Field(default='', max_length=1000)
-    currency: Literal['TRY'] = 'TRY'
+    currency: Literal['TRY','USD','EUR'] = 'TRY'
     @field_validator('first_available_slot')
     @classmethod
     def aware_slot(cls, v):
@@ -91,7 +95,7 @@ class ProposalOutput(BaseModel):
 
 class ComparisonOutput(BaseModel):
     case_id: str
-    currency: Literal['TRY']
+    currency: Literal['TRY','USD','EUR'] | None
     proposals: list[ProposalOutput]
     notice: str
 

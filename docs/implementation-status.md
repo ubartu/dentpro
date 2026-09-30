@@ -10,10 +10,11 @@ The web product now consists of dedicated clinic and platform administration pan
 - Dashboard with actual counts, recent cases, confirmed appointments and seven-day submission activity.
 - Searchable/filterable inbox with case references, consent state, imaging access, review status and persistent internal notes.
 - Authorized image download/preview, including PNG/JPEG and PDF rendering. Image access is audited.
-- Complete structured proposal editor: FDI tooth numbers, canonical procedure taxonomy, material, integer minor-unit pricing, per-procedure sessions, overall visits, timezone-aware availability, examination requirement and clinical notes.
+- Complete structured proposal editor: FDI tooth numbers, canonical procedure taxonomy (including 1-canal, 2-canal and multiple-canal root treatments), material, TRY/USD/EUR minor-unit pricing, clinician-selected procedure urgency with stable priority sorting, per-procedure sessions, overall visits, timezone-aware availability, examination requirement and clinical notes. Drafts and revisions retain currency, priority and procedure order.
 - Server-persisted draft save/resume/discard. Drafts are private to the clinic.
 - Idempotent publication and immutable revisions. Previous submitted versions become superseded; withdrawn/superseded records remain inspectable.
 - Source proposal and derived explanation shown separately, with glossary review status and missing information.
+- Published proposal details in clinic/admin panels retain a 3D child/adult tooth view, highlighting plan teeth; inspection does not edit the published plan. Numbered inspection remains available without WebGL.
 - Request state machine: requested → contacted → confirmed → completed, with cancellation paths. Confirmation requires a scheduled time; completed/cancelled requests cannot be reopened.
 - Team account creation/deactivation/password reset, clinic profile and opening-hours editing, subscription record and operational analytics.
 - Proposal and appointment CSV exports, with spreadsheet formula prefix neutralization.
@@ -37,11 +38,12 @@ The web product now consists of dedicated clinic and platform administration pan
 ## Patient mobile application
 
 - React Native / Expo SDK 57 workspace with Expo Router, native icons, iOS/Android configuration and EAS build profiles.
-- Patient registration/login, encrypted native credential storage, account/profile editing, password changes with session revocation, and sign out. A separate cloud staging API mode is available for synthetic evaluation; email verification/recovery and production account lifecycle remain unfinished.
+- Patient registration/login, encrypted native credential storage, account/profile editing, password changes with session revocation, and sign out. Password recovery supports expiring single-use email links, session revocation, queued transactional delivery and web/mobile forms; real delivery requires configuration. See [mail setup](mail-recovery.md). A separate cloud staging API mode is available for synthetic evaluation; email verification, MFA and production account lifecycle remain unfinished.
 - Case creation with versioned consent and idempotent submission, case history, PNG/JPEG/PDF selection/upload, image preview and system sharing.
+- Confirmed deletion of the patient's own unshared drafts from Your cases; attached X-rays and consent records are removed, audit events retained, and stale creation retries cannot recreate deleted drafts.
 - Optional foreground location access for approximate nearby clinics, a complete active-clinic list independent of case region, recipient limits, explicit sharing confirmation and the existing server dispatch flow. Denied or unavailable location does not block selection.
-- Clinic selection cards show supplied social profiles and an on-demand Google rating/photo section with source attribution, unavailable states and no cached provider content. Google Places has no documented social-profile field. See [integration setup](google-places-integration.md).
-- Clinic proposal details, separate source-labelled AI/template explanation with pending/failed/paused states, and objective side-by-side comparison.
+- Clinic selection cards show supplied social profiles and open a dedicated clinic details screen. A verified Place ID loads Google Maps Embed on that screen; an external Google profile link provides available ratings/reviews/photos. Missing mapping/configuration and map failures have fallbacks. The selector does not call paid Places. See [Maps Embed setup](maps-embed-integration.md); the optional [Places gateway](google-places-integration.md) remains separate.
+- Clinic proposal details show original currency, canal-count treatment labels and clinician-set urgency. Separate source-labelled AI/template explanation with pending/failed/paused states and objective side-by-side comparison; mixed currencies have an explicit no-conversion notice.
 - Callback/appointment requests, clinic-confirmed scheduling details, patient cancellation and clinic contact links. Staff see patient contact details only after a request exists.
 - Foreground/focus/pull-to-refresh updates and explicit network/error handling. Push delivery is not implemented.
 - Generated mobile TypeScript contracts from OpenAPI, component/API/session tests, and CI checks.

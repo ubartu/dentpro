@@ -11,6 +11,8 @@
     "build": "npm run build --workspace apps/web",
     "typecheck": "npm run typecheck --workspace apps/web",
     "test:e2e": "node tests/e2e/panels.cjs",
+    "test:e2e:recovery": "node tests/e2e/password-recovery.cjs",
+    "test:maps-embed": "node tests/maps-embed.cjs",
     "mobile": "npm run start --workspace @dentpro/mobile",
     "mobile:typecheck": "npm run typecheck --workspace @dentpro/mobile",
     "mobile:export": "npm run export --workspace @dentpro/mobile",
