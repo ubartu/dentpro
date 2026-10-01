@@ -16,7 +16,7 @@ export async function openAsset(
   const file = new File(Paths.cache, `dentpro-${Crypto.randomUUID()}.${ext}`);
   try {
     if (!(await Sharing.isAvailableAsync()))
-      throw new Error("File sharing is unavailable on this device.");
+      throw new Error("Bu cihazda dosya paylaşımı kullanılamıyor.");
     await File.downloadFileAsync(`${API_URL}/cases/${id}/xray`, file, {
       headers: { Authorization: `Bearer ${token}` },
     });

@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -27,27 +27,27 @@ import { API, Action, Auth, Role, Workspace } from "../types";
 import ClinicScreen from "./clinic";
 import AdminScreen from "./admin";
 const clinicNav = [
-  ["overview", "Overview", LayoutDashboard],
-  ["cases", "Case inbox", Inbox],
-  ["proposals", "Proposals & drafts", FileText],
-  ["appointments", "Appointments", CalendarDays],
-  ["analytics", "Activity & response", Activity],
-  ["team", "Team members", Users],
-  ["profile", "Clinic profile", Building2],
-  ["subscription", "Subscription", CreditCard],
+  ["overview", "Genel bakış", LayoutDashboard],
+  ["cases", "Vaka gelen kutusu", Inbox],
+  ["proposals", "Teklifler ve taslaklar", FileText],
+  ["appointments", "Randevular", CalendarDays],
+  ["analytics", "Etkinlik ve yanıtlar", Activity],
+  ["team", "Ekip üyeleri", Users],
+  ["profile", "Klinik profili", Building2],
+  ["subscription", "Abonelik", CreditCard],
 ] as const;
 const adminNav = [
-  ["overview", "Overview", LayoutDashboard],
-  ["clinics", "Clinics", Building2],
-  ["cases", "Platform cases", Inbox],
-  ["proposals", "Proposal oversight", FileText],
-  ["appointments", "Appointments", CalendarDays],
-  ["accounts", "Accounts & access", Users],
-  ["subscriptions", "Subscriptions", CreditCard],
-  ["interpreter", "Explanation jobs", Activity],
-  ["glossary", "Procedure glossary", BookOpen],
-  ["audit", "Audit trail", ScrollText],
-  ["settings", "Settings", Settings2],
+  ["overview", "Genel bakış", LayoutDashboard],
+  ["clinics", "Klinikler", Building2],
+  ["cases", "Platform vakaları", Inbox],
+  ["proposals", "Teklif denetimi", FileText],
+  ["appointments", "Randevular", CalendarDays],
+  ["accounts", "Hesaplar ve erişim", Users],
+  ["subscriptions", "Abonelikler", CreditCard],
+  ["interpreter", "Açıklama işleri", Activity],
+  ["glossary", "İşlem sözlüğü", BookOpen],
+  ["audit", "Denetim kaydı", ScrollText],
+  ["settings", "Ayarlar", Settings2],
 ] as const;
 export default function Portal({
   role,
@@ -64,39 +64,122 @@ export default function Portal({
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
-    [mobile, setMobile] = useState(false);
+    [mobile, setMobile] = useState(false),
+    [narrow, setNarrow] = useState(false),
+    [authError, setAuthError] = useState(""),
+    [authAttempt, setAuthAttempt] = useState(0);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const raw = sessionStorage.getItem("dentpro-auth");
     if (!raw) {
       router.replace("/login");
       return;
     }
+    let stored: Auth;
     try {
-      const a = JSON.parse(raw) as Auth;
-      if (a.user.role !== role) {
-        router.replace("/" + a.user.role);
-        return;
+      stored = JSON.parse(raw) as Auth;
+      if (!stored.token || !["clinic", "admin"].includes(stored.user?.role)) {
+        throw Error("Geçersiz oturum");
       }
-      fetch(API + "/auth/me", {
-        headers: { Authorization: `Bearer ${a.token}` },
-      })
-        .then(async (r) => {
-          if (!r.ok) throw Error("Please sign in again");
-          const user = await r.json();
-          if (user.role !== role) throw Error("Wrong portal");
-          setAuth({ ...a, user });
-        })
-        .catch(() => {
+    } catch {
+      sessionStorage.removeItem("dentpro-auth");
+      router.replace("/login");
+      return;
+    }
+    const controller = new AbortController();
+    let disposed = false;
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    setAuthError("");
+    fetch(API + "/auth/me", {
+      headers: { Authorization: `Bearer ${stored.token}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (disposed) return;
+        if (response.status === 401 || response.status === 403) {
           sessionStorage.removeItem("dentpro-auth");
           router.replace("/login");
-        });
-    } catch {
-      router.replace("/login");
-    }
-  }, [role, router]);
+          return;
+        }
+        if (!response.ok) throw Error("Oturum doğrulanamadı");
+        const user = await response.json();
+        if (disposed) return;
+        if (!["clinic", "admin"].includes(user.role)) {
+          throw Error("Geçersiz çalışma alanı");
+        }
+        if (user.role !== role) {
+          router.replace("/" + user.role);
+          return;
+        }
+        setAuth({ ...stored, user });
+      })
+      .catch(() => {
+        if (!disposed) {
+          setAuthError(
+            "Sunucuya bağlanılamadı. Oturumunuz korunuyor; bağlantınızı kontrol edip tekrar deneyin.",
+          );
+        }
+      })
+      .finally(() => clearTimeout(timeout));
+    return () => {
+      disposed = true;
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [role, router, authAttempt]);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 720px)");
+    const update = () => {
+      setNarrow(query.matches);
+      if (!query.matches) setMobile(false);
+    };
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    if (!mobile || !narrow) return;
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusable = () =>
+      Array.from(
+        sidebar.querySelectorAll<HTMLElement>("a[href], button:not(:disabled)"),
+      ).filter((element) => element.getClientRects().length > 0);
+    focusable()[0]?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobile(false);
+      }
+      if (event.key === "Tab") {
+        const elements = focusable();
+        const first = elements[0];
+        const last = elements.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = oldOverflow;
+      if (window.matchMedia("(max-width: 720px)").matches) {
+        (previous?.isConnected ? previous : menuRef.current)?.focus();
+      }
+    };
+  }, [mobile, narrow]);
   const request = useCallback(
     async (path: string, options: RequestInit = {}) => {
-      if (!auth) throw Error("Sign in required");
+      if (!auth) throw Error("Giriş yapmanız gerekiyor");
       const r = await fetch(API + path, {
         ...options,
         headers: {
@@ -107,7 +190,7 @@ export default function Portal({
       });
       const d = await r
         .json()
-        .catch(() => ({ detail: "Server returned an invalid response" }));
+        .catch(() => ({ detail: "Sunucudan geçersiz yanıt alındı" }));
       if (!r.ok) {
         if (r.status === 401) {
           sessionStorage.removeItem("dentpro-auth");
@@ -118,7 +201,7 @@ export default function Portal({
             ? d.detail
             : Array.isArray(d.detail)
               ? d.detail.map((x: { msg: string }) => x.msg).join("; ")
-              : "Request failed",
+              : "İstek başarısız oldu",
         );
       }
       return d;
@@ -168,7 +251,7 @@ export default function Portal({
         headers,
       });
       await refresh();
-      setNotice("Changes saved successfully.");
+      setNotice("Değişiklikler kaydedildi.");
       return d;
     } catch (e) {
       setError((e as Error).message);
@@ -183,14 +266,34 @@ export default function Portal({
     router.replace("/login");
   }
   const nav = role === "clinic" ? clinicNav : adminNav;
-  const title = nav.find((n) => n[0] === section)?.[1] || "Workspace";
+  const title = nav.find((n) => n[0] === section)?.[1] || "Çalışma alanı";
   return (
     <div className={"portal " + role}>
-      <aside className={"sidebar " + (mobile ? "open" : "")}>
-        <Link href={"/" + role} className="wordmark">
+      <aside
+        id="workspace-navigation"
+        ref={sidebarRef}
+        className={"sidebar " + (mobile ? "open" : "")}
+        inert={narrow && !mobile}
+        role={narrow && mobile ? "dialog" : undefined}
+        aria-modal={narrow && mobile ? true : undefined}
+        aria-label="Çalışma alanı gezinmesi"
+      >
+        <button
+          type="button"
+          className="icon-btn mobile-nav-close"
+          aria-label="Gezinmeyi kapat"
+          onClick={() => setMobile(false)}
+        >
+          <X size={21} />
+        </button>
+        <Link
+          href={"/" + role}
+          className="wordmark"
+          onClick={() => setMobile(false)}
+        >
           <Image
             src="/dentrivo-wordmark.png"
-            alt="DENTRIVO home"
+            alt="DENTRIVO ana sayfa"
             width={2160}
             height={728}
           />
@@ -204,22 +307,23 @@ export default function Portal({
           <div>
             <strong>
               {role === "clinic"
-                ? data?.clinic?.name || "Clinic workspace"
-                : "Platform administration"}
+                ? data?.clinic?.name || "Klinik çalışma alanı"
+                : "Platform yönetimi"}
             </strong>
             <small>
-              {role === "clinic" ? "CLINIC PORTAL" : "ADMIN PORTAL"}
+              {role === "clinic" ? "KLİNİK PORTALI" : "YÖNETİM PORTALI"}
             </small>
           </div>
         </div>
         <div className="nav-label">
-          {role === "clinic" ? "WORKSPACE" : "PLATFORM"}
+          {role === "clinic" ? "ÇALIŞMA ALANI" : "PLATFORM"}
         </div>
-        <nav>
+        <nav aria-label="Ana gezinme">
           {nav.map(([id, label, Icon]) => (
             <Link
               key={id}
               href={`/${role}/${id === "overview" ? "" : id}`}
+              onClick={() => setMobile(false)}
               aria-label={label}
               aria-current={section === id ? "page" : undefined}
               className={section === id ? "active" : ""}
@@ -241,7 +345,7 @@ export default function Portal({
         <div className="sidebar-foot">
           <div className="environment">
             <span />
-            LOCAL EVALUATION
+            YEREL DEMO
           </div>
           <div className="user-card">
             <span className="avatar">
@@ -252,47 +356,51 @@ export default function Portal({
                 .join("") || "…"}
             </span>
             <div>
-              <strong>{auth?.user.name || "Signing in"}</strong>
+              <strong>{auth?.user.name || "Giriş yapılıyor"}</strong>
               <small>{auth?.user.email}</small>
             </div>
           </div>
           <button onClick={logout} className="signout">
             <LogOut size={16} />
-            Sign out
+            Çıkış yap
           </button>
         </div>
       </aside>
-      {mobile && (
+      {mobile && narrow && (
         <button
-          aria-label="Close navigation"
+          aria-hidden="true"
+          tabIndex={-1}
           className="nav-backdrop"
           onClick={() => setMobile(false)}
         />
       )}
-      <main>
+      <main inert={mobile && narrow}>
         <header className="topbar">
           <button
             className="icon-btn mobile-menu"
-            aria-label="Open navigation"
+            ref={menuRef}
+            aria-label="Gezinmeyi aç"
+            aria-controls="workspace-navigation"
+            aria-expanded={mobile && narrow}
             onClick={() => setMobile(!mobile)}
           >
             <Menu size={21} />
           </button>
           <div className="breadcrumbs">
-            {role === "clinic" ? "Clinic workspace" : "Administration"}
+            {role === "clinic" ? "Klinik çalışma alanı" : "Yönetim"}
             <ChevronRight size={13} />
             <strong>{title}</strong>
           </div>
           <div className="topbar-right">
             <span className="top-status">
               <span />
-              {role === "clinic" ? "Clinic operations" : "Platform control"}
+              {role === "clinic" ? "Klinik işlemleri" : "Platform kontrolü"}
             </span>
             <button
               className="icon-btn"
               onClick={() => refresh()}
-              aria-label="Refresh workspace"
-              disabled={busy}
+              aria-label="Çalışma alanını yenile"
+              disabled={busy || !auth}
             >
               <RefreshCw size={17} className={busy ? "spin" : ""} />
             </button>
@@ -305,7 +413,7 @@ export default function Portal({
           {error && (
             <div className="alert error" role="alert">
               {error}
-              <button onClick={() => setError("")} aria-label="Dismiss error">
+              <button onClick={() => setError("")} aria-label="Hatayı kapat">
                 <X size={16} />
               </button>
             </div>
@@ -313,22 +421,44 @@ export default function Portal({
           {notice && (
             <div className="alert success" role="status">
               {notice}
-              <button onClick={() => setNotice("")} aria-label="Dismiss notice">
+              <button
+                onClick={() => setNotice("")}
+                aria-label="Bildirimi kapat"
+              >
                 <X size={16} />
               </button>
             </div>
           )}
           {!data || !auth ? (
-            <div className="loading">
-              <LoaderCircle size={27} className="spin" />
-              <p>
-                {error
-                  ? "Unable to load workspace. Use refresh to retry."
-                  : "Opening your workspace…"}
-              </p>
+            <div className="loading" role="status">
+              {authError || error ? (
+                <>
+                  <p>
+                    {authError ||
+                      "Çalışma alanı yüklenemedi. Lütfen tekrar deneyin."}
+                  </p>
+                  <button
+                    className="primary"
+                    disabled={busy}
+                    onClick={() =>
+                      auth
+                        ? refresh()
+                        : setAuthAttempt((attempt) => attempt + 1)
+                    }
+                  >
+                    <RefreshCw size={16} />
+                    Tekrar dene
+                  </button>
+                </>
+              ) : (
+                <>
+                  <LoaderCircle size={27} className="spin" />
+                  <p>Çalışma alanınız açılıyor…</p>
+                </>
+              )}
             </div>
           ) : role === "clinic" ? (
-            <Suspense fallback={<p role="status">Loading clinic view…</p>}>
+            <Suspense fallback={<p role="status">Klinik ekranı yükleniyor…</p>}>
               <ClinicScreen
                 key={section + entityId}
                 section={section}
@@ -351,9 +481,11 @@ export default function Portal({
           <footer>
             <span>
               DENTRIVO ·{" "}
-              {role === "clinic" ? "Clinic workspace" : "Platform operations"}
+              {role === "clinic"
+                ? "Klinik çalışma alanı"
+                : "Platform işlemleri"}
             </span>
-            <span>Synthetic evaluation data · Private local environment</span>
+            <span>Sentetik demo verileri · Özel yerel ortam</span>
           </footer>
         </div>
       </main>

@@ -13,7 +13,6 @@ import {
   Screen,
   styles,
 } from "../components/ui";
-import { LogoMark } from "../components/logo-mark";
 import { request, errorMessage } from "../lib/api";
 import { useSession } from "../lib/session";
 import type { Session } from "../lib/types";
@@ -49,54 +48,47 @@ export default function SignIn() {
     }
   }
   return (
-    <Screen topInset contentStyle={{ flexGrow: 1, paddingTop: 28, gap: 32 }}>
-      <View style={{ gap: 36 }}>
+    <Screen topInset contentStyle={{ flexGrow: 1, paddingTop: 20, gap: 24 }}>
+      <View style={{ gap: 24 }}>
         <Brand />
-        <View style={{ alignItems: "center" }}>
-          <LogoMark size={112} />
-        </View>
         <Heading
-          title={
-            register
-              ? "Create your account"
-              : "Sign in to your\nDENTRIVO account"
-          }
+          title={register ? "Hesabınızı oluşturun" : "Hesabınıza giriş yapın"}
           subtitle={
             register
-              ? "A little about you. A clearer path to dental care."
-              : "Welcome back. Your care, all in one place."
+              ? "Sizi tanıyalım, diş sağlığınız için yol haritanızı oluşturalım."
+              : "Tekrar hoş geldiniz. Tüm bakım süreciniz tek yerde."
           }
         />
       </View>
       {busy ? (
         <LoadingBrand
-          title={register ? "Creating your account" : "Signing you in"}
-          detail="Connecting to your care space…"
+          title={register ? "Hesabınız oluşturuluyor" : "Giriş yapılıyor"}
+          detail="Hesabınıza bağlanılıyor…"
         />
       ) : (
-        <View style={{ gap: 20 }}>
+        <View style={{ gap: 16 }}>
           {register && (
             <>
               <Field
-                label="Full name"
+                label="Ad soyad"
                 value={name}
                 onChangeText={setName}
                 autoComplete="name"
               />
               <Field
-                label="Phone number"
+                label="Telefon numarası"
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
                 autoComplete="tel"
               />
               <Text style={styles.muted}>
-                Shared with a clinic only after you request contact.
+                Yalnızca iletişim talep ettiğiniz kliniğe iletilir.
               </Text>
             </>
           )}
           <Field
-            label="Email"
+            label="E-posta"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -104,16 +96,23 @@ export default function SignIn() {
             autoComplete="email"
           />
           <Field
-            label={register ? "Password (at least 10 characters)" : "Password"}
+            label={register ? "Şifre (en az 10 karakter)" : "Şifre"}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             autoCapitalize="none"
             autoComplete={register ? "new-password" : "current-password"}
           />
+          {!register && (
+            <Button
+              title="Şifrenizi mi unuttunuz?"
+              quiet
+              onPress={() => router.push("/forgot-password")}
+            />
+          )}
           <Notice text={error} error />
           <Button
-            title={register ? "Create account" : "Sign in"}
+            title={register ? "Hesap oluştur" : "Giriş yap"}
             onPress={() => void submit()}
             busy={busy}
             disabled={
@@ -128,8 +127,8 @@ export default function SignIn() {
           <Button
             title={
               register
-                ? "Already registered? Sign in"
-                : "New here? Create an account"
+                ? "Hesabınız var mı? Giriş yapın"
+                : "Yeni misiniz? Hesap oluşturun"
             }
             quiet
             disabled={busy}
@@ -138,13 +137,6 @@ export default function SignIn() {
               setError("");
             }}
           />
-          {!register && (
-            <Button
-              title="Forgot your password?"
-              quiet
-              onPress={() => router.push("/forgot-password")}
-            />
-          )}
         </View>
       )}
       <View style={{ flex: 1, minHeight: 10 }} />
@@ -152,7 +144,7 @@ export default function SignIn() {
         <Text
           style={{ color: colors.blue, fontFamily: fonts.medium, fontSize: 12 }}
         >
-          Your information. Your choice.
+          Bilgileriniz. Sizin kararınız.
         </Text>
       </View>
       <Text
@@ -161,8 +153,8 @@ export default function SignIn() {
           { textAlign: "center", fontSize: 11, lineHeight: 17 },
         ]}
       >
-        DENTRIVO explains proposals written by clinics. It does not diagnose
-        conditions or prescribe treatment.
+        DENTRIVO, kliniklerin hazırladığı teklifleri açıklar. Tanı koymaz veya
+        tedavi önermez.
       </Text>
     </Screen>
   );

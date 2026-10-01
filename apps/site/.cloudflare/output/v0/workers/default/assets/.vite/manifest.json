@@ -1,0 +1,82 @@
+{
+  "_Icon-BVOLgO3m.js": {
+    "file": "_next/static/chunks/Icon-BVOLgO3m.js",
+    "name": "Icon",
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_framework-DZETP2Ke.js"
+    ]
+  },
+  "_framework-DZETP2Ke.js": {
+    "file": "_next/static/chunks/framework-DZETP2Ke.js",
+    "name": "framework",
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js"
+    ]
+  },
+  "_rolldown-runtime-hePW80VL.js": {
+    "file": "_next/static/chunks/rolldown-runtime-hePW80VL.js",
+    "name": "rolldown-runtime"
+  },
+  "_vinext-jlpIz-j8.js": {
+    "file": "_next/static/chunks/vinext-jlpIz-j8.js",
+    "name": "vinext",
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_framework-DZETP2Ke.js"
+    ],
+    "dynamicImports": [
+      "_vinext-jlpIz-j8.js"
+    ]
+  },
+  "app/components/reveal.tsx": {
+    "file": "_next/static/chunks/reveal-BpMfnt8F.js",
+    "name": "reveal",
+    "src": "app/components/reveal.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_framework-DZETP2Ke.js"
+    ]
+  },
+  "app/components/site-header.tsx": {
+    "file": "_next/static/chunks/site-header-CAH9AVSQ.js",
+    "name": "site-header",
+    "src": "app/components/site-header.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_framework-DZETP2Ke.js",
+      "_Icon-BVOLgO3m.js"
+    ]
+  },
+  "node_modules/vinext/dist/shims/layout-segment-context.js": {
+    "file": "_next/static/chunks/layout-segment-context-B_CC15ih.js",
+    "name": "layout-segment-context",
+    "src": "node_modules/vinext/dist/shims/layout-segment-context.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_framework-DZETP2Ke.js",
+      "_vinext-jlpIz-j8.js"
+    ]
+  },
+  "virtual:vinext-app-browser-entry": {
+    "file": "_next/static/chunks/index-DepAoiw7.js",
+    "name": "index",
+    "src": "virtual:vinext-app-browser-entry",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_framework-DZETP2Ke.js",
+      "_vinext-jlpIz-j8.js"
+    ],
+    "dynamicImports": [
+      "_vinext-jlpIz-j8.js",
+      "node_modules/vinext/dist/shims/layout-segment-context.js",
+      "app/components/site-header.tsx",
+      "_Icon-BVOLgO3m.js",
+      "app/components/reveal.tsx"
+    ]
+  }
+}

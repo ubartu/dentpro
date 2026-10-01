@@ -45,11 +45,11 @@ export function CaseImage({
     return (
       <>
         <Notice
-          text="Image preview could not load. You can retry or open the original file."
+          text="Görüntü önizlemesi yüklenemedi. Yeniden deneyebilir veya özgün dosyayı açabilirsiniz."
           error
         />
         <Button
-          title="Retry preview"
+          title="Önizlemeyi yeniden dene"
           secondary
           onPress={() => {
             setError(false);
@@ -62,7 +62,7 @@ export function CaseImage({
   if (!uri) return <Loading />;
   return (
     <Image
-      accessibilityLabel="Uploaded X-ray"
+      accessibilityLabel="Yüklenen röntgen"
       source={{ uri }}
       onError={() => setError(true)}
       style={{ width: "100%", height: 220, borderRadius: 12 }}

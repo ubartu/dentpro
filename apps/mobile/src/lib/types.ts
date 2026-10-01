@@ -10,7 +10,7 @@ export type Appointment = Schemas["PatientAppointment"];
 export type Capabilities = Schemas["Capabilities"];
 export type Comparison = Schemas["ComparisonOutput"];
 export const money = (minor: number, currency = "TRY") =>
-  new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(
+  new Intl.NumberFormat("tr-TR", { style: "currency", currency }).format(
     minor / 100,
   );
 export const date = (value?: string | null) =>
@@ -19,22 +19,42 @@ export const date = (value?: string | null) =>
         value.endsWith("Z") || /[+-]\d\d:\d\d$/.test(value)
           ? value
           : value + "Z",
-      ).toLocaleString(undefined, {
+      ).toLocaleString("tr-TR", {
         day: "numeric",
         month: "short",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
       })
-    : "Not specified";
+    : "Belirtilmedi";
 export const urgencyLabel = (value?: string) =>
-  ({ urgent: "Urgent", soon: "Soon", routine: "Routine" })[
+  ({ urgent: "Acil", soon: "Yakında", routine: "Rutin" })[
     value as "urgent" | "soon" | "routine"
-  ] || "Routine";
+  ] || "Rutin";
 const treatmentLabels: Record<string, string> = {
-  ROOT_CANAL_SINGLE: "Root canal — 1 canal",
-  ROOT_CANAL_DOUBLE: "Root canal — 2 canals",
-  ROOT_CANAL_MULTI: "Root canal — multiple canals",
+  ROOT_CANAL: "Kanal tedavisi",
+  ROOT_CANAL_SINGLE: "Kanal tedavisi — 1 kanallı",
+  ROOT_CANAL_DOUBLE: "Kanal tedavisi — 2 kanallı",
+  ROOT_CANAL_MULTI: "Kanal tedavisi — çok kanallı",
+  EXTRACTION: "Diş çekimi",
+  IMPLANT: "Diş implantı",
+  CROWN: "Diş kaplaması",
+  FILLING: "Diş dolgusu",
+  CLEANING: "Diş temizliği",
+  draft: "Taslak",
+  shared: "Paylaşıldı",
+  archived: "Arşivlendi",
+  requested: "Talep edildi",
+  contacted: "İletişime geçildi",
+  confirmed: "Onaylandı",
+  completed: "Tamamlandı",
+  cancelled: "İptal edildi",
+  callback: "Geri arama",
+  appointment: "Randevu",
+  Istanbul: "İstanbul",
+  Izmir: "İzmir",
+  Ankara: "Ankara",
+  "All regions": "Tüm bölgeler",
 };
 export const label = (value: string) =>
   treatmentLabels[value] ||

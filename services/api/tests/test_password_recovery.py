@@ -67,7 +67,7 @@ def test_recovery_single_use_session_revocation_and_notification(client,role,tmp
     assert client.post(login,json={'email':email,'password':body['new_password']}).status_code==200
     assert run_mail_once()==1
     parsed=[BytesParser(policy=policy.default).parsebytes(p.read_bytes()) for p in tmp_path.glob('*.eml')]
-    notification=next(m.get_content() for m in parsed if 'your password was changed' in str(m['Subject']))
+    notification=next(m.get_content() for m in parsed if 'şifreniz değiştirildi' in str(m['Subject']))
     assert body['new_password'] not in notification and token not in notification
 
 def test_unknown_disabled_and_rate_limited_accounts_have_same_response(client):

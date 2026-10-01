@@ -3,16 +3,17 @@ from typing import Literal
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 PROCEDURES = {
-    'ROOT_CANAL': ('Root canal', 'The clinic proposes treatment inside the tooth’s root canals.'),
-    'ROOT_CANAL_SINGLE': ('Root canal — 1 canal', 'The clinic proposes root canal treatment involving one canal in the listed tooth.'),
-    'ROOT_CANAL_DOUBLE': ('Root canal — 2 canals', 'The clinic proposes root canal treatment involving two canals in the listed tooth.'),
-    'ROOT_CANAL_MULTI': ('Root canal — multiple canals', 'The clinic proposes root canal treatment involving multiple canals in the listed tooth.'),
-    'EXTRACTION': ('Tooth extraction', 'The clinic proposes removing the listed tooth.'),
-    'IMPLANT': ('Dental implant', 'The clinic proposes placing a dental implant. Ask the clinic which components are included.'),
-    'CROWN': ('Dental crown', 'The clinic proposes a covering placed over the listed tooth.'),
-    'FILLING': ('Dental filling', 'The clinic proposes restoring part of the listed tooth with a filling.'),
-    'CLEANING': ('Dental cleaning', 'The clinic proposes a professional dental cleaning.'),
+    'ROOT_CANAL': ('Kanal tedavisi', 'Klinik, belirtilen dişin kök kanallarına yönelik tedavi öneriyor.'),
+    'ROOT_CANAL_SINGLE': ('Kanal tedavisi — 1 kanallı', 'Klinik, belirtilen dişin tek kanalına yönelik kanal tedavisi öneriyor.'),
+    'ROOT_CANAL_DOUBLE': ('Kanal tedavisi — 2 kanallı', 'Klinik, belirtilen dişin iki kanalına yönelik kanal tedavisi öneriyor.'),
+    'ROOT_CANAL_MULTI': ('Kanal tedavisi — çok kanallı', 'Klinik, belirtilen dişin birden çok kanalına yönelik kanal tedavisi öneriyor.'),
+    'EXTRACTION': ('Diş çekimi', 'Klinik, belirtilen dişin çekilmesini öneriyor.'),
+    'IMPLANT': ('Diş implantı', 'Klinik, diş implantı yerleştirilmesini öneriyor. Hangi parçaların fiyata dahil olduğunu kliniğe sorun.'),
+    'CROWN': ('Diş kaplaması', 'Klinik, belirtilen dişin üzerine kaplama yapılmasını öneriyor.'),
+    'FILLING': ('Diş dolgusu', 'Klinik, belirtilen dişin bir bölümünün dolgu ile onarılmasını öneriyor.'),
+    'CLEANING': ('Diş temizliği', 'Klinik, profesyonel diş temizliği öneriyor.'),
 }
+
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
 class CaseInput(StrictModel):
@@ -39,7 +40,7 @@ class ProposalInput(StrictModel):
     @field_validator('first_available_slot')
     @classmethod
     def aware_slot(cls, v):
-        if v and v.tzinfo is None: raise ValueError('Include a timezone in the appointment time')
+        if v and v.tzinfo is None: raise ValueError('Randevu saatinde saat dilimini belirtin')
         return v
 class AppointmentInput(StrictModel):
     proposal_id: str

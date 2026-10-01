@@ -20,18 +20,51 @@ export default function Profile() {
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState(user?.phone || "");
+  const [saved, setSaved] = useState({
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+  });
   const [current, setCurrent] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
+  const values = {
+    name: name.trim(),
+    email: email.trim(),
+    phone: phone.trim(),
+  };
+  const dirty =
+    values.name !== saved.name ||
+    values.email !== saved.email ||
+    values.phone !== saved.phone;
+  const validation =
+    values.name.length < 2
+      ? "Ad soyad en az 2 karakter olmalıdır."
+      : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)
+        ? "Geçerli bir e-posta adresi girin."
+        : values.phone.length < 7 || !/^\+?[0-9 ()-]+$/.test(values.phone)
+          ? "Geçerli bir telefon numarası girin (en az 7 karakter)."
+          : "";
   const save = () =>
     action.run(async () => {
-      const updated = await request<Patient>("/patient/me", token!, "PUT", {
-        name,
-        email,
-        phone,
+      if (!dirty || validation) return;
+      setNotice("");
+      const updated = await request<Patient>(
+        "/patient/me",
+        token!,
+        "PUT",
+        values,
+      );
+      setName(updated.name);
+      setEmail(updated.email);
+      setPhone(updated.phone);
+      setSaved({
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone,
       });
       setUser(updated);
-      setNotice("Profile saved.");
+      setNotice("Profil kaydedildi.");
     });
   const change = () =>
     action.run(async () => {
@@ -44,50 +77,75 @@ export default function Profile() {
   return (
     <Screen>
       <Heading
-        title="Your profile"
-        subtitle="Keep your contact details up to date for clinic responses."
+        title="Profiliniz"
+        subtitle="Kliniklerin size ulaşabilmesi için iletişim bilgilerinizi güncel tutun."
       />
       <Notice text={action.error} error />
       <Notice text={notice} />
       <Card>
-        <Field label="Full name" value={name} onChangeText={setName} />
         <Field
-          label="Email"
+          label="Ad soyad"
+          value={name}
+          onChangeText={(value) => {
+            setName(value);
+            setNotice("");
+          }}
+          editable={!action.busy}
+          maxLength={100}
+          autoComplete="name"
+        />
+        <Field
+          label="E-posta"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(value) => {
+            setEmail(value);
+            setNotice("");
+          }}
+          editable={!action.busy}
+          autoComplete="email"
+          maxLength={150}
+          autoCorrect={false}
           autoCapitalize="none"
           keyboardType="email-address"
         />
         <Field
-          label="Phone number"
+          label="Telefon numarası"
           value={phone}
-          onChangeText={setPhone}
+          onChangeText={(value) => {
+            setPhone(value);
+            setNotice("");
+          }}
+          editable={!action.busy}
+          maxLength={40}
+          autoComplete="tel"
           keyboardType="phone-pad"
         />
+        {dirty && !!validation && <Notice text={validation} error />}
         <Button
-          title="Save profile"
+          title="Profili kaydet"
           onPress={() => void save()}
           busy={action.busy}
+          disabled={!dirty || !!validation}
         />
       </Card>
-      <Section title="Change password" detail="Manage your account security">
+      <Section title="Şifre değiştir" detail="Hesap güvenliğinizi yönetin">
         <Field
-          label="Current password"
+          label="Mevcut şifre"
           value={current}
           onChangeText={setCurrent}
           secureTextEntry
         />
         <Field
-          label="New password (at least 10 characters)"
+          label="Yeni şifre (en az 10 karakter)"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
         />
         <Text style={styles.muted}>
-          Changing your password signs you out on all devices.
+          Şifrenizi değiştirdiğinizde tüm cihazlardaki oturumlar kapatılır.
         </Text>
         <Button
-          title="Update password"
+          title="Şifreyi güncelle"
           secondary
           onPress={() => void change()}
           disabled={!current || password.length < 10}
@@ -95,12 +153,12 @@ export default function Profile() {
         />
       </Section>
       <Button
-        title="Sign out"
+        title="Çıkış yap"
         quiet
         onPress={() => void action.run(signOut)}
         busy={action.busy}
       />
-      <Notice text="Your case and X-ray are shared only with selected clinics. Clinics receive your name and phone when you request contact. Explanations simplify the clinic’s proposal and do not replace a professional consultation." />
+      <Notice text="Vakanız ve röntgeniniz yalnızca seçtiğiniz kliniklerle paylaşılır. Adınız ve telefonunuz, iletişim istediğinizde kliniğe iletilir. Açıklamalar klinik teklifini sadeleştirir; uzman görüşünün yerini almaz." />
     </Screen>
   );
 }

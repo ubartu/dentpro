@@ -55,7 +55,7 @@ export default function CaseDetail() {
       try {
         if ((file.size || 0) > limits.upload_limit_mb * 1024 * 1024)
           throw new Error(
-            `Choose a file smaller than ${limits.upload_limit_mb} MB.`,
+            `${limits.upload_limit_mb} MB'den küçük bir dosya seçin.`,
           );
         setProgress(0);
         await upload(`/cases/${id}/xray`, token!, file, setProgress);
@@ -70,27 +70,27 @@ export default function CaseDetail() {
   return (
     <Screen refresh={() => void refresh()} refreshing={cases.loading && !!c}>
       <Notice text={cases.error || proposals.error || action.error} error />
-      {(cases.error || proposals.error) && (
-        <Button title="Retry" onPress={() => void refresh()} />
+      {!!(cases.error || proposals.error) && (
+        <Button title="Yeniden dene" onPress={() => void refresh()} />
       )}
       {!c ? (
         cases.loading ? (
           <Loading />
         ) : (
           <Empty
-            title="Case unavailable"
-            detail="Return to your cases or refresh to try again."
+            title="Vaka kullanılamıyor"
+            detail="Vakalarınıza dönün veya sayfayı yenileyip tekrar deneyin."
           />
         )
       ) : (
         <>
           <Heading
             title={c.title}
-            subtitle={`${c.region} · ${label(c.status)}`}
+            subtitle={`${label(c.region)} · ${label(c.status)}`}
           />
           <Section
-            title="Your X-ray"
-            detail={c.asset ? c.asset.name : "Add an image to get started"}
+            title="Röntgeniniz"
+            detail={c.asset ? c.asset.name : "Başlamak için bir görüntü ekleyin"}
             initiallyOpen={c.status === "draft"}
           >
             {c.asset ? (
@@ -103,7 +103,7 @@ export default function CaseDetail() {
                   />
                 )}
                 <Button
-                  title="Open / share file"
+                  title="Dosyayı aç / paylaş"
                   secondary
                   busy={action.busy}
                   onPress={() =>
@@ -113,19 +113,19 @@ export default function CaseDetail() {
               </>
             ) : (
               <Text style={styles.muted}>
-                Add a panoramic X-ray as a PNG, JPEG or PDF.
+                Panoramik röntgeninizi PNG, JPEG veya PDF olarak ekleyin.
               </Text>
             )}
             {c.status === "draft" && (
               <Button
-                title={c.asset ? "Replace X-ray" : "Choose X-ray file"}
+                title={c.asset ? "Röntgeni değiştir" : "Röntgen dosyası seç"}
                 busy={action.busy}
                 onPress={() => void choose()}
               />
             )}
             {progress !== null && (
               <Text accessibilityLiveRegion="polite" style={styles.muted}>
-                Uploading {progress}%
+                Yükleniyor %{progress}
               </Text>
             )}
           </Section>
@@ -133,8 +133,8 @@ export default function CaseDetail() {
             <Button
               title={
                 c.recipients.length
-                  ? `Shared with ${c.recipients.length} clinics · manage`
-                  : "Choose clinics & share"
+                  ? `${c.recipients.length} klinikle paylaşıldı · yönet`
+                  : "Klinik seç ve paylaş"
               }
               secondary={c.recipients.length > 0}
               disabled={!c.asset || action.busy}
@@ -143,20 +143,20 @@ export default function CaseDetail() {
               }
             />
           )}
-          <Text style={styles.heading}>Clinic proposals</Text>
+          <Text style={styles.heading}>Klinik teklifleri</Text>
           {proposals.data?.length === 0 && (
             <Empty
-              title="No proposals yet"
+              title="Henüz teklif yok"
               detail={
                 c.recipients.length
-                  ? "Clinics will review your case. Pull down to check for new proposals."
-                  : "Share your case with clinics to receive proposals."
+                  ? "Klinikler vakanızı inceleyecek. Yeni teklifleri görmek için ekranı aşağı çekin."
+                  : "Teklif almak için vakanızı kliniklerle paylaşın."
               }
             />
           )}
           {(proposals.data?.length || 0) > 1 && (
             <Button
-              title="Compare proposals"
+              title="Teklifleri karşılaştır"
               secondary
               onPress={() =>
                 router.push({ pathname: "/compare/[id]", params: { id } })
@@ -165,19 +165,19 @@ export default function CaseDetail() {
           )}
           {proposals.data?.map((p) => (
             <Card key={p.id}>
-              <Text style={styles.badge}>VERSION {p.version}</Text>
+              <Text style={styles.badge}>SÜRÜM {p.version}</Text>
               <Text style={styles.heading}>{p.clinic_name}</Text>
               <Text style={styles.title}>
                 {money(p.total_minor, p.plan.currency)}
               </Text>
               <Text style={styles.muted}>
-                {p.plan.sessions} visits ·{" "}
+                {p.plan.sessions} seans ·{" "}
                 {p.plan.requires_exam
-                  ? "Examination required"
-                  : "Examination not specified as required"}
+                  ? "Muayene gerekli"
+                  : "Muayene gerekliliği belirtilmedi"}
               </Text>
               <Button
-                title={`View ${p.clinic_name} proposal`}
+                title={`${p.clinic_name} teklifini görüntüle`}
                 secondary
                 onPress={() =>
                   router.push({
@@ -188,7 +188,7 @@ export default function CaseDetail() {
               />
             </Card>
           ))}
-          <Notice text="Prices are preliminary. Clinics may propose different scopes of treatment; a physical examination may change the plan." />
+          <Notice text="Fiyatlar ön tahmindir. Klinikler farklı tedavi kapsamları önerebilir; fiziksel muayene planı değiştirebilir." />
         </>
       )}
     </Screen>

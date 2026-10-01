@@ -1,17 +1,11 @@
-import {
-  Text,
-  View,
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  Alert,
-} from "react-native";
-import { Image } from "expo-image";
+import { useState } from "react";
+import { Text, View, Pressable, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
   Button,
   Empty,
+  Field,
   Heading,
   Loading,
   Notice,
@@ -25,23 +19,30 @@ import { useSession } from "../../../lib/session";
 import { useAction } from "../../../lib/use-action";
 import { request } from "../../../lib/api";
 import { DentalCase, label } from "../../../lib/types";
-const art = {
-  care: require("../../../../assets/figma/care-illustration.png"),
-  relax: require("../../../../assets/figma/relax-illustration.png"),
-  banner: require("../../../../assets/figma/banner-pattern.png"),
-};
+
+type CaseFilter = "active" | "draft" | "archived";
+const filters = [
+  { value: "active", title: "Aktif" },
+  { value: "draft", title: "Taslak" },
+  { value: "archived", title: "Arşiv" },
+] as const;
+const matchesFilter = (c: DentalCase, filter: CaseFilter) =>
+  filter === "active" ? c.status !== "archived" : c.status === filter;
+
 export default function Cases() {
   const { user, token } = useSession();
   const r = useResource<DentalCase[]>("/cases");
   const action = useAction();
+  const [filter, setFilter] = useState<CaseFilter>("active");
+  const [search, setSearch] = useState("");
   function confirmDelete(c: DentalCase) {
     Alert.alert(
-      "Delete draft?",
-      `“${c.title}” and its uploaded X-ray will be permanently deleted.`,
+      "Taslak silinsin mi?",
+      `“${c.title}” ve yüklenen röntgen kalıcı olarak silinecek.`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Vazgeç", style: "cancel" },
         {
-          text: "Delete draft",
+          text: "Taslağı sil",
           style: "destructive",
           onPress: () =>
             void action.run(async () => {
@@ -56,132 +57,155 @@ export default function Cases() {
       { cancelable: true },
     );
   }
-  const { width, fontScale } = useWindowDimensions();
-  const narrow = width < 350 || fontScale > 1.3;
   const open = (id: string) =>
     router.push({ pathname: "/case/[id]", params: { id } });
-  const active = r.data?.find((c) => c.status !== "archived");
+  const cases = r.data || [];
+  const next =
+    cases.find((c) => c.status === "draft") ||
+    cases.find((c) => c.status !== "archived");
+  const nextStep =
+    next?.status === "draft"
+      ? next.asset
+        ? "Kliniklerinizi seçin"
+        : "Röntgeninizi ekleyin"
+      : "Klinik tekliflerini inceleyin";
+  const query = search.trim().toLocaleLowerCase("tr-TR");
+  const visible = cases.filter(
+    (c) =>
+      matchesFilter(c, filter) &&
+      (!query || c.title.toLocaleLowerCase("tr-TR").includes(query)),
+  );
   return (
     <Screen refresh={() => void r.refresh()} refreshing={r.loading && !!r.data}>
       <Heading
-        title={`Hello, ${user?.name.split(" ")[0] || "there"}`}
-        subtitle="Let’s make your next step a little clearer."
+        title={`Merhaba, ${user?.name.split(" ")[0] || "hoş geldiniz"}`}
+        subtitle="Vakalarınızı ve bir sonraki adımınızı takip edin."
       />
-      <View style={{ flexDirection: narrow ? "column" : "row", gap: 16 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Create a new case"
-          onPress={() => router.push("/new")}
-          style={({ pressed }) => [
-            local.action,
-            { backgroundColor: colors.blue, opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <View
-            pointerEvents="none"
-            style={[local.art, { mixBlendMode: "multiply" }]}
-          >
-            <Image
-              source={art.care}
-              contentFit="contain"
-              style={StyleSheet.absoluteFill}
-              accessible={false}
-            />
-          </View>
-          <View style={local.actionText}>
-            <Text style={[styles.heading, { color: "white" }]}>New case</Text>
-            <Text style={[local.caption, { color: "#E4EEFF" }]}>
-              START WITH AN X-RAY
-            </Text>
-          </View>
-          <View style={[local.pill, { backgroundColor: "white" }]}>
-            <Text style={local.pillText}>Get started</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.blue} />
-          </View>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="View your requests"
-          onPress={() => router.push("/appointments")}
-          style={({ pressed }) => [
-            local.action,
-            { backgroundColor: colors.sky, opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <View
-            pointerEvents="none"
-            style={[local.art, { mixBlendMode: "multiply" }]}
-          >
-            <Image
-              source={art.relax}
-              contentFit="contain"
-              style={StyleSheet.absoluteFill}
-              accessible={false}
-            />
-          </View>
-          <View style={local.actionText}>
-            <Text style={styles.heading}>Your requests</Text>
-            <Text style={local.caption}>KEEP IN TOUCH</Text>
-          </View>
-          <View style={[local.pill, { backgroundColor: colors.ink }]}>
-            <Text style={[local.pillText, { color: "white" }]}>View all</Text>
-            <Ionicons name="arrow-forward" size={16} color="white" />
-          </View>
-        </Pressable>
-      </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={
-          active ? `Continue ${active.title}` : "Start your first case"
-        }
-        onPress={() => (active ? open(active.id) : router.push("/new"))}
-        style={local.banner}
+        accessibilityLabel="Yeni vaka oluştur"
+        onPress={() => router.push("/new")}
+        style={({ pressed }) => [local.create, { opacity: pressed ? 0.8 : 1 }]}
       >
-        <Image
-          source={art.banner}
-          style={[StyleSheet.absoluteFill, { opacity: 0.3 }]}
-          contentFit="cover"
-          accessible={false}
-        />
-        <View style={{ flex: 1, gap: 6 }}>
-          <Text style={[styles.heading, { color: "white", fontSize: 17 }]}>
-            {active ? "Pick up where you left off" : "Your care, at your pace"}
+        <View style={local.createIcon}>
+          <Ionicons name="add" size={25} color="white" />
+        </View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={[styles.heading, { color: "white" }]}>
+            Yeni vaka oluştur
           </Text>
-          <Text
-            numberOfLines={1}
-            style={[styles.muted, { color: "#E1EEFF", fontSize: 12 }]}
-          >
-            {active ? active.title : "Upload · Choose clinics · Compare"}
+          <Text style={[styles.muted, { color: "#E4EEFF" }]}>
+            Röntgen ekleyin, kliniklerle paylaşın.
           </Text>
         </View>
-        <View style={local.arrow}>
-          <Ionicons name="arrow-forward" size={20} color={colors.blue} />
-        </View>
+        <Ionicons name="arrow-forward" size={20} color="white" />
       </Pressable>
-      <View style={[styles.row, { justifyContent: "space-between" }]}>
-        <Text style={styles.heading}>Your cases</Text>
-        <Text style={styles.muted}>
-          {r.data?.length ?? ""}
-          {r.data ? " total" : ""}
-        </Text>
+      {next && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${next.title} vakasına devam et: ${nextStep}`}
+          onPress={() => open(next.id)}
+          style={({ pressed }) => [local.next, pressed && { opacity: 0.75 }]}
+        >
+          <View style={{ flex: 1, gap: 5 }}>
+            <Text style={local.eyebrow}>SONRAKİ ADIMINIZ</Text>
+            <Text style={[styles.heading, { fontSize: 17 }]}>{nextStep}</Text>
+            <Text numberOfLines={1} style={styles.muted}>
+              {next.title}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color={colors.blue} />
+        </Pressable>
+      )}
+      <View style={{ gap: 12 }}>
+        <View style={[styles.row, { justifyContent: "space-between" }]}>
+          <Text style={styles.heading}>Vakalarınız</Text>
+          {r.data && <Text style={styles.muted}>{cases.length} toplam</Text>}
+        </View>
+        {cases.length > 0 && (
+          <>
+            <View style={local.filters}>
+              {filters.map((item) => {
+                const selected = filter === item.value;
+                return (
+                  <Pressable
+                    key={item.value}
+                    accessibilityRole="tab"
+                    accessibilityLabel={`${item.title} vakalar`}
+                    accessibilityState={{ selected }}
+                    onPress={() => setFilter(item.value)}
+                    style={[local.filter, selected && local.filterSelected]}
+                  >
+                    <Text
+                      style={[
+                        local.filterText,
+                        selected && { color: colors.blue },
+                      ]}
+                    >
+                      {item.title} ·{" "}
+                      {cases.filter((c) => matchesFilter(c, item.value)).length}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Field
+              label="Vaka ara"
+              placeholder="Vaka başlığına göre ara"
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+          </>
+        )}
       </View>
       <Notice text={r.error} error />
       <Notice text={action.error} error />
-      {r.error && (
-        <Button title="Try again" onPress={() => void r.refresh()} secondary />
+      {!!r.error && (
+        <Button
+          title="Yeniden dene"
+          onPress={() => void r.refresh()}
+          secondary
+        />
       )}
       {r.loading && !r.data && <Loading />}
       {r.data?.length === 0 && (
         <Empty
-          title="A fresh start"
-          detail="Your cases will appear here. Start with an X-ray whenever you’re ready."
+          title="İlk vakanızla başlayın"
+          detail="Yeni vaka oluşturun, röntgeninizi ekleyin ve teklif almak istediğiniz klinikleri seçin."
         />
       )}
-      {r.data?.map((c) => (
+      {cases.length > 0 && visible.length === 0 && (
+        <View style={{ gap: 12 }}>
+          <Empty
+            title={
+              query ? "Aramanızla eşleşen vaka yok" : "Bu bölümde vaka yok"
+            }
+            detail={
+              query
+                ? "Başka bir başlık arayın veya diğer vaka bölümlerine bakın."
+                : filter === "draft"
+                  ? "Tamamlanmayı bekleyen taslağınız bulunmuyor."
+                  : filter === "archived"
+                    ? "Arşivlenen vakalarınız burada görünecek."
+                    : "Yeni bir vaka oluşturarak başlayabilirsiniz."
+            }
+          />
+          {!!query && (
+            <Button
+              title="Aramayı temizle"
+              secondary
+              onPress={() => setSearch("")}
+            />
+          )}
+        </View>
+      )}
+      {visible.map((c) => (
         <View key={c.id} style={local.case}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Open ${c.title}`}
+            accessibilityLabel={`${c.title} vakasını aç`}
             onPress={() => open(c.id)}
             style={({ pressed }) => [
               local.caseBody,
@@ -207,10 +231,10 @@ export default function Cases() {
                 {c.title}
               </Text>
               <Text style={styles.muted}>
-                {c.region} · {c.recipients.length} clinics
+                {label(c.region)} · {c.recipients.length} klinik
               </Text>
               <Text
-                style={[styles.badge, { fontSize: 10, paddingVertical: 3 }]}
+                style={[styles.badge, c.status === "draft" && local.draftBadge]}
               >
                 {label(c.status)}
               </Text>
@@ -220,14 +244,14 @@ export default function Cases() {
           {c.status === "draft" && c.recipients.length === 0 && (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Delete draft ${c.title}`}
+              accessibilityLabel={`${c.title} taslağını sil`}
               accessibilityState={{ disabled: action.busy }}
               disabled={action.busy}
               onPress={() => confirmDelete(c)}
               style={[local.deleteDraft, action.busy && { opacity: 0.5 }]}
             >
-              <Ionicons name="trash-outline" size={17} color="#A33232" />
-              <Text style={local.deleteText}>Delete draft</Text>
+              <Ionicons name="trash-outline" size={17} color={colors.danger} />
+              <Text style={local.deleteText}>Taslağı sil</Text>
             </Pressable>
           )}
         </View>
@@ -236,53 +260,50 @@ export default function Cases() {
   );
 }
 const local = StyleSheet.create({
-  action: {
-    flex: 1,
-    isolation: "isolate",
-    minHeight: 218,
+  create: {
+    backgroundColor: colors.blue,
     borderRadius: 16,
-    overflow: "hidden",
-    padding: 16,
-    justifyContent: "flex-end",
-    gap: 20,
-  },
-  art: { position: "absolute", right: 0, top: 0, width: 177, height: 210 },
-  actionText: { gap: 6, paddingTop: 75 },
-  caption: {
-    color: "#395776",
-    fontFamily: fonts.medium,
-    fontSize: 9,
-    letterSpacing: 0.7,
-  },
-  pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 30,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    minHeight: 44,
-  },
-  pillText: { fontFamily: fonts.semibold, color: colors.blue, fontSize: 11 },
-  banner: {
-    backgroundColor: "#235AA8",
-    borderRadius: 16,
-    padding: 20,
-    minHeight: 96,
+    padding: 18,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    overflow: "hidden",
   },
-  arrow: {
+  createIcon: {
     width: 40,
     height: 40,
-    backgroundColor: "white",
-    borderRadius: 20,
+    borderRadius: 12,
+    backgroundColor: "#4784EE",
     alignItems: "center",
     justifyContent: "center",
   },
+  next: {
+    backgroundColor: colors.pale,
+    borderRadius: 16,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  eyebrow: {
+    color: colors.blue,
+    fontFamily: fonts.semibold,
+    fontSize: 11,
+    letterSpacing: 0.6,
+  },
+  filters: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  filter: {
+    flexGrow: 1,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterSelected: { borderColor: colors.blue, backgroundColor: colors.pale },
+  filterText: { fontFamily: fonts.semibold, color: colors.muted, fontSize: 13 },
   case: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -305,13 +326,14 @@ const local = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  deleteText: { fontFamily: fonts.medium, fontSize: 12, color: "#A33232" },
+  deleteText: { fontFamily: fonts.medium, fontSize: 12, color: colors.danger },
   caseIcon: {
-    width: 48,
-    height: 56,
+    width: 44,
+    height: 52,
     borderRadius: 12,
     backgroundColor: colors.pale,
     alignItems: "center",
     justifyContent: "center",
   },
+  draftBadge: { backgroundColor: "#FFF5DF", color: colors.amber },
 });

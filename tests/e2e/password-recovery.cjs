@@ -29,14 +29,14 @@ const mailbox = process.env.QA_MAILBOX_DIR || "tmp/recovery-mailbox";
     assert.equal(created.status(), 201);
     const session = (await created.json()).token;
     await page.goto(base + "/login");
-    await page.getByRole("link", { name: "Forgot your password?" }).click();
-    await page.getByLabel("Account email", { exact: true }).fill(email);
+    await page.getByRole("link", { name: "Şifrenizi mi unuttunuz?" }).click();
+    await page.getByLabel("Hesap e-postası", { exact: true }).fill(email);
     await page
-      .getByRole("button", { name: "Send reset email", exact: true })
+      .getByRole("button", { name: "Yenileme e-postası gönder", exact: true })
       .click();
     await page
       .getByRole("status")
-      .filter({ hasText: "If an eligible account exists" })
+      .filter({ hasText: "Uygun bir hesap varsa" })
       .waitFor();
     let token;
     // Read only this synthetic account's private local message, never an external inbox.
@@ -58,34 +58,34 @@ const mailbox = process.env.QA_MAILBOX_DIR || "tmp/recovery-mailbox";
     }
     assert(token, "Worker must create the synthetic reset email");
     await page.goto(base + "/reset-password#token=" + token);
-    await page.getByLabel("Reset token", { exact: true }).waitFor();
+    await page.getByLabel("Yenileme kodu", { exact: true }).waitFor();
     await page.waitForFunction(() => !location.hash);
     assert.equal(
-      await page.getByLabel("Reset token", { exact: true }).inputValue(),
+      await page.getByLabel("Yenileme kodu", { exact: true }).inputValue(),
       token,
     );
     await page
-      .getByLabel("New password (at least 10 characters)", { exact: true })
+      .getByLabel("Yeni şifre (en az 10 karakter)", { exact: true })
       .fill("NewWebRecoveryQA123!");
     await page
-      .getByLabel("Confirm new password", { exact: true })
+      .getByLabel("Yeni şifreyi doğrulayın", { exact: true })
       .fill("MismatchQA123!");
     await page
-      .getByRole("button", { name: "Update password", exact: true })
+      .getByRole("button", { name: "Şifreyi güncelle", exact: true })
       .click();
     await page
       .getByRole("alert")
-      .filter({ hasText: "Passwords do not match." })
+      .filter({ hasText: "Şifreler eşleşmiyor." })
       .waitFor();
     await page
-      .getByLabel("Confirm new password", { exact: true })
+      .getByLabel("Yeni şifreyi doğrulayın", { exact: true })
       .fill("NewWebRecoveryQA123!");
     await page
-      .getByRole("button", { name: "Update password", exact: true })
+      .getByRole("button", { name: "Şifreyi güncelle", exact: true })
       .click();
     await page
       .getByRole("status")
-      .filter({ hasText: "Your password has been updated" })
+      .filter({ hasText: "Şifreniz güncellendi" })
       .waitFor();
     assert.equal(
       (

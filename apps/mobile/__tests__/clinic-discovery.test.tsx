@@ -48,8 +48,8 @@ it("loads Google content on request and keeps clinic socials separate", () => {
   const load = jest.fn();
   render(<ClinicDiscovery clinic={clinic} loading={false} load={load} />);
   expect(load).not.toHaveBeenCalled();
-  expect(screen.getByText("Profiles supplied by the clinic")).toBeTruthy();
-  fireEvent.press(screen.getByText("Show Google rating & photo"));
+  expect(screen.getByText("Klinik tarafından eklenen sosyal medya hesapları")).toBeTruthy();
+  fireEvent.press(screen.getByText("Google puanını ve fotoğrafını göster"));
   expect(load).toHaveBeenCalledTimes(1);
 });
 
@@ -63,10 +63,10 @@ it("shows source-labelled rating, photographer and direct Maps photo link", asyn
       load={jest.fn()}
     />,
   );
-  expect(screen.getByText(/4.7 \/ 5.*120 reviews/)).toBeTruthy();
-  expect(screen.getByText(/not a clinical quality assessment/)).toBeTruthy();
-  expect(screen.getByText(/Photo: Synthetic Photographer/)).toBeTruthy();
-  fireEvent.press(screen.getByText(/View source photo on Google Maps/));
+  expect(screen.getByText(/4.7 \/ 5.*120 yorum/)).toBeTruthy();
+  expect(screen.getByText(/klinik kalite değerlendirmesi değildir/)).toBeTruthy();
+  expect(screen.getByText(/Fotoğraf: Synthetic Photographer/)).toBeTruthy();
+  fireEvent.press(screen.getByText(/Kaynak fotoğrafı Google Haritalar'da gör/));
   await waitFor(() =>
     expect(open).toHaveBeenCalledWith(
       "https://maps.google.com/synthetic-photo",
@@ -84,6 +84,6 @@ it("keeps unavailable Google data distinct from a real rating", () => {
       load={jest.fn()}
     />,
   );
-  expect(screen.getByText(/You can still select this clinic/)).toBeTruthy();
+  expect(screen.getByText(/Bu kliniği yine de seçebilirsiniz/)).toBeTruthy();
   expect(screen.queryByText(/★/)).toBeNull();
 });

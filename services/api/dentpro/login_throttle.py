@@ -25,7 +25,7 @@ def begin_attempt(db, email: str) -> LoginThrottle | None:
             row.window_started_at = now()
         elif row.attempts >= MAX_FAILURES:
             db.rollback()
-            raise HTTPException(429, 'Too many sign-in attempts. Try again later.', headers={'Retry-After': '900'})
+            raise HTTPException(429, 'Çok fazla giriş denemesi yapıldı. Daha sonra yeniden deneyin.', headers={'Retry-After': '900'})
     return row
 
 

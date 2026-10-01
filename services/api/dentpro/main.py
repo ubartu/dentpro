@@ -12,7 +12,7 @@ from .db import Base, engine, get_db, Case, Clinic, Proposal, Explanation, Appoi
 from .auth import actor, require, TOKENS, ACTORS
 from .runtime import cloud_mode, cors_origins
 from .contracts import CaseInput, DispatchInput, ProposalInput, AppointmentInput, PROCEDURES, ClinicOutput, CaseOutput, ProposalOutput, ComparisonOutput, AppointmentOutput, AuditOutput
-from .interpreter import cache_key, digest
+from .interpreter import cache_key, digest, localize_legacy_output
 from .operations_models import ClinicProfile, PlatformSetting, ProposalState, ExplanationJob, PatientCaseRequest
 
 @asynccontextmanager
@@ -67,9 +67,9 @@ def clinics(user=Depends(actor), db=Depends(get_db)):
 
 def access_case(db, case_id, user, lock=False):
     c = db.scalar(select(Case).where(Case.id==case_id).with_for_update()) if lock else db.get(Case, case_id)
-    if not c: raise HTTPException(404, 'Case not found')
+    if not c: raise HTTPException(404, 'Vaka bulunamadı')
     allowed = user['role'] == 'admin' or (user['role'] == 'patient' and c.user_id == user['id']) or (user['role'] == 'clinic' and user['clinic_id'] in c.recipients)
-    if not allowed: raise HTTPException(404, 'Case not found')
+    if not allowed: raise HTTPException(404, 'Vaka bulunamadı')
     return c
 
 def case_view(c):
@@ -81,7 +81,7 @@ def proposal_view(db, p):
     job = db.get(ExplanationJob, p.explanation_key)
     setting = db.get(PlatformSetting, 'operations')
     explanation_status = 'ready' if e else 'failed' if job and job.status == 'failed' else 'paused' if setting and not setting.value.get('explanations_enabled', True) else 'pending'
-    return {'id':p.id,'case_id':p.case_id,'clinic_id':p.clinic_id,'clinic_name':clinic.name,'district':clinic.district,'plan':p.plan,'total_minor':p.total_minor,'version':p.version,'created_at':p.created_at,'explanation':e.output if e else None,'explanation_status':explanation_status}
+    return {'id':p.id,'case_id':p.case_id,'clinic_id':p.clinic_id,'clinic_name':clinic.name,'district':clinic.district,'plan':p.plan,'total_minor':p.total_minor,'version':p.version,'created_at':p.created_at,'explanation':localize_legacy_output(e.output, p.plan) if e else None,'explanation_status':explanation_status}
 
 @app.get('/cases', response_model=list[CaseOutput])
 def cases(user=Depends(actor),db=Depends(get_db)):
@@ -94,13 +94,13 @@ def create_case(data: CaseInput,user=Depends(require('patient')),db=Depends(get_
     if idempotency_key:
         prior = db.scalar(select(PatientCaseRequest).where(PatientCaseRequest.user_id==user['id'],PatientCaseRequest.request_key==idempotency_key))
         if prior:
-            if prior.request_hash != request_hash: raise HTTPException(409, 'This submission was already used for a different case')
+            if prior.request_hash != request_hash: raise HTTPException(409, 'Bu gönderim başka bir vaka için kullanılmış')
             existing=db.get(Case,prior.case_id)
-            if not existing: raise HTTPException(410,'This draft was deleted. Start a new case.')
+            if not existing: raise HTTPException(410,'Bu taslak silindi. Yeni bir vaka oluşturun.')
             return case_view(existing)
     c = Case(id=str(uuid4()),user_id=user['id'],title=data.title,region=data.region)
     from .patient import CONSENT_VERSION
-    if data.consent_version and data.consent_version != CONSENT_VERSION: raise HTTPException(409, 'Consent terms changed. Refresh and review the current terms.')
+    if data.consent_version and data.consent_version != CONSENT_VERSION: raise HTTPException(409, 'Onay koşulları değişti. Güncel koşulları yenileyip inceleyin.')
     db.add(c); db.add(Consent(user_id=user['id'],case_id=c.id,version=data.consent_version or 'demo-1'))
     if idempotency_key: db.add(PatientCaseRequest(user_id=user['id'],request_key=idempotency_key,request_hash=request_hash,case_id=c.id))
     audit(db,user['id'],'case.created',c.id); audit(db,user['id'],'consent.recorded',c.id)
@@ -108,7 +108,7 @@ def create_case(data: CaseInput,user=Depends(require('patient')),db=Depends(get_
     except IntegrityError:
         db.rollback()
         prior = db.scalar(select(PatientCaseRequest).where(PatientCaseRequest.user_id==user['id'],PatientCaseRequest.request_key==idempotency_key))
-        if not prior or prior.request_hash != request_hash: raise HTTPException(409, 'Submission conflict; refresh your cases')
+        if not prior or prior.request_hash != request_hash: raise HTTPException(409, 'Gönderim çakışması oluştu; vakalarınızı yenileyin')
         return case_view(db.get(Case,prior.case_id))
     return case_view(c)
 
@@ -116,14 +116,14 @@ def create_case(data: CaseInput,user=Depends(require('patient')),db=Depends(get_
 def delete_draft(case_id:str,user=Depends(require('patient')),db=Depends(get_db)):
     c=access_case(db,case_id,user,lock=True)
     if c.status!='draft' or c.recipients or db.scalar(select(Proposal.id).where(Proposal.case_id==case_id).limit(1)):
-        raise HTTPException(409,'Only unshared draft cases can be deleted.')
+        raise HTTPException(409,'Yalnızca paylaşılmamış taslak vakalar silinebilir.')
     asset_path=None
     if not cloud_mode() and c.asset and not c.asset.get('synthetic'):
         # Upload keys are server-generated UUIDs, never user-supplied paths.
         asset_path=Path('.data/assets')/str(UUID(c.asset['key']))
     result=db.execute(delete(Case).where(Case.id==case_id,Case.user_id==user['id'],Case.status=='draft'))
     if result.rowcount!=1:
-        db.rollback(); raise HTTPException(409,'The case changed. Refresh your cases.')
+        db.rollback(); raise HTTPException(409,'Vaka değişti. Vakalarınızı yenileyin.')
     db.execute(delete(Consent).where(Consent.case_id==case_id))
     db.execute(delete(XrayAsset).where(XrayAsset.case_id==case_id))
     # Keep audit events and the request mapping as a tombstone against stale retries.
@@ -134,13 +134,13 @@ def delete_draft(case_id:str,user=Depends(require('patient')),db=Depends(get_db)
 @app.post('/cases/{case_id}/xray',status_code=201, response_model=CaseOutput)
 async def upload(case_id:str,file:UploadFile=File(...),user=Depends(require('patient')),db=Depends(get_db)):
     c=access_case(db,case_id,user,lock=True)
-    if c.status != 'draft': raise HTTPException(409,'Images cannot change after sharing. Create a new case.')
+    if c.status != 'draft': raise HTTPException(409,'Paylaşımdan sonra görseller değiştirilemez. Yeni bir vaka oluşturun.')
     setting=db.get(PlatformSetting,'operations')
     limit=(setting.value.get('upload_limit_mb',10) if setting else 10)*1024*1024
     data=await file.read(limit+1)
-    if len(data)>limit: raise HTTPException(413,f'Maximum file size is {limit//1024//1024} MB')
+    if len(data)>limit: raise HTTPException(413,f'En büyük dosya boyutu {limit//1024//1024} MB')
     kind = 'image/png' if data.startswith(b'\x89PNG\r\n\x1a\n') else 'image/jpeg' if data.startswith(b'\xff\xd8\xff') else 'application/pdf' if data.startswith(b'%PDF-') else None
-    if not kind: raise HTTPException(415,'Upload a PNG, JPEG or PDF file')
+    if not kind: raise HTTPException(415,'PNG, JPEG veya PDF dosyası yükleyin')
     key=str(uuid4())
     if cloud_mode():
         existing=db.get(XrayAsset,c.id)
@@ -155,12 +155,12 @@ async def upload(case_id:str,file:UploadFile=File(...),user=Depends(require('pat
 @app.get('/cases/{case_id}/xray')
 def download(case_id:str,user=Depends(actor),db=Depends(get_db)):
     c=access_case(db,case_id,user)
-    if not c.asset or c.asset.get('synthetic'): raise HTTPException(404,'This example case has no clinical image. Upload a synthetic file in a new case.')
+    if not c.asset or c.asset.get('synthetic'): raise HTTPException(404,'Bu örnek vakada klinik görüntü yok. Yeni bir vakaya örnek dosya yükleyin.')
     audit(db,user['id'],'xray.accessed',c.id); db.commit()
     headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}
     if cloud_mode():
         asset=db.get(XrayAsset,c.id)
-        if not asset: raise HTTPException(404,'Image unavailable')
+        if not asset: raise HTTPException(404,'Görsel kullanılamıyor')
         headers['Content-Disposition']="attachment; filename*=UTF-8''"+quote(c.asset['name'],safe='')
         return Response(content=asset.data,media_type=c.asset['type'],headers=headers)
     return FileResponse(Path('.data/assets')/c.asset['key'],media_type=c.asset['type'],filename=c.asset['name'],headers=headers)
@@ -168,15 +168,15 @@ def download(case_id:str,user=Depends(actor),db=Depends(get_db)):
 @app.post('/cases/{case_id}/dispatch', response_model=CaseOutput)
 def dispatch(case_id:str,data:DispatchInput,user=Depends(require('patient')),db=Depends(get_db)):
     c=access_case(db,case_id,user,lock=True)
-    if c.status=='archived':raise HTTPException(409,'Case is archived')
-    if not c.asset: raise HTTPException(409,'Upload an image before sharing this case')
+    if c.status=='archived':raise HTTPException(409,'Vaka arşivlendi')
+    if not c.asset: raise HTTPException(409,'Vakayı paylaşmadan önce görsel yükleyin')
     setting=db.get(PlatformSetting,'operations')
-    if len(set(c.recipients+data.clinic_ids))>(setting.value.get('max_recipients',10) if setting else 10):raise HTTPException(422,'Clinic recipient limit exceeded')
+    if len(set(c.recipients+data.clinic_ids))>(setting.value.get('max_recipients',10) if setting else 10):raise HTTPException(422,'Klinik alıcı sınırı aşıldı')
     for cid in data.clinic_ids:
         profile=db.get(ClinicProfile,cid)
-        if not profile or profile.status!='active':raise HTTPException(422,'Selected clinic is not accepting cases')
+        if not profile or profile.status!='active':raise HTTPException(422,'Seçilen klinik vaka kabul etmiyor')
     selected=db.scalars(select(Clinic).where(Clinic.id.in_(data.clinic_ids))).all()
-    if len(selected)!=len(set(data.clinic_ids)): raise HTTPException(422,'Select participating clinics')
+    if len(selected)!=len(set(data.clinic_ids)): raise HTTPException(422,'Platformdaki klinikleri seçin')
     c.recipients=sorted(set(c.recipients+data.clinic_ids));c.status='shared'
     audit(db,user['id'],'case.dispatched',c.id);db.commit();return case_view(c)
 
@@ -209,8 +209,8 @@ def compare(case_id:str,user=Depends(require('patient')),db=Depends(get_db)):
     # Source order only; no score, winner, clinical equivalence or sponsored ranking.
     proposals=[proposal_view(db,p) for p in rows if is_visible(db,p)]
     currencies={p['plan']['currency'] for p in proposals}
-    notice='Different procedures may represent different scopes of care. Prices are preliminary; comparison is not a clinical recommendation.'
-    if len(currencies)>1: notice+=' These proposals use different currencies. No exchange-rate conversion has been applied; totals are not directly comparable.'
+    notice='Farklı işlemler farklı tedavi kapsamlarını ifade edebilir. Fiyatlar ön bilgilendirme amaçlıdır; karşılaştırma klinik öneri değildir.'
+    if len(currencies)>1: notice+=' Bu teklifler farklı para birimlerindedir. Döviz kuru dönüşümü yapılmadığı için toplam tutarlar doğrudan karşılaştırılamaz.'
     return {'case_id':case_id,'currency':next(iter(currencies)) if len(currencies)==1 else None,'proposals':proposals, 'notice':notice}
 
 @app.post('/appointments',status_code=201, response_model=AppointmentOutput)
@@ -218,7 +218,7 @@ def book(data:AppointmentInput,user=Depends(require('patient')),db=Depends(get_d
     p=db.get(Proposal,data.proposal_id)
     if not p: raise HTTPException(404)
     c=access_case(db,p.case_id,user)
-    if c.status=='archived' or not is_visible(db,p):raise HTTPException(409,'This proposal is no longer available for requests')
+    if c.status=='archived' or not is_visible(db,p):raise HTTPException(409,'Bu teklif artık taleplere açık değil')
     prior=db.scalar(select(Appointment).where(Appointment.proposal_id==p.id,Appointment.user_id==user['id']))
     if prior:return prior
     a=Appointment(proposal_id=p.id,user_id=user['id'],clinic_id=p.clinic_id,kind=data.kind)

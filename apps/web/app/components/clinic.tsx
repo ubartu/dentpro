@@ -28,7 +28,9 @@ import {
   money,
   date,
   datetime,
+  label,
   csv,
+  matchesSearch,
 } from "../types";
 import {
   Badge,
@@ -95,10 +97,10 @@ export function CaseTable({
       <table>
         <thead>
           <tr>
-            <th>Case</th>
-            <th>Region</th>
-            <th>Received</th>
-            <th>Status</th>
+            <th>Vaka</th>
+            <th>Bölge</th>
+            <th>Alınma tarihi</th>
+            <th>Durum</th>
             <th />
           </tr>
         </thead>
@@ -120,17 +122,17 @@ export function CaseTable({
                 {base === "/clinic" && needsResponse(c) && (
                   <span className="response-label">
                     <Clock size={13} aria-hidden="true" />
-                    Needs response
+                    Yanıt bekliyor
                   </span>
                 )}
               </td>
-              <td>{c.region}</td>
+              <td>{label(c.region)}</td>
               <td>{date(c.created_at)}</td>
               <td>
                 <Badge>{base === "/admin" ? c.status : caseStatus(c)}</Badge>
               </td>
               <td>
-                <RowLink href={`${base}/cases/${c.id}`}>Open case</RowLink>
+                <RowLink href={`${base}/cases/${c.id}`}>Vakayı aç</RowLink>
               </td>
             </tr>
           ))}
@@ -138,11 +140,11 @@ export function CaseTable({
       </table>
       {!cases.length && (
         <Empty
-          title={filtered ? "No matching cases" : "No cases to show"}
+          title={filtered ? "Eşleşen vaka yok" : "Gösterilecek vaka yok"}
           description={
             filtered
-              ? "Try another status or clear your search to see more cases."
-              : "Cases shared with this clinic will appear in the inbox."
+              ? "Daha fazla vaka görmek için başka bir durum seçin veya aramayı temizleyin."
+              : "Bu klinikle paylaşılan vakalar gelen kutusunda görünecek."
           }
         />
       )}
@@ -154,7 +156,7 @@ export function ActivityChart({ proposals }: { proposals: Proposal[] }) {
     const d = new Date();
     d.setDate(d.getDate() - 6 + i);
     return {
-      label: d.toLocaleDateString("en-US", { weekday: "short" }),
+      label: d.toLocaleDateString("tr-TR", { weekday: "short" }),
       count: proposals.filter(
         (p) => new Date(p.created_at).toDateString() === d.toDateString(),
       ).length,
@@ -162,10 +164,7 @@ export function ActivityChart({ proposals }: { proposals: Proposal[] }) {
   });
   const max = Math.max(1, ...bars.map((x) => x.count));
   return (
-    <div
-      className="chart"
-      aria-label="Proposals submitted over the last seven days"
-    >
+    <div className="chart" aria-label="Son yedi günde gönderilen teklifler">
       {bars.map((b, i) => (
         <div className="chart-column" key={i}>
           <strong>{b.count}</strong>
@@ -198,7 +197,7 @@ export function ImageViewer({ c, auth }: { c: DentalCase; auth: Auth }) {
         .then(async (r) => {
           if (!r.ok)
             throw Error(
-              "Image access failed. Refresh your session and try again.",
+              "Görüntüye erişilemedi. Oturumu yenileyip yeniden deneyin.",
             );
           return r.blob();
         })
@@ -220,17 +219,17 @@ export function ImageViewer({ c, auth }: { c: DentalCase; auth: Auth }) {
       <div className="panel-heading">
         <h3>
           <ScanLine size={18} />
-          Case imaging
+          Vaka görüntüsü
         </h3>
         {url && (
           <div className="row">
             <a className="text-link" href={url} download={c.asset?.name}>
               <Download size={14} />
-              Download
+              İndir
             </a>
             {c.asset?.type !== "application/pdf" && (
               <button className="text-link" onClick={() => setZoom(!zoom)}>
-                {zoom ? "Fit image" : "Zoom"}
+                {zoom ? "Görüntüyü sığdır" : "Yakınlaştır"}
               </button>
             )}
           </div>
@@ -240,12 +239,12 @@ export function ImageViewer({ c, auth }: { c: DentalCase; auth: Auth }) {
         <div className={"image-view " + (zoom ? "zoom" : "")}>
           {c.asset?.type === "application/pdf" ? (
             <iframe
-              title="Uploaded case PDF"
+              title="Yüklenen vaka PDF'i"
               src={url}
               sandbox="allow-same-origin"
             />
           ) : (
-            <img src={url} alt="Patient-uploaded case image" />
+            <img src={url} alt="Hastanın yüklediği vaka görüntüsü" />
           )}
         </div>
       ) : (
@@ -254,19 +253,19 @@ export function ImageViewer({ c, auth }: { c: DentalCase; auth: Auth }) {
           <strong>
             {error ||
               (!c.asset?.available
-                ? "No reviewable image attached"
-                : "Loading case image…")}
+                ? "İncelenebilir görüntü eklenmemiş"
+                : "Vaka görüntüsü yükleniyor…")}
           </strong>
           <p>
             {c.asset && !c.asset.available
-              ? "This synthetic example contains no clinical X-ray."
-              : "Review only the materials supplied with this case."}
+              ? "Bu sentetik örnekte klinik röntgen yok."
+              : "Yalnızca bu vakayla gönderilen materyalleri inceleyin."}
           </p>
         </div>
       )}
       <div className="image-footer">
         <ShieldCheck size={14} />
-        Authorized access is recorded in the audit trail.
+        Yetkili erişim denetim kaydına işlenir.
       </div>
     </section>
   );
@@ -321,43 +320,43 @@ export default function ClinicScreen({
       return (
         <>
           <Heading
-            eyebrow="CLINIC OVERVIEW"
-            title={`Good to see you, ${auth.user.name.replace(/^Dr\.?\s*/, "").split(" ")[0]}.`}
-            description={`Here’s what needs your attention at ${clinic.name}.`}
+            eyebrow="KLİNİK GENEL BAKIŞI"
+            title={`Tekrar hoş geldiniz, ${auth.user.name.replace(/^Dr\.?\s*/, "").split(" ")[0]}.`}
+            description={`${clinic.name} için ilgilenmeniz gerekenler.`}
           >
             <Link className="primary" href="/clinic/cases">
-              Open case inbox
+              Vaka gelen kutusunu aç
               <ArrowRight size={16} />
             </Link>
           </Heading>
           <div className="stats">
             <Stat
-              label="Awaiting review"
+              label="İnceleme bekliyor"
               value={actionable.length}
               note={
                 actionable.length
-                  ? "New cases · Review now"
-                  : "No new cases awaiting review"
+                  ? "Yeni vakalar · Şimdi incele"
+                  : "İnceleme bekleyen yeni vaka yok"
               }
               href="/clinic/cases?status=new"
               attention={actionable.length > 0}
             />
             <Stat
-              label="Saved drafts"
+              label="Kayıtlı taslaklar"
               value={data.cases.filter((c) => c.draft).length}
-              note="Ready to continue"
+              note="Devam etmeye hazır"
               href="/clinic/proposals"
             />
             <Stat
-              label="Active proposals"
+              label="Aktif teklifler"
               value={submitted.length}
-              note="Submitted to patients"
+              note="Hastalara gönderildi"
               href="/clinic/proposals"
             />
             <Stat
-              label="New requests"
+              label="Yeni talepler"
               value={requests.length}
-              note="Callbacks & appointments"
+              note="Geri arama ve randevular"
               href="/clinic/appointments"
             />
           </div>
@@ -365,10 +364,10 @@ export default function ClinicScreen({
             <section className="panel flush">
               <div className="panel-heading">
                 <div>
-                  <h2>Your case inbox</h2>
-                  <p>Unanswered cases first, newest first within each group.</p>
+                  <h2>Vaka gelen kutunuz</h2>
+                  <p>Yanıtsız vakalar önce; her grupta en yeniler üstte.</p>
                 </div>
-                <RowLink href="/clinic/cases">View all</RowLink>
+                <RowLink href="/clinic/cases">Tümünü gör</RowLink>
               </div>
               <CaseTable
                 cases={prioritizeCases(
@@ -381,22 +380,22 @@ export default function ClinicScreen({
               <span className="square-icon">
                 <Clock size={23} />
               </span>
-              <h2>Make the next step clear.</h2>
+              <h2>Sonraki adımı netleştirin.</h2>
               <p>
                 {requests.length
-                  ? `${requests.length} patient request(s) are waiting for your team. Review the proposal, coordinate a time, and update the request.`
-                  : "Your incoming appointment requests are up to date. New patient requests will appear here."}
+                  ? `${requests.length} hasta talebi ekibinizin yanıtını bekliyor. Teklifi inceleyin, zaman belirleyin ve talebi güncelleyin.`
+                  : "Gelen randevu talepleriniz güncel. Yeni hasta talepleri burada görünecek."}
               </p>
               <Link className="primary" href="/clinic/appointments">
-                Manage requests
+                Talepleri yönet
                 <ArrowRight size={16} />
               </Link>
               <div className="mini-summary">
-                <span>Clinic account</span>
+                <span>Klinik hesabı</span>
                 <Badge>{clinic.status}</Badge>
               </div>
               <div className="mini-summary">
-                <span>Subscription</span>
+                <span>Abonelik</span>
                 <Badge>{clinic.subscription}</Badge>
               </div>
             </section>
@@ -405,8 +404,8 @@ export default function ClinicScreen({
             <section className="panel">
               <div className="panel-heading unpadded">
                 <div>
-                  <h2>Proposal activity</h2>
-                  <p>Submissions over the last 7 days</p>
+                  <h2>Teklif etkinliği</h2>
+                  <p>Son 7 gündeki gönderimler</p>
                 </div>
                 <Activity size={18} />
               </div>
@@ -415,10 +414,10 @@ export default function ClinicScreen({
             <section className="panel">
               <div className="panel-heading unpadded">
                 <div>
-                  <h2>Upcoming appointments</h2>
-                  <p>Confirmed visits coordinated by your team.</p>
+                  <h2>Yaklaşan randevular</h2>
+                  <p>Ekibinizin koordine ettiği onaylı ziyaretler.</p>
                 </div>
-                <RowLink href="/clinic/appointments">View all</RowLink>
+                <RowLink href="/clinic/appointments">Tümünü gör</RowLink>
               </div>
               {data.appointments.filter((a) => a.status === "confirmed")
                 .length ? (
@@ -440,8 +439,8 @@ export default function ClinicScreen({
                   ))
               ) : (
                 <Empty
-                  title="No confirmed visits yet"
-                  description="Confirm a date from appointment requests to see it here."
+                  title="Henüz onaylı ziyaret yok"
+                  description="Burada görünmesi için randevu taleplerinden bir tarih onaylayın."
                 />
               )}
             </section>
@@ -452,8 +451,8 @@ export default function ClinicScreen({
       if (!c)
         return (
           <Empty
-            title="Case not found"
-            description="This case may no longer be assigned to your clinic."
+            title="Vaka bulunamadı"
+            description="Bu vaka artık kliniğinize atanmış olmayabilir."
           />
         );
       const plans = data.proposals.filter((p) => p.case_id === c.id);
@@ -461,12 +460,12 @@ export default function ClinicScreen({
       return (
         <>
           <Link className="back-link" href="/clinic/cases">
-            ← Back to case inbox
+            ← Vaka gelen kutusuna dön
           </Link>
           <Heading
-            eyebrow={`${c.reference} · ${c.region}`}
+            eyebrow={`${c.reference} · ${label(c.region)}`}
             title={c.title}
-            description={`Received ${date(c.created_at)} · Patient identity is protected in case review.`}
+            description={`${date(c.created_at)} tarihinde alındı · İnceleme sırasında hasta kimliği korunur.`}
           >
             {c.status !== "archived" && (
               <button
@@ -475,10 +474,10 @@ export default function ClinicScreen({
               >
                 <FileText size={16} />
                 {c.draft
-                  ? "Continue draft"
+                  ? "Taslağa devam et"
                   : current
-                    ? "Revise proposal"
-                    : "Create proposal"}
+                    ? "Teklifi düzenle"
+                    : "Teklif oluştur"}
               </button>
             )}
           </Heading>
@@ -487,51 +486,51 @@ export default function ClinicScreen({
               <ImageViewer c={c} auth={auth} />
               <section className="panel">
                 <div className="panel-heading unpadded">
-                  <h2>Proposal history</h2>
-                  <Badge>{plans.length} versions</Badge>
+                  <h2>Teklif geçmişi</h2>
+                  <Badge>{plans.length} sürüm</Badge>
                 </div>
                 {plans.map((p) => (
                   <div className="activity-row" key={p.id}>
                     <FileText size={19} />
                     <div>
                       <strong>
-                        Version {p.version} ·{" "}
+                        Sürüm {p.version} ·{" "}
                         {money(p.total_minor, p.plan.currency)}
                       </strong>
                       <small>
-                        {date(p.created_at)} · {p.plan.items.length} procedures
-                        · {p.plan.sessions} visits
+                        {date(p.created_at)} · {p.plan.items.length} işlem ·{" "}
+                        {p.plan.sessions} seans
                       </small>
                     </div>
                     <Badge>{p.status}</Badge>
                     <button className="text-link" onClick={() => setDetail(p)}>
-                      View
+                      Görüntüle
                     </button>
                   </div>
                 ))}
                 {!plans.length && (
                   <p className="muted">
-                    No proposal has been published for this case.
+                    Bu vaka için henüz teklif yayımlanmadı.
                   </p>
                 )}
                 {c.draft && (
                   <div className="draft-note">
                     <Save size={18} />
                     <div>
-                      <strong>Saved draft</strong>
-                      <small>Updated {datetime(c.draft.updated_at)}</small>
+                      <strong>Kayıtlı taslak</strong>
+                      <small>Güncellendi {datetime(c.draft.updated_at)}</small>
                     </div>
                     <button
                       className="text-link"
                       onClick={() => setEditor({ c, revision: current })}
                     >
-                      Continue
+                      Devam et
                     </button>
                     <button
                       className="text-link danger"
                       onClick={() => setDiscard(c)}
                     >
-                      Discard
+                      Sil
                     </button>
                   </div>
                 )}
@@ -539,59 +538,67 @@ export default function ClinicScreen({
             </div>
             <aside>
               <section className="panel">
-                <h2>Case review</h2>
+                <h2>Vaka incelemesi</h2>
                 <div className="mini-summary">
-                  <span>Case status</span>
+                  <span>Vaka durumu</span>
                   <Badge>{caseStatus(c)}</Badge>
                 </div>
                 <div className="mini-summary">
-                  <span>Sharing consent</span>
+                  <span>Paylaşım onayı</span>
                   <Badge>{c.consent_recorded ? "recorded" : "missing"}</Badge>
                 </div>
-                <Form
-                  onSave={(f) =>
-                    act(
-                      `/clinic/cases/${c.id}/review`,
-                      { status: f.get("status"), notes: f.get("notes") },
-                      "PATCH",
-                    )
-                  }
-                >
-                  <Field label="Your review status">
-                    <select
-                      name="status"
-                      defaultValue={c.review_status}
-                      disabled={c.status === "archived"}
+                {c.status === "archived" ? (
+                  <>
+                    <Field label="İnceleme durumunuz">
+                      <input readOnly value={label(c.review_status)} />
+                    </Field>
+                    <Field
+                      label="Klinik içi notlar"
+                      hint="Yalnızca klinik ekibiniz görebilir."
                     >
-                      <option value="new">New</option>
-                      <option value="reviewing">In review</option>
-                      <option value="declined">Declined</option>
-                    </select>
-                  </Field>
-                  <Field
-                    label="Internal clinic notes"
-                    hint="Visible only to your clinic team."
-                  >
-                    <textarea
-                      name="notes"
-                      rows={6}
-                      maxLength={3000}
-                      defaultValue={c.internal_notes}
-                      disabled={c.status === "archived"}
-                    />
-                  </Field>
-                  {c.status === "archived" && (
+                      <textarea readOnly rows={6} value={c.internal_notes} />
+                    </Field>
                     <p className="muted">
-                      The platform has archived this case.
+                      Platform bu vakayı arşivledi. İnceleme bilgileri salt
+                      okunur.
                     </p>
-                  )}
-                </Form>
+                  </>
+                ) : (
+                  <Form
+                    onSave={(f) =>
+                      act(
+                        `/clinic/cases/${c.id}/review`,
+                        { status: f.get("status"), notes: f.get("notes") },
+                        "PATCH",
+                      )
+                    }
+                  >
+                    <Field label="İnceleme durumunuz">
+                      <select name="status" defaultValue={c.review_status}>
+                        <option value="new">Yeni</option>
+                        <option value="reviewing">İnceleniyor</option>
+                        <option value="declined">Reddedildi</option>
+                      </select>
+                    </Field>
+                    <Field
+                      label="Klinik içi notlar"
+                      hint="Yalnızca klinik ekibiniz görebilir."
+                    >
+                      <textarea
+                        name="notes"
+                        rows={6}
+                        maxLength={3000}
+                        defaultValue={c.internal_notes}
+                      />
+                    </Field>
+                  </Form>
+                )}
               </section>
               <div className="notice">
                 <ShieldCheck size={20} />
                 <p>
-                  The clinic creates the treatment plan. DENTRIVO’s interpreter
-                  explains it separately and does not assess the X-ray.
+                  Tedavi planını klinik oluşturur. DENTRIVO açıklamayı ayrı
+                  hazırlar; röntgeni değerlendirmez.
                 </p>
               </div>
             </aside>
@@ -603,9 +610,7 @@ export default function ClinicScreen({
       const rows = prioritizeCases(
         data.cases.filter(
           (c) =>
-            `${c.title} ${c.reference}`
-              .toLowerCase()
-              .includes(search.toLowerCase()) &&
+            matchesSearch(`${c.title} ${c.reference}`, search) &&
             (caseFilter === "all" ||
               (caseFilter === "unanswered"
                 ? needsResponse(c)
@@ -615,31 +620,30 @@ export default function ClinicScreen({
       return (
         <>
           <Heading
-            eyebrow="CLINICAL WORKFLOW"
-            title="Case inbox"
-            description="Review shared cases, inspect imaging, and prepare your professional response."
+            eyebrow="KLİNİK İŞ AKIŞI"
+            title="Vaka gelen kutusu"
+            description="Paylaşılan vakaları ve görüntüleri inceleyip mesleki yanıtınızı hazırlayın."
           />
           {unanswered.length > 0 && (
             <div className="case-attention-summary">
               <Clock size={22} aria-hidden="true" />
               <div>
-                <strong>
-                  {unanswered.length}{" "}
-                  {unanswered.length === 1 ? "case needs" : "cases need"} a
-                  response
-                </strong>
+                <strong>{unanswered.length} vaka yanıt bekliyor</strong>
                 <p>
-                  New, in-review and draft cases without an active proposal.
-                  Declined and archived cases are excluded.
+                  Aktif teklifi olmayan yeni, incelemede ve taslak vakalar.
+                  Reddedilen ve arşivlenenler dahil değildir.
                 </p>
               </div>
             </div>
           )}
-          <nav className="case-quick-filters" aria-label="Case inbox filters">
+          <nav
+            className="case-quick-filters"
+            aria-label="Vaka gelen kutusu filtreleri"
+          >
             {[
-              ["all", "All cases", data.cases.length],
-              ["new", "Awaiting review", actionable.length],
-              ["unanswered", "Unanswered", unanswered.length],
+              ["all", "Tüm vakalar", data.cases.length],
+              ["new", "İnceleme bekliyor", actionable.length],
+              ["unanswered", "Yanıtsız", unanswered.length],
             ].map(([value, label, count]) => (
               <Link
                 key={value}
@@ -655,10 +659,10 @@ export default function ClinicScreen({
             <SearchBox
               value={search}
               set={setSearch}
-              placeholder="Search cases or references…"
+              placeholder="Vaka veya referans ara…"
             />
             <select
-              aria-label="Case status"
+              aria-label="Vaka durumu"
               value={caseFilter}
               onChange={(e) =>
                 router.push(caseFilterHref(e.target.value), { scroll: false })
@@ -667,21 +671,21 @@ export default function ClinicScreen({
               {caseFilters.map((s) => (
                 <option key={s} value={s}>
                   {s === "all"
-                    ? "All statuses"
+                    ? "Tüm durumlar"
                     : s === "new"
-                      ? "New · awaiting review"
+                      ? "Yeni · inceleme bekliyor"
                       : s === "unanswered"
-                        ? "Unanswered"
-                        : s}
+                        ? "Yanıtsız"
+                        : label(s)}
                 </option>
               ))}
             </select>
             <span className="result-count" role="status">
-              {rows.length} {rows.length === 1 ? "case" : "cases"}
+              {rows.length} vaka
             </span>
             {search && (
               <button className="text-link" onClick={() => setSearch("")}>
-                Clear search
+                Aramayı temizle
               </button>
             )}
           </div>
@@ -697,17 +701,15 @@ export default function ClinicScreen({
     if (section === "proposals") {
       const rows = data.proposals.filter(
         (p) =>
-          `${p.case_title} ${p.id}`
-            .toLowerCase()
-            .includes(search.toLowerCase()) &&
+          matchesSearch(`${p.case_title} ${p.id}`, search) &&
           (filter === "all" || p.status === filter),
       );
       return (
         <>
           <Heading
-            eyebrow="TREATMENT PLANS"
-            title="Proposals & drafts"
-            description="Manage saved drafts, published plans, revisions, and withdrawn proposals."
+            eyebrow="TEDAVİ PLANLARI"
+            title="Teklifler ve taslaklar"
+            description="Kayıtlı taslakları, yayımlanmış planları, sürümleri ve geri çekilen teklifleri yönetin."
           />
           <div className="drafts-grid">
             {data.cases
@@ -718,13 +720,13 @@ export default function ClinicScreen({
                   <div>
                     <Badge>draft</Badge>
                     <h3>{c.title}</h3>
-                    <p>Saved {datetime(c.draft?.updated_at)}</p>
+                    <p>Kaydedilenler {datetime(c.draft?.updated_at)}</p>
                   </div>
                   <button
                     className="secondary"
                     onClick={() => setEditor({ c })}
                   >
-                    Continue
+                    Devam et
                     <ArrowRight size={15} />
                   </button>
                 </div>
@@ -734,16 +736,16 @@ export default function ClinicScreen({
             <SearchBox
               value={search}
               set={setSearch}
-              placeholder="Search proposals…"
+              placeholder="Tekliflerde ara…"
             />
             <select
-              aria-label="Proposal status"
+              aria-label="Teklif durumu"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
               {["all", "submitted", "superseded", "withdrawn"].map((s) => (
                 <option key={s} value={s}>
-                  {s === "all" ? "All statuses" : s}
+                  {s === "all" ? "Tüm durumlar" : label(s)}
                 </option>
               ))}
             </select>
@@ -765,7 +767,7 @@ export default function ClinicScreen({
               }
             >
               <Download size={15} />
-              Export
+              Dışa aktar
             </button>
           </div>
           <section className="panel flush">
@@ -773,11 +775,11 @@ export default function ClinicScreen({
               <table>
                 <thead>
                   <tr>
-                    <th>Case / proposal</th>
-                    <th>Preliminary total</th>
-                    <th>Visits</th>
-                    <th>Status</th>
-                    <th>Explanation</th>
+                    <th>Vaka / teklif</th>
+                    <th>Tahmini toplam</th>
+                    <th>Seanslar</th>
+                    <th>Durum</th>
+                    <th>Açıklama</th>
                     <th />
                   </tr>
                 </thead>
@@ -787,7 +789,7 @@ export default function ClinicScreen({
                       <td>
                         <strong>{p.case_title}</strong>
                         <small>
-                          Version {p.version} · {date(p.created_at)}
+                          Sürüm {p.version} · {date(p.created_at)}
                         </small>
                       </td>
                       <td>{money(p.total_minor, p.plan.currency)}</td>
@@ -805,7 +807,7 @@ export default function ClinicScreen({
                             className="text-link"
                             onClick={() => setDetail(p)}
                           >
-                            View
+                            Görüntüle
                           </button>
                           {p.status === "submitted" && (
                             <>
@@ -813,13 +815,13 @@ export default function ClinicScreen({
                                 className="text-link"
                                 onClick={() => revise(p)}
                               >
-                                Revise
+                                Düzenle
                               </button>
                               <button
                                 className="text-link danger"
                                 onClick={() => setWithdraw(p)}
                               >
-                                Withdraw
+                                Geri çek
                               </button>
                             </>
                           )}
@@ -832,8 +834,8 @@ export default function ClinicScreen({
             </div>
             {!rows.length && (
               <Empty
-                title="No matching proposals"
-                description="Create a proposal from a case in your inbox."
+                title="Eşleşen teklif yok"
+                description="Gelen kutunuzdaki bir vakadan teklif oluşturun."
               />
             )}
           </section>
@@ -844,9 +846,9 @@ export default function ClinicScreen({
       return (
         <>
           <Heading
-            eyebrow="PATIENT COORDINATION"
-            title="Appointments & callbacks"
-            description="Move requests from first contact to confirmed visits, then track completion."
+            eyebrow="HASTA KOORDİNASYONU"
+            title="Randevular ve geri aramalar"
+            description="Talepleri ilk iletişimden onaylı ziyarete taşıyıp tamamlanmalarını izleyin."
           />
           <AppointmentsPanel
             appointments={data.appointments}
@@ -859,9 +861,9 @@ export default function ClinicScreen({
       return (
         <>
           <Heading
-            eyebrow="CLINIC ACCESS"
-            title="Your team"
-            description="Create staff accounts and control access to your clinic workspace."
+            eyebrow="KLİNİK ERİŞİMİ"
+            title="Ekibiniz"
+            description="Personel hesapları oluşturun ve klinik çalışma alanına erişimi yönetin."
           />
           <MembersPanel
             accounts={data.members || []}
@@ -876,9 +878,9 @@ export default function ClinicScreen({
       return (
         <>
           <Heading
-            eyebrow="CLINIC SETTINGS"
-            title="Clinic profile"
-            description="Keep the contact details and operating information for your clinic up to date."
+            eyebrow="KLİNİK AYARLARI"
+            title="Klinik profili"
+            description="Kliniğinizin iletişim ve çalışma bilgilerini güncel tutun."
           />
           <div className="settings-grid">
             <section className="panel">
@@ -887,16 +889,16 @@ export default function ClinicScreen({
               >
                 <ProfileFields clinic={clinic} />
               </Form>
-              <h2>Social profiles</h2>
+              <h2>Sosyal medya profilleri</h2>
               <Form
-                label="Save social profiles"
+                label="Sosyal medya profillerini kaydet"
                 onSave={(f) =>
                   act("/clinic/discovery", discoveryData(f), "PUT")
                 }
               >
                 <DiscoveryFields clinic={clinic} />
                 <p className="muted">
-                  The administrator verifies and links your Google Place ID.
+                  Google Place ID bilginizi yönetici doğrular ve bağlar.
                 </p>
               </Form>
             </section>
@@ -906,15 +908,15 @@ export default function ClinicScreen({
               </span>
               <h2>{clinic.name}</h2>
               <p className="muted">
-                {clinic.region} · {clinic.district}
+                {label(clinic.region)} · {clinic.district}
               </p>
               <div className="mini-summary">
-                <span>Platform status</span>
+                <span>Platform durumu</span>
                 <Badge>{clinic.status}</Badge>
               </div>
               <p className="muted">
-                Approval and region changes are managed by the platform
-                administrator.
+                Onay ve bölge değişiklikleri platform yöneticisi tarafından
+                yapılır.
               </p>
               {clinic.review_notes && <p>{clinic.review_notes}</p>}
             </section>
@@ -925,46 +927,46 @@ export default function ClinicScreen({
       return (
         <>
           <Heading
-            eyebrow="CLINIC SUBSCRIPTION"
-            title="Plan & subscription"
-            description="Your clinic’s platform access and subscription record."
+            eyebrow="KLİNİK ABONELİĞİ"
+            title="Plan ve abonelik"
+            description="Kliniğinizin platform erişimi ve abonelik kaydı."
           />
           <div className="settings-grid">
             <section className="panel subscription-card">
-              <span className="eyebrow">DENTRIVO CLINIC</span>
-              <h2>Clinic workspace</h2>
+              <span className="eyebrow">DENTRIVO KLİNİK</span>
+              <h2>Klinik çalışma alanı</h2>
               <Badge>{clinic.subscription}</Badge>
               <div className="subscription-price">
                 {money(clinic.monthly_fee_minor)}
-                <small>/ month</small>
+                <small>/ ay</small>
               </div>
               <p>
-                Renewal date:{" "}
+                Yenileme tarihi:{" "}
                 <strong>
                   {clinic.renewal_date
                     ? date(clinic.renewal_date)
-                    : "Not scheduled"}
+                    : "Planlanmadı"}
                 </strong>
               </p>
               <ul>
-                <li>Shared case inbox and image review</li>
-                <li>Structured proposals and version history</li>
-                <li>Team access and appointment coordination</li>
+                <li>Paylaşılan vaka gelen kutusu ve görüntü incelemesi</li>
+                <li>Yapılandırılmış teklifler ve sürüm geçmişi</li>
+                <li>Ekip erişimi ve randevu koordinasyonu</li>
               </ul>
             </section>
             <section className="panel fit">
-              <h2>Subscription administration</h2>
+              <h2>Abonelik yönetimi</h2>
               <p className="muted">
-                Your platform administrator manages this record. Payment
-                collection and invoices are not connected in this environment.
+                Bu kaydı platform yöneticiniz yönetir. Bu ortamda ödeme
+                tahsilatı ve faturalar bağlı değildir.
               </p>
               <div className="mini-summary">
-                <span>Account status</span>
+                <span>Hesap durumu</span>
                 <Badge>{clinic.status}</Badge>
               </div>
               <p className="muted">
-                Contact your platform administrator to change the plan or
-                billing details.
+                Plan veya fatura bilgilerini değiştirmek için platform
+                yöneticinizle iletişime geçin.
               </p>
             </section>
           </div>
@@ -974,44 +976,44 @@ export default function ClinicScreen({
       return (
         <>
           <Heading
-            eyebrow="CLINIC PERFORMANCE"
-            title="Activity & response"
-            description="Operational counts from your actual case, proposal, and appointment records."
+            eyebrow="KLİNİK PERFORMANSI"
+            title="Etkinlik ve yanıtlar"
+            description="Gerçek vaka, teklif ve randevu kayıtlarınıza dayalı işlem sayıları."
           />
           <div className="stats">
             <Stat
-              label="Assigned cases"
+              label="Atanan vakalar"
               value={data.cases.length}
-              note="All case assignments"
+              note="Tüm vaka atamaları"
             />
             <Stat
-              label="Cases with a proposal"
+              label="Teklifi olan vakalar"
               value={data.cases.filter((c) => c.active_proposals > 0).length}
-              note="Current submitted plans"
+              note="Gönderilmiş güncel planlar"
             />
             <Stat
-              label="Confirmed visits"
+              label="Onaylı ziyaretler"
               value={
                 data.appointments.filter((a) => a.status === "confirmed").length
               }
-              note="Scheduled appointments"
+              note="Planlanan randevular"
             />
             <Stat
-              label="Completed visits"
+              label="Tamamlanan ziyaretler"
               value={
                 data.appointments.filter((a) => a.status === "completed").length
               }
-              note="Marked completed by your team"
+              note="Ekibinizce tamamlandı olarak işaretlenenler"
             />
           </div>
           <div className="dashboard-grid equal">
             <section className="panel">
-              <h2>Proposal submissions</h2>
-              <p className="muted">Last 7 days · revisions included</p>
+              <h2>Teklif gönderimleri</h2>
+              <p className="muted">Son 7 gün · sürümler dahil</p>
               <ActivityChart proposals={data.proposals} />
             </section>
             <section className="panel">
-              <h2>Case response breakdown</h2>
+              <h2>Vaka yanıt dağılımı</h2>
               {[
                 "new",
                 "reviewing",
@@ -1033,8 +1035,8 @@ export default function ClinicScreen({
       );
     return (
       <Empty
-        title="Page not found"
-        description="Choose a page from the clinic navigation."
+        title="Sayfa bulunamadı"
+        description="Klinik menüsünden bir sayfa seçin."
       />
     );
   }
@@ -1060,16 +1062,16 @@ export default function ClinicScreen({
       )}
       {withdraw && (
         <Confirm
-          title="Withdraw this proposal?"
-          description="It will no longer be available for new patient requests. Existing appointment records and version history will be retained."
+          title="Bu teklif geri çekilsin mi?"
+          description="Yeni hasta taleplerinde görünmeyecek. Mevcut randevu kayıtları ve sürüm geçmişi korunacak."
           close={() => setWithdraw(null)}
           onConfirm={() => act(`/clinic/proposals/${withdraw.id}/withdraw`)}
         />
       )}
       {discard && (
         <Confirm
-          title="Discard saved draft?"
-          description="The saved draft will be removed. Published proposals will remain unchanged."
+          title="Kayıtlı taslak silinsin mi?"
+          description="Kayıtlı taslak silinecek. Yayımlanan teklifler değişmeyecek."
           close={() => setDiscard(null)}
           onConfirm={() =>
             act(`/clinic/cases/${discard.id}/draft`, undefined, "DELETE")

@@ -390,7 +390,8 @@ code {
   padding: 6px;
   border-radius: 4px;
 }
-.mobile-menu {
+.mobile-menu,
+.mobile-nav-close {
   display: none;
 }
 .content {
@@ -2147,11 +2148,13 @@ footer {
 @media (max-width: 720px) {
   .sidebar {
     transform: translateX(-100%);
+    visibility: hidden;
     width: 245px;
     transition: transform 0.2s;
   }
   .sidebar.open {
     transform: translateX(0);
+    visibility: visible;
   }
   .sidebar nav a {
     font-size: 12px;
@@ -2162,6 +2165,15 @@ footer {
   }
   .mobile-menu {
     display: flex;
+  }
+  .mobile-nav-close {
+    display: flex;
+    align-self: flex-end;
+    margin-bottom: 12px;
+    min-width: 40px;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
   }
   .nav-backdrop {
     display: block;

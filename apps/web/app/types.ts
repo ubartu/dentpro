@@ -168,41 +168,146 @@ export type Action = (
   method?: string,
 ) => Promise<unknown>;
 export const names: Record<string, string> = {
-  ROOT_CANAL: "Root canal",
-  ROOT_CANAL_SINGLE: "Root canal — 1 canal",
-  ROOT_CANAL_DOUBLE: "Root canal — 2 canals",
-  ROOT_CANAL_MULTI: "Root canal — multiple canals",
-  EXTRACTION: "Extraction",
-  IMPLANT: "Dental implant",
-  CROWN: "Dental crown",
-  FILLING: "Filling",
-  CLEANING: "Cleaning",
+  ROOT_CANAL: "Kanal tedavisi",
+  ROOT_CANAL_SINGLE: "Kanal tedavisi — 1 kanallı",
+  ROOT_CANAL_DOUBLE: "Kanal tedavisi — 2 kanallı",
+  ROOT_CANAL_MULTI: "Kanal tedavisi — çok kanallı",
+  EXTRACTION: "Diş çekimi",
+  IMPLANT: "Diş implantı",
+  CROWN: "Diş kaplaması",
+  FILLING: "Diş dolgusu",
+  CLEANING: "Diş temizliği",
 };
-export const urgencies = { urgent: "Urgent", soon: "Soon", routine: "Routine" };
+export const urgencies = { urgent: "Acil", soon: "Yakında", routine: "Rutin" };
 export const money = (v: number, currency = "TRY") =>
-  new Intl.NumberFormat("en-US", {
+  new Intl.NumberFormat("tr-TR", {
     style: "currency",
     currency,
     maximumFractionDigits: 2,
   }).format(v / 100);
 export const date = (v: string | null | undefined) =>
   v
-    ? new Date(v).toLocaleDateString("en-GB", {
+    ? new Date(v).toLocaleDateString("tr-TR", {
         day: "numeric",
         month: "short",
         year: "numeric",
       })
-    : "Not set";
+    : "Belirtilmedi";
 export const datetime = (v: string | null | undefined) =>
   v
-    ? new Date(v).toLocaleString("en-GB", {
+    ? new Date(v).toLocaleString("tr-TR", {
         day: "numeric",
         month: "short",
         hour: "2-digit",
         minute: "2-digit",
       })
-    : "Not scheduled";
+    : "Planlanmadı";
+export const label = (value: string) =>
+  (
+    ({
+      new: "Yeni",
+      reviewing: "İnceleniyor",
+      declined: "Reddedildi",
+      draft: "Taslak",
+      submitted: "Gönderildi",
+      withdrawn: "Geri çekildi",
+      proposed: "Teklif verildi",
+      unanswered: "Yanıtsız",
+      superseded: "Yeni sürümle değiştirildi",
+      archived: "Arşivlendi",
+      shared: "Paylaşıldı",
+      active: "Aktif",
+      pending: "Bekliyor",
+      suspended: "Askıya alındı",
+      rejected: "Reddedildi",
+      requested: "Talep edildi",
+      contacted: "İletişime geçildi",
+      confirmed: "Onaylandı",
+      completed: "Tamamlandı",
+      cancelled: "İptal edildi",
+      unreviewed: "İncelenmedi",
+      approved: "Onaylandı",
+      flagged: "İşaretlendi",
+      failed: "Başarısız",
+      paused: "Duraklatıldı",
+      ready: "Hazır",
+      enabled: "Etkin",
+      urgent: "Acil",
+      soon: "Yakında",
+      routine: "Rutin",
+      trial: "Deneme",
+      past_due: "Vadesi geçti",
+      callback: "Geri arama",
+      appointment: "Randevu",
+      clinic: "Klinik",
+      admin: "Yönetici",
+      disabled: "Devre dışı",
+      recorded: "Kaydedildi",
+      missing: "Eksik",
+      reviewed: "İncelendi",
+      retrying: "Yeniden deneniyor",
+      running: "Çalışıyor",
+      succeeded: "Başarılı",
+      template: "Şablon",
+      template_fallback: "Şablon yedeği",
+      draft_requires_dentist_review: "Diş hekimi incelemesi gerekli",
+      dentist_review_recorded: "Diş hekimi incelemesi kaydedildi",
+      ai: "Yapay zekâ",
+      case: "Vaka",
+      proposal: "Teklif",
+      account: "Hesap",
+      explanation: "Açıklama",
+      glossary: "Sözlük",
+      xray: "Röntgen",
+      consent: "Onay",
+      platform: "Platform",
+      subscription: "Abonelik",
+      "account.created": "Hesap oluşturuldu",
+      "account.updated": "Hesap güncellendi",
+      "appointment.cancelled": "Randevu iptal edildi",
+      "appointment.requested": "Randevu talep edildi",
+      "case.created": "Vaka oluşturuldu",
+      "case.dispatched": "Vaka paylaşıldı",
+      "case.draft_deleted": "Vaka taslağı silindi",
+      "case.redispatched": "Vaka yeniden paylaşıldı",
+      "case.review_updated": "Vaka incelemesi güncellendi",
+      "clinic.created": "Klinik oluşturuldu",
+      "clinic.discovery_updated": "Klinik keşif bilgisi güncellendi",
+      "clinic.profile_updated": "Klinik profili güncellendi",
+      "clinic.social_links_updated": "Sosyal medya bağlantıları güncellendi",
+      "consent.recorded": "Onay kaydedildi",
+      "explanation.created": "Açıklama oluşturuldu",
+      "explanation.queued": "Açıklama sıraya alındı",
+      "glossary.updated": "Sözlük güncellendi",
+      "platform.settings_updated": "Platform ayarları güncellendi",
+      "proposal.draft_discarded": "Teklif taslağı silindi",
+      "proposal.draft_saved": "Teklif taslağı kaydedildi",
+      "proposal.reviewed": "Teklif incelendi",
+      "proposal.revised": "Teklif yenilendi",
+      "proposal.withdrawn": "Teklif geri çekildi",
+      "session.signed_in": "Oturum açıldı",
+      "session.signed_out": "Oturum kapatıldı",
+      "subscription.updated": "Abonelik güncellendi",
+      "xray.accessed": "Röntgen görüntülendi",
+      "xray.uploaded": "Röntgen yüklendi",
+      Istanbul: "İstanbul",
+      Izmir: "İzmir",
+      Ankara: "Ankara",
+      "All regions": "Tüm bölgeler",
+    }) as Record<string, string>
+  )[value] || value.replaceAll("_", " ");
 export const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+// Search should match Turkish display names and older ASCII records alike.
+export function matchesSearch(value: string, query: string) {
+  const normalize = (text: string) =>
+    text
+      .trim()
+      .toLocaleLowerCase("tr-TR")
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .replace(/ı/g, "i");
+  return normalize(value).includes(normalize(query));
+}
 export function csv(filename: string, rows: Record<string, unknown>[]) {
   if (!rows.length) return;
   const keys = Object.keys(rows[0]);

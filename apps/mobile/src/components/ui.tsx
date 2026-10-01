@@ -174,7 +174,7 @@ export function Heading({
       <Text accessibilityRole="header" style={styles.title}>
         {title}
       </Text>
-      {subtitle && <Text style={styles.muted}>{subtitle}</Text>}
+      {!!subtitle && <Text style={styles.muted}>{subtitle}</Text>}
     </View>
   );
 }
@@ -271,8 +271,8 @@ export function Field({
             accessibilityRole="button"
             accessibilityLabel={
               show
-                ? `Hide ${label.toLowerCase()}`
-                : `Show ${label.toLowerCase()}`
+                ? `${label} alanını gizle`
+                : `${label} alanını göster`
             }
             onPress={() => setShow(!show)}
             style={{ position: "absolute", right: 0, padding: 16 }}
@@ -324,7 +324,7 @@ export function Section({
       >
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={styles.heading}>{title}</Text>
-          {detail && <Text style={styles.muted}>{detail}</Text>}
+          {!!detail && <Text style={styles.muted}>{detail}</Text>}
         </View>
         <Ionicons
           name={open ? "chevron-up" : "chevron-down"}
@@ -405,7 +405,7 @@ export function Check({
 export function Loading() {
   return (
     <ActivityIndicator
-      accessibilityLabel="Loading"
+      accessibilityLabel="Yükleniyor"
       size="large"
       color={colors.blue}
       style={{ marginVertical: 30 }}
@@ -422,8 +422,8 @@ export function Empty({ title, detail }: { title: string; detail: string }) {
 }
 
 export function LoadingBrand({
-  title = "Opening your care space",
-  detail = "Just a moment…",
+  title = "Hesabınız açılıyor",
+  detail = "Biraz bekleyin…",
 }: {
   title?: string;
   detail?: string;

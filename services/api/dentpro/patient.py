@@ -65,8 +65,8 @@ class PatientClinic(StrictModel):
     google_place_id: str | None = None
     social_links: list[SocialLink]
 
-CONSENT_VERSION = 'patient-sharing-1'
-CONSENT_TEXT = 'I agree to store this case and share its X-ray and case details with the clinics I select for a preliminary treatment proposal. My contact details will be shared with a clinic when I request an appointment or callback.'
+CONSENT_VERSION = 'patient-sharing-2'
+CONSENT_TEXT = 'Bu vakanın saklanmasını ve röntgenim ile vaka bilgilerimin ön tedavi teklifi hazırlamaları için seçtiğim kliniklerle paylaşılmasını kabul ediyorum. İletişim bilgilerim, randevu veya geri arama istediğimde ilgili klinikle paylaşılacaktır.'
 
 def patient_view(db, user):
     profile = db.get(PatientProfile, user['id'])
@@ -85,7 +85,7 @@ def register(data: Registration, db=Depends(get_db)):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(409, 'An account with this email already exists. Sign in instead.')
+        raise HTTPException(409, 'Bu e-postayla kayıtlı bir hesap var. Lütfen giriş yapın.')
     return {'token': token, 'user': patient_view(db, account_view(account))}
 
 @router.post('/login', response_model=PatientSession)
@@ -95,7 +95,7 @@ def patient_login(data: LoginInput, db=Depends(get_db)):
 
 @router.get('/me', response_model=PatientAccount)
 def me(user=Depends(require('patient')), db=Depends(get_db)):
-    if not db.get(Account, user['id']): raise HTTPException(401, 'Sign in with a patient account.')
+    if not db.get(Account, user['id']): raise HTTPException(401, 'Hasta hesabınızla giriş yapın.')
     return patient_view(db, user)
 
 @router.put('/me', response_model=PatientAccount)
@@ -111,14 +111,14 @@ def update_me(data: PatientInput, user=Depends(require('patient')), db=Depends(g
     audit(db, account.id, 'patient.profile_updated', account.id)
     try: db.commit()
     except IntegrityError:
-        db.rollback(); raise HTTPException(409, 'An account with this email already exists.')
+        db.rollback(); raise HTTPException(409, 'Bu e-postayla kayıtlı bir hesap var.')
     return patient_view(db, account_view(account))
 
 @router.put('/password')
 def change_password(data: PasswordChange, user=Depends(require('patient')), db=Depends(get_db)):
     account = db.get(Account, user['id'])
     if not account or not password_matches(data.current_password, account.password_hash):
-        raise HTTPException(400, 'Current password is incorrect.')
+        raise HTTPException(400, 'Mevcut şifre hatalı.')
     account.password_hash = password_hash(data.new_password)
     db.execute(delete(LoginSession).where(LoginSession.account_id == account.id))
     audit(db, account.id, 'patient.password_changed', account.id)
@@ -157,7 +157,7 @@ def clinic_directory(db, clinic_id=None):
 @router.get('/clinics/{clinic_id}', response_model=PatientClinic)
 def clinic_detail(clinic_id:str,user=Depends(require('patient')),db=Depends(get_db)):
     result=next(iter(clinic_directory(db,clinic_id)),None)
-    if not result: raise HTTPException(404,'Clinic not available')
+    if not result: raise HTTPException(404,'Klinik kullanılamıyor')
     return result
 
 @router.get('/appointments', response_model=list[PatientAppointment])
@@ -172,8 +172,8 @@ def appointments(user=Depends(require('patient')), db=Depends(get_db)):
 @router.post('/appointments/{appointment_id}/cancel')
 def cancel(appointment_id: str, user=Depends(require('patient')), db=Depends(get_db)):
     a = db.get(Appointment,appointment_id)
-    if not a or a.user_id != user['id']: raise HTTPException(404, 'Request not found')
-    if a.status == 'completed': raise HTTPException(409, 'A completed appointment cannot be cancelled')
+    if not a or a.user_id != user['id']: raise HTTPException(404, 'Talep bulunamadı')
+    if a.status == 'completed': raise HTTPException(409, 'Tamamlanmış randevu iptal edilemez')
     if a.status != 'cancelled':
         a.status = 'cancelled'; audit(db,user['id'],'appointment.cancelled',a.id); db.commit()
     return {'ok': True}

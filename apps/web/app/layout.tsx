@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "DENTRIVO — Clinic & Administration",
-  description: "Clinic workflows and platform administration for DENTRIVO.",
+  title: "DENTRIVO — Klinik ve Yönetim",
+  description: "DENTRIVO klinik işlemleri ve platform yönetimi.",
 };
 export default function RootLayout({
   children,
@@ -10,8 +10,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="tr">
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
